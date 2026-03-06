@@ -1,0 +1,53 @@
+{
+  "app": {
+    "title": "Mooch",
+    "connecting": "Connecting...",
+    "status": {
+      "recording": "recording...",
+      "transcribing": "transcribing...",
+      "thinking": "thinking..."
+    }
+  },
+  "sections": {
+    "mochi": "Mooch",
+    "screenCapture": "Screen Capture"
+  },
+  "buttons": {
+    "microphone": "Microphone",
+    "systemAudio": "System Audio",
+    "stop": "Stop",
+    "window": "Window",
+    "area": "Area",
+    "selectWindow": "Select Window...",
+    "selectArea": "Select Area...",
+    "analyzing": "Analyzing..."
+  },
+  "tooltips": {
+    "recordFromMicrophone": "Record from microphone",
+    "recordSystemAudio": "Record system audio",
+    "captureWindowScreenshot": "Capture window screenshot",
+    "selectScreenArea": "Select screen area to capture",
+    "signOut": "Sign out"
+  },
+  "usage": {
+    "transcriptions": "{{used}}/{{limit}} transcriptions",
+    "snapshots": "{{used}}/{{limit}} snapshots"
+  },
+  "panels": {
+    "codeAnalysis": "Code Analysis",
+    "transcript": "Transcript",
+    "answer": "Answer"
+  },
+  "context": {
+    "cv": "CV",
+    "jobDescription": "Job Description",
+    "manualContext": "Manual Context",
+    "load": "Load",
+    "clear": "Clear",
+    "placeholder": "Add any additional context here..."
+  },
+  "hotkey": {
+    "instruction": "Hold {{key}} to record",
+    "key": "Ctrl+Shift+Space"
+  }
+}

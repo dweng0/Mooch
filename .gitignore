@@ -1,13 +1,18 @@
-ISSUES_TODAY.md
-ISSUE_RESPONSE.md
-__pycache__/
-*.pyc
-.env
 node_modules/
-target/
+out/
 dist/
-build/
-.venv/
-*.egg-info/
-*.tsbuildinfo
-coverage/
+downloads/
+.env
+*.log
+.claude/
+
+# devenv
+.devenv/
+devenv.local.nix
+.direnv/
+
+# Wasp
+web/.wasp/
+web/node_modules/
+web/.env.server
+web/.env.client

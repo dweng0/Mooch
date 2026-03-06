@@ -1,0 +1,17 @@
+{
+  "heading": "Sign in to your account",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign in",
+  "signingIn": "Signing in...",
+  "noAccount": "No account?",
+  "signUpAndSubscribe": "Sign up & subscribe",
+  "errors": {
+    "loginFailed": "Login failed",
+    "tooManyAttempts": "Too many failed attempts. Please wait {{seconds}} seconds before trying again.",
+    "waitBeforeTrying": "Please wait {{seconds}} second before trying again",
+    "waitBeforeTrying_other": "Please wait {{seconds}} seconds before trying again",
+    "couldNotReachServer": "Login failed — could not reach server"
+  },
+  "waitSeconds": "Wait {{seconds}}s"
+}

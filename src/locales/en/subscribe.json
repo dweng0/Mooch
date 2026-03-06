@@ -1,0 +1,10 @@
+{
+  "heading": "Subscribe to use Mooch",
+  "description": "You need an active subscription to use this app.",
+  "buttons": {
+    "openPricingPage": "Open Pricing Page",
+    "checkSubscription": "I've Subscribed - Check Status",
+    "logout": "Log Out"
+  },
+  "checking": "Checking..."
+}

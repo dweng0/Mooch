@@ -1,0 +1,29 @@
+{
+  "appId": "com.interview-copilot.app",
+  "productName": "Mooch",
+"directories": {
+    "output": "dist"
+  },
+  "files": [
+    "out/**/*"
+  ],
+  "win": {
+    "target": ["nsis", "portable"],
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+  },
+  "mac": {
+    "target": ["dmg", "zip"],
+    "category": "public.app-category.productivity",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "category": "Utility",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "dweng0",
+    "repo": "interview_co_pilot"
+  }
+}
