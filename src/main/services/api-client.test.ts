@@ -118,7 +118,7 @@ describe('API Client - Data Packaging', () => {
             'Content-Type': 'application/json',
             Authorization: 'Bearer valid-session',
           }),
-          body: JSON.stringify({ audio: expectedBase64 }),
+          body: JSON.stringify({ audio: expectedBase64, apiKeys: {} }),
         })
       )
     })
@@ -135,7 +135,7 @@ describe('API Client - Data Packaging', () => {
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ audio: Buffer.from(smallBuffer).toString('base64') }),
+          body: JSON.stringify({ audio: Buffer.from(smallBuffer).toString('base64'), apiKeys: {} }),
         })
       )
 
@@ -145,7 +145,7 @@ describe('API Client - Data Packaging', () => {
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ audio: Buffer.from(largeBuffer).toString('base64') }),
+          body: JSON.stringify({ audio: Buffer.from(largeBuffer).toString('base64'), apiKeys: {} }),
         })
       )
     })
@@ -189,6 +189,7 @@ describe('API Client - Data Packaging', () => {
           body: JSON.stringify({
             image: imageBase64,
             context: context,
+            apiKeys: {},
           }),
         })
       )
@@ -210,6 +211,7 @@ describe('API Client - Data Packaging', () => {
           body: JSON.stringify({
             image: imageBase64,
             context: undefined,
+            apiKeys: {},
           }),
         })
       )
@@ -265,6 +267,7 @@ describe('API Client - Data Packaging', () => {
             question,
             provider,
             context,
+            apiKeys: {},
           }),
         })
       )

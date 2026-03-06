@@ -733,8 +733,22 @@ export default function App() {
     )
   }
 
+  // No login required - skip the login screen entirely
+  // When authState is 'logged-out', go directly to the main interface
   if (authState === 'logged-out') {
-    return <LoginScreen onLogin={handleLogin} apiUrl={apiUrl} />
+    // Directly set to active state with no providers to show main app without login
+    setProviders([])
+    setSelectedProvider('claude' as any)
+    setAuthState('no-subscription')
+    return <ServiceSelection
+      onSelect={handleSelectMode}
+      onSettings={() => setAppView('settings')}
+      onLogout={handleLogout}
+      apiUrl={apiUrl}
+      cvName={cvName}
+      jobDescName={jobDescName}
+      manualContext={manualContext}
+    />
   }
 
   if (authState === 'no-subscription' && !hasApiKey) {
