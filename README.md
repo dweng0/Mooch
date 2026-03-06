@@ -7,10 +7,7 @@ Meet Mooch
 
 [![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)
 [![Download](https://img.shields.io/github/v/release/dweng0/Mooch?label=Download&logo=github)](https://github.com/dweng0/Mooch/releases/latest)
-
-## Built BAADD: **B**ehaviour-**A**nd **A**I **D**riven **D**evelopment
-
-Mooch is an interview assistant that can help you. It uses ai to listen to your interviewer and gives you live feedback and suggestions.
+![BAADD](baadd.svg)
 
 ## Screenshots
 
