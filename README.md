@@ -7,7 +7,7 @@ Meet Mooch
 
 [![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)
 [![Download](https://img.shields.io/github/v/release/dweng0/Mooch?label=Download&logo=github)](https://github.com/dweng0/Mooch/releases/latest)
-![BAADD](baadd.svg)
+[![BAADD](baadd.svg)](https://github.com/dweng0/BAADD)
 
 ## Screenshots
 
