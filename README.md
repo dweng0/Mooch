@@ -9,6 +9,9 @@ Meet Mooch
 [![Download](https://img.shields.io/github/v/release/dweng0/Mooch?label=Download&logo=github)](https://github.com/dweng0/Mooch/releases/latest)
 [![BAADD](baadd.svg)](https://github.com/dweng0/BAADD)
 
+
+
+Mooch is an interview assistant that can help you. It uses ai to listen to your interviewer and gives you live feedback and suggestions.
 ## Screenshots
 
 ![Mooch main screen](resources/mooch.png)
@@ -47,3 +50,4 @@ Mooch is built and maintained by an AI agent using Behaviour and AI Driven Devel
 
 ![Agent responds to issues](resources/responds-to-messages.png)
 
+## Built with BAADD: **B**ehaviour-**A**nd **A**I **D**riven **D**evelopment
