@@ -1,0 +1,13 @@
+ISSUES_TODAY.md
+ISSUE_RESPONSE.md
+__pycache__/
+*.pyc
+.env
+node_modules/
+target/
+dist/
+build/
+.venv/
+*.egg-info/
+*.tsbuildinfo
+coverage/

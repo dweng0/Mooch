@@ -1,0 +1,50 @@
+{
+  "name": "bdd-wizard",
+  "version": "0.1.0",
+  "description": "A React Ink CLI tool for creating BDD specification files",
+  "type": "module",
+  "bin": "dist/cli.js",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.{ts,tsx}' 'tests/**/*.{ts,tsx}'",
+    "format": "prettier --write 'src/**/*.{ts,tsx}' 'tests/**/*.{ts,tsx}'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx}' 'tests/**/*.{ts,tsx}'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dweng0/BAADD.git"
+  },
+  "keywords": [
+    "bdd",
+    "cli",
+    "ink",
+    "react"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dweng0/BAADD/issues"
+  },
+  "homepage": "https://github.com/dweng0/BAADD#readme",
+  "dependencies": {
+    "ink": "^6.8.0",
+    "meow": "^14.1.0",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.3",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "eslint": "^9.39.3",
+    "ink-testing-library": "^4.0.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.0.18"
+  }
+}

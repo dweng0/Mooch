@@ -1,0 +1,135 @@
+name: Evolution
+
+on:
+  schedule:
+    - cron: '0 */8 * * *'   # every 8 hours
+  workflow_dispatch:          # manual trigger via Actions tab
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python (for agent.py)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install agent dependencies
+        run: pip install anthropic openai --quiet
+
+      # ── Language-specific setup ──
+      # The setup_env.sh script handles most cases automatically.
+      # For languages that need a GitHub Action for proper setup,
+      # uncomment the relevant block below.
+
+      # Rust — uncomment if language: rust
+      # - name: Setup Rust
+      #   uses: dtolnay/rust-toolchain@stable
+      #   with:
+      #     components: clippy
+
+      # Node / TypeScript — uncomment if language: node or typescript
+      # - name: Setup Node
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+
+      # Go — uncomment if language: go
+      # - name: Setup Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version: 'stable'
+
+      # Java — uncomment if language: java
+      # - name: Setup Java
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     java-version: '21'
+      #     distribution: 'temurin'
+
+      - name: Setup GitHub CLI auth
+        run: gh auth status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "baadd-agent[bot]"
+          git config user.email "baadd-agent[bot]@users.noreply.github.com"
+
+      - name: Run session (bootstrap or evolve)
+        id: attempt1
+        continue-on-error: true
+        env:
+          # Provider priority: Anthropic > Kimi > Alibaba > OpenAI > Groq
+          # Set whichever key(s) you have in your repo secrets — the agent picks the first available.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MOONSHOT_API_KEY:  ${{ secrets.MOONSHOT_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          # Optional: override the model for the selected provider
+          MODEL:             ${{ secrets.BAADD_MODEL }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/bootstrap.sh scripts/evolve.sh scripts/setup_env.sh
+          if [ ! -f .baadd_initialized ]; then
+            echo "No .baadd_initialized found — running bootstrap..."
+            ./scripts/bootstrap.sh
+          else
+            ./scripts/evolve.sh
+          fi
+
+      - name: Retry after 15 min (if attempt 1 failed)
+        id: attempt2
+        if: steps.attempt1.outcome == 'failure'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MOONSHOT_API_KEY:  ${{ secrets.MOONSHOT_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          MODEL:             ${{ secrets.BAADD_MODEL }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Waiting 15 minutes..."
+          sleep 900
+          if [ ! -f .baadd_initialized ]; then
+            ./scripts/bootstrap.sh
+          else
+            ./scripts/evolve.sh
+          fi
+
+      - name: Retry after 45 min (if attempt 2 failed)
+        if: steps.attempt1.outcome == 'failure' && steps.attempt2.outcome == 'failure'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MOONSHOT_API_KEY:  ${{ secrets.MOONSHOT_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          MODEL:             ${{ secrets.BAADD_MODEL }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Waiting 45 minutes..."
+          sleep 2700
+          if [ ! -f .baadd_initialized ]; then
+            ./scripts/bootstrap.sh
+          else
+            ./scripts/evolve.sh
+          fi

@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <!-- Soft background gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="60%" r="60%">
+      <stop offset="0%" stop-color="#fff0f8"/>
+      <stop offset="100%" stop-color="#ffe0f0"/>
+    </radialGradient>
+    <!-- Fluffy wool texture gradient -->
+    <radialGradient id="woolGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#dde8f5"/>
+    </radialGradient>
+    <radialGradient id="faceGrad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#f5d5c0"/>
+      <stop offset="100%" stop-color="#e8b89a"/>
+    </radialGradient>
+    <radialGradient id="bellyGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c8d8ee"/>
+    </radialGradient>
+    <!-- Shadow -->
+    <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#c0a0c8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#c0a0c8" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Eye shine -->
+    <radialGradient id="eyeShine" cx="35%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#6655aa"/>
+    </radialGradient>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <filter id="woolBlur">
+      <feGaussianBlur stdDeviation="1"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="200" cy="200" r="185" fill="url(#bgGrad)"/>
+
+  <!-- Ground shadow -->
+  <ellipse cx="200" cy="338" rx="85" ry="18" fill="url(#shadowGrad)"/>
+
+  <!-- LEGS -->
+  <rect x="151" y="300" width="22" height="42" rx="11" fill="#e8b89a"/>
+  <rect x="227" y="300" width="22" height="42" rx="11" fill="#e8b89a"/>
+  <!-- Hooves -->
+  <rect x="149" y="328" width="26" height="16" rx="8" fill="#5a3e5a"/>
+  <rect x="225" y="328" width="26" height="16" rx="8" fill="#5a3e5a"/>
+
+  <!-- BODY - main fluffy oval -->
+  <ellipse cx="200" cy="258" rx="88" ry="72" fill="url(#woolGrad)" stroke="#b8cce0" stroke-width="1.5"/>
+
+  <!-- Fluffy wool bumps on body -->
+  <circle cx="148" cy="248" r="30" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="165" cy="218" r="28" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="198" cy="210" r="30" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="232" cy="218" r="28" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="252" cy="248" r="30" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="240" cy="278" r="26" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="160" cy="278" r="26" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="200" cy="285" r="24" fill="url(#bellyGrad)" stroke="#c8d8ee" stroke-width="1"/>
+
+  <!-- ARMS / tiny stubs -->
+  <ellipse cx="126" cy="268" rx="16" ry="22" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1" transform="rotate(-20 126 268)"/>
+  <ellipse cx="274" cy="268" rx="16" ry="22" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1" transform="rotate(20 274 268)"/>
+  <!-- Little hooves on arms -->
+  <ellipse cx="118" cy="284" rx="10" ry="8" fill="#5a3e5a" transform="rotate(-20 118 284)"/>
+  <ellipse cx="282" cy="284" rx="10" ry="8" fill="#5a3e5a" transform="rotate(20 282 284)"/>
+
+  <!-- HEAD -->
+  <ellipse cx="200" cy="168" rx="52" ry="50" fill="url(#faceGrad)" stroke="#d4a080" stroke-width="1.5"/>
+
+  <!-- FLUFFY head wool / forehead -->
+  <circle cx="175" cy="138" r="26" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="200" cy="132" r="28" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="225" cy="138" r="26" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="160" cy="152" r="20" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+  <circle cx="240" cy="152" r="20" fill="url(#woolGrad)" stroke="#c8d8ee" stroke-width="1"/>
+
+  <!-- EARS -->
+  <ellipse cx="152" cy="168" rx="18" ry="28" fill="#e8b89a" stroke="#d4a080" stroke-width="1.5" transform="rotate(-15 152 168)"/>
+  <ellipse cx="152" cy="168" rx="10" ry="18" fill="#f5c4b0" transform="rotate(-15 152 168)"/>
+  <ellipse cx="248" cy="168" rx="18" ry="28" fill="#e8b89a" stroke="#d4a080" stroke-width="1.5" transform="rotate(15 248 168)"/>
+  <ellipse cx="248" cy="168" rx="10" ry="18" fill="#f5c4b0" transform="rotate(15 248 168)"/>
+
+  <!-- EYES - rounded upward triangles (cat/claw machine style) -->
+  <!-- Left eye -->
+  <path d="M168 177 Q174 158 181 155 Q188 158 194 177 Q181 180 168 177Z" fill="#2a1a3a"/>
+  <path d="M168 177 Q181 183 194 177" fill="#f5d5c0"/>
+  <!-- Left eye shines -->
+  <circle cx="175" cy="164" r="3.5" fill="white" opacity="0.95"/>
+  <circle cx="184" cy="172" r="2" fill="white" opacity="0.6"/>
+
+  <!-- Right eye -->
+  <path d="M206 177 Q212 158 219 155 Q226 158 232 177 Q219 180 206 177Z" fill="#2a1a3a"/>
+  <path d="M206 177 Q219 183 232 177" fill="#f5d5c0"/>
+  <!-- Right eye shines -->
+  <circle cx="213" cy="164" r="3.5" fill="white" opacity="0.95"/>
+  <circle cx="222" cy="172" r="2" fill="white" opacity="0.6"/>
+
+  <!-- Eyelashes left -->
+  <line x1="172" y1="162" x2="169" y2="156" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="181" y1="155" x2="181" y2="149" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="190" y1="162" x2="193" y2="156" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Eyelashes right -->
+  <line x1="210" y1="162" x2="207" y2="156" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="219" y1="155" x2="219" y2="149" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="228" y1="162" x2="231" y2="156" stroke="#2a1a3a" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- NOSE -->
+  <ellipse cx="200" cy="187" rx="10" ry="7" fill="#d4849a"/>
+  <ellipse cx="196" cy="186" rx="3.5" ry="3" fill="#b86070"/>
+  <ellipse cx="204" cy="186" rx="3.5" ry="3" fill="#b86070"/>
+
+  <!-- MOUTH - cute smile -->
+  <path d="M193 194 Q200 202 207 194" stroke="#b86070" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Rosy cheeks -->
+  <ellipse cx="168" cy="183" rx="14" ry="9" fill="#f0a0b8" opacity="0.45"/>
+  <ellipse cx="232" cy="183" rx="14" ry="9" fill="#f0a0b8" opacity="0.45"/>
+
+  <!-- Little bow on top -->
+  <path d="M190 120 Q200 112 210 120 Q200 128 190 120Z" fill="#ff8fb0"/>
+  <path d="M210 120 Q220 112 230 120 Q220 128 210 120Z" fill="#ff8fb0"/>
+  <circle cx="210" cy="120" r="5" fill="#ff6090"/>
+
+  <!-- Sparkles -->
+  <g opacity="0.8">
+    <circle cx="310" cy="130" r="3" fill="#ffdd66"/>
+    <line x1="310" y1="120" x2="310" y2="113" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="310" y1="140" x2="310" y2="147" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="300" y1="130" x2="293" y2="130" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="320" y1="130" x2="327" y2="130" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="303" y1="123" x2="298" y2="118" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="317" y1="137" x2="322" y2="142" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="317" y1="123" x2="322" y2="118" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="303" y1="137" x2="298" y2="142" stroke="#ffdd66" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <circle cx="88" cy="160" r="4" fill="#b8aaee" opacity="0.7"/>
+  <circle cx="92" cy="148" r="2.5" fill="#f0a0c8" opacity="0.7"/>
+  <circle cx="80" cy="152" r="2" fill="#ffdd66" opacity="0.7"/>
+</svg>
