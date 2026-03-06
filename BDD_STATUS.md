@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 4 scenario(s) across 4 test file(s).
+Checked 5 scenario(s) across 6 test file(s).
 
 
 ## Feature: remove login
@@ -17,10 +17,11 @@ Checked 4 scenario(s) across 4 test file(s).
 
 ## Feature: user journey test coverage
 
-- [ ] UNCOVERED: user actions have test coverage
+- [x] user actions have test coverage
+
+## Feature: model requirements per feature
+
+- [x] feature model requirements are visible
 
 ---
-**3/4 scenarios covered.**
-
-1 scenario(s) need tests:
-- user actions have test coverage
+**5/5 scenarios covered.**
