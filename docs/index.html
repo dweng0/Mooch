@@ -1,15 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="scroll-behavior: smooth;">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mooch — Ace your next interview</title>
-  <meta name="description" content="Mooch on over to your next role. An AI-powered interview copilot that helps you stay calm and confident." />
+  <meta charset="utf-8">
+  <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no">
+  <meta name="description" content="AI-powered live interview assistant. Get real-time answer suggestions during your technical interviews.">
+  <meta name="author" content="Mooch">
+  <meta name="keywords" content="interview, AI, copilot, technical interview, job, career, Mooch, rabbit">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Mooch">
+  <meta property="og:site_name" content="Mooch">
+  <meta property="og:description" content="AI-powered live interview assistant. Get real-time answer suggestions during your technical interviews.">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Mooch</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          transitionDuration: { '800': '800ms' },
+          maxWidth: { '8xl': '96rem' },
+        }
+      }
+    }
+  </script>
   <style>
     @keyframes gradient-shift {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
+    }
+    @keyframes mask-slide {
+      0%   { mask-position: 100% 0%; -webkit-mask-position: 100% 0%; }
+      100% { mask-position: 0% 0%;   -webkit-mask-position: 0% 0%; }
     }
     @keyframes head-rotate {
       0%, 100% { transform: rotate(-2deg); }
@@ -27,198 +48,421 @@
       0%, 90%, 100% { opacity: 1; }
       95% { opacity: 0; }
     }
-    .mochi-rabbit-head {
-      transform-origin: 60px 55px;
-      animation: head-rotate 3s ease-in-out infinite;
-    }
-    .mochi-ear-left {
-      transform-origin: 40px 30px;
-      animation: ear-wiggle-left 2s ease-in-out infinite;
-    }
-    .mochi-ear-right {
-      transform-origin: 80px 30px;
-      animation: ear-wiggle-right 2s ease-in-out infinite 0.3s;
-    }
-    .mochi-eye {
-      animation: eye-blink 4s ease-in-out infinite;
-    }
-    .gradient-text {
-      background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c);
-      background-size: 200% 100%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradient-shift 8s ease infinite;
-    }
-    .fade-in {
+    .mochi-rabbit-head { transform-origin: 60px 55px; animation: head-rotate 3s ease-in-out infinite; }
+    .mochi-ear-left    { transform-origin: 40px 30px; animation: ear-wiggle-left 2s ease-in-out infinite; }
+    .mochi-ear-right   { transform-origin: 80px 30px; animation: ear-wiggle-right 2s ease-in-out infinite 0.3s; }
+    .mochi-eye         { animation: eye-blink 4s ease-in-out infinite; }
+
+    .fade-item {
       opacity: 0;
       transform: translateY(2rem);
-      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      transition: opacity 800ms ease-out, transform 800ms ease-out;
     }
-    .fade-in.visible {
+    .fade-item.visible {
       opacity: 1;
       transform: translateY(0);
     }
   </style>
 </head>
-<body class="bg-black text-white">
+<body class="min-h-screen bg-black text-white">
 
   <!-- Nav -->
   <header class="sticky inset-x-0 top-0 z-50 bg-black">
-    <nav class="flex items-center justify-between px-6 py-4 lg:px-8">
-      <a href="#" class="flex items-center gap-2 text-gray-200 hover:text-yellow-400 transition-colors duration-300">
-        <!-- Mooch logo (small) -->
-        <svg viewBox="-10 -10 140 140" class="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="nav-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ea580c" />
-              <stop offset="100%" stop-color="#fb923c" />
-            </linearGradient>
-          </defs>
-          <g class="mochi-rabbit-head">
-            <ellipse class="mochi-ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#nav-gradient)" />
-            <ellipse class="mochi-ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#nav-gradient)" />
-            <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#nav-gradient)" />
-            <path class="mochi-eye" d="M43 52 Q48 47 53 52" stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none" />
-            <path class="mochi-eye" d="M67 52 Q72 47 77 52" stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none" />
-            <path d="M52 62 Q60 67 68 62" stroke="#111" stroke-width="2" stroke-linecap="round" fill="none" />
-          </g>
-          <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#nav-gradient)" opacity="0.8" />
-          <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#nav-gradient)" opacity="0.9" />
-          <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#nav-gradient)" opacity="0.9" />
-        </svg>
-        <span class="text-sm font-semibold leading-6">Mooch</span>
-      </a>
-      <a
-        href="https://github.com/dweng0/Mooch/releases/latest"
-        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 transition-colors duration-200"
-      >
-        Download
-      </a>
+    <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+      <div class="flex items-center lg:flex-1">
+        <a href="#" class="flex items-center -m-1.5 p-1.5 text-gray-200 duration-300 ease-in-out hover:text-yellow-500">
+          <svg viewBox="0 0 120 120" class="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <style>
+              .rabbit-head { transform-origin: 60px 55px; animation: head-rotate 3s ease-in-out infinite; }
+              .ear-left    { transform-origin: 40px 30px; animation: ear-wiggle-left 2s ease-in-out infinite; }
+              .ear-right   { transform-origin: 80px 30px; animation: ear-wiggle-right 2s ease-in-out infinite 0.3s; }
+              .eye         { animation: eye-blink 4s ease-in-out infinite; }
+              .gradient-start { stop-color: #f97316; }
+              .gradient-end   { stop-color: #fb923c; }
+              .detail-fill    { fill: #78350f; }
+              .eye-glow       { fill: #06b6d4; }
+              @media (prefers-color-scheme: dark) {
+                .gradient-start { stop-color: #fbbf24; }
+                .gradient-end   { stop-color: #fde047; }
+                .detail-fill    { fill: #1f2937; }
+                .eye-glow       { fill: #22d3ee; }
+              }
+            </style>
+            <defs>
+              <linearGradient id="rabbit-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" class="gradient-start"/>
+                <stop offset="100%" class="gradient-end"/>
+              </linearGradient>
+            </defs>
+            <g class="rabbit-head">
+              <ellipse class="ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#rabbit-gradient)"/>
+              <ellipse class="ear-left detail-fill" cx="40" cy="30" rx="6" ry="28" opacity="0.3"/>
+              <ellipse class="ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#rabbit-gradient)"/>
+              <ellipse class="ear-right detail-fill" cx="80" cy="30" rx="6" ry="28" opacity="0.3"/>
+              <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#rabbit-gradient)"/>
+              <circle class="eye detail-fill" cx="48" cy="50" r="5"/>
+              <circle class="eye detail-fill" cx="72" cy="50" r="5"/>
+              <circle class="eye eye-glow" cx="49" cy="49" r="2"/>
+              <circle class="eye eye-glow" cx="73" cy="49" r="2"/>
+              <ellipse class="detail-fill" cx="60" cy="62" rx="4" ry="3" opacity="0.6"/>
+              <path d="M35 58 Q25 58 20 55" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              <path d="M35 62 Q25 63 18 65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              <path d="M85 58 Q95 58 100 55" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              <path d="M85 62 Q95 63 102 65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+            </g>
+            <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#rabbit-gradient)" opacity="0.8"/>
+          </svg>
+          <span class="ml-2 text-sm font-semibold leading-6">Mooch</span>
+        </a>
+      </div>
+      <div class="hidden lg:flex lg:gap-x-12">
+        <a href="#features" class="text-sm font-semibold leading-6 text-gray-100 duration-300 ease-in-out hover:text-yellow-400">Features</a>
+        <a href="https://github.com/dweng0/Mooch" class="text-sm font-semibold leading-6 text-gray-100 duration-300 ease-in-out hover:text-yellow-400">Documentation</a>
+      </div>
+      <div class="hidden lg:flex lg:flex-1 justify-end">
+        <a href="https://github.com/dweng0/Mooch/releases/latest" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 duration-200">
+          Download
+        </a>
+      </div>
+      <!-- Mobile menu button -->
+      <div class="flex lg:hidden">
+        <button type="button" id="mobile-menu-btn" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
+          <span class="sr-only">Open main menu</span>
+          <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" aria-hidden="true" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M3 6.75A.75.75 0 013.75 6h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 6.75zM3 12a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 12zm0 5.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd"></path>
+          </svg>
+        </button>
+      </div>
     </nav>
   </header>
 
-  <!-- Hero -->
-  <main>
-    <div class="relative pt-14 w-full overflow-hidden min-h-screen">
-      <!-- Video background -->
-      <video
-        id="bg-video"
-        autoplay
-        loop
-        muted
-        playsinline
-        class="absolute inset-0 w-full h-full object-cover"
-        style="z-index: -10;"
-      ></video>
-      <!-- Dark overlay -->
-      <div class="absolute inset-0 bg-black/70" style="z-index: -10;"></div>
-      <!-- Edge gradients -->
-      <div
-        class="absolute inset-0 pointer-events-none"
-        style="z-index: -10; background: linear-gradient(to right, black 0%, transparent 15%, transparent 85%, black 100%), linear-gradient(to bottom, black 0%, transparent 15%, transparent 80%, black 100%);"
-      ></div>
+  <div class="bg-black">
+    <main class="isolate bg-black">
 
-      <div class="py-24 sm:py-32">
-        <div class="mx-auto max-w-7xl px-6 lg:px-8">
-          <div class="mx-auto max-w-3xl text-center">
+      <!-- Hero -->
+      <div class="relative pt-14 w-full overflow-hidden">
+        <style>
+          @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+        </style>
+        <video id="bg-video" autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover -z-10"></video>
+        <div class="absolute inset-0 -z-10 bg-black/70"></div>
+        <div class="absolute inset-0 -z-10 pointer-events-none" style="background: linear-gradient(to right, black 0%, transparent 15%, transparent 85%, black 100%), linear-gradient(black 0%, transparent 15%, transparent 80%, black 100%);"></div>
 
-            <!-- Logo -->
-            <div class="fade-in mb-6" data-delay="100">
-              <svg viewBox="-10 -10 140 140" class="mx-auto h-40 w-40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <style>
-                  @keyframes head-rotate { 0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)} }
-                  @keyframes ear-wiggle-left { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
-                  @keyframes ear-wiggle-right { 0%,100%{transform:rotate(5deg)}50%{transform:rotate(-5deg)} }
-                  @keyframes eye-blink { 0%,90%,100%{opacity:1}95%{opacity:0} }
-                  .h-head { transform-origin:60px 55px; animation:head-rotate 3s ease-in-out infinite; }
-                  .h-ear-l { transform-origin:40px 30px; animation:ear-wiggle-left 2s ease-in-out infinite; }
-                  .h-ear-r { transform-origin:80px 30px; animation:ear-wiggle-right 2s ease-in-out infinite 0.3s; }
-                  .h-eye { animation:eye-blink 4s ease-in-out infinite; }
-                </style>
-                <defs>
-                  <linearGradient id="hero-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#f97316" />
-                    <stop offset="100%" stop-color="#fb923c" />
-                  </linearGradient>
-                </defs>
-                <g class="h-head">
-                  <ellipse class="h-ear-l" cx="40" cy="30" rx="12" ry="35" fill="url(#hero-gradient)" />
-                  <ellipse class="h-ear-l" cx="40" cy="30" rx="6" ry="28" fill="#111" opacity="0.2" />
-                  <ellipse class="h-ear-r" cx="80" cy="30" rx="12" ry="35" fill="url(#hero-gradient)" />
-                  <ellipse class="h-ear-r" cx="80" cy="30" rx="6" ry="28" fill="#111" opacity="0.2" />
-                  <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#hero-gradient)" />
-                  <path class="h-eye" d="M43 52 Q48 47 53 52" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" fill="none" />
-                  <path class="h-eye" d="M67 52 Q72 47 77 52" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" fill="none" />
-                  <path d="M52 62 Q60 67 68 62" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" fill="none" />
-                  <path d="M35 58 Q25 58 20 55" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
-                  <path d="M35 62 Q25 63 18 65" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
-                  <path d="M85 58 Q95 58 100 55" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
-                  <path d="M85 62 Q95 63 102 65" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
-                </g>
-                <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#hero-gradient)" opacity="0.8" />
-                <ellipse cx="60" cy="95" rx="15" ry="12" fill="white" opacity="0.3" />
-                <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#hero-gradient)" opacity="0.9" />
-                <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#hero-gradient)" opacity="0.9" />
-                <ellipse cx="47" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
-                <ellipse cx="53" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
-                <ellipse cx="67" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
-                <ellipse cx="73" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
-              </svg>
+        <div class="py-24 sm:py-32">
+          <div class="mx-auto max-w-8xl px-6 lg:px-8">
+            <div class="lg:mb-18 mx-auto max-w-3xl text-center">
+
+              <!-- Logo -->
+              <div class="fade-item mb-6" data-delay="100">
+                <svg viewBox="-10 -10 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-auto h-40 w-40">
+                  <style>
+                    @keyframes head-rotate { 0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)} }
+                    @keyframes ear-wiggle-left { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
+                    @keyframes ear-wiggle-right { 0%,100%{transform:rotate(5deg)}50%{transform:rotate(-5deg)} }
+                    @keyframes eye-blink { 0%,90%,100%{opacity:1}95%{opacity:0} }
+                    .mochi-rabbit-head { transform-origin:60px 55px; animation:head-rotate 3s ease-in-out infinite; }
+                    .mochi-ear-left    { transform-origin:40px 30px; animation:ear-wiggle-left 2s ease-in-out infinite; }
+                    .mochi-ear-right   { transform-origin:80px 30px; animation:ear-wiggle-right 2s ease-in-out infinite 0.3s; }
+                    .mochi-eye         { animation:eye-blink 4s ease-in-out infinite; }
+                  </style>
+                  <defs>
+                    <linearGradient id="mochi-rabbit-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" class="text-orange-500" stop-color="currentColor"/>
+                      <stop offset="100%" class="text-orange-400" stop-color="currentColor"/>
+                    </linearGradient>
+                  </defs>
+                  <g class="mochi-rabbit-head">
+                    <ellipse class="mochi-ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#mochi-rabbit-gradient)"/>
+                    <ellipse class="mochi-ear-left" cx="40" cy="30" rx="6" ry="28" fill="#111827" opacity="0.2"/>
+                    <ellipse class="mochi-ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#mochi-rabbit-gradient)"/>
+                    <ellipse class="mochi-ear-right" cx="80" cy="30" rx="6" ry="28" fill="#111827" opacity="0.2"/>
+                    <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#mochi-rabbit-gradient)"/>
+                    <path class="mochi-eye" d="M43 52 Q48 47 53 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                    <path class="mochi-eye" d="M67 52 Q72 47 77 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                    <path d="M52 62 Q60 67 68 62" stroke="#111827" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <path d="M35 58 Q25 58 20 55" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4" class="text-gray-700"/>
+                    <path d="M35 62 Q25 63 18 65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4" class="text-gray-700"/>
+                    <path d="M85 58 Q95 58 100 55" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4" class="text-gray-700"/>
+                    <path d="M85 62 Q95 63 102 65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4" class="text-gray-700"/>
+                  </g>
+                  <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#mochi-rabbit-gradient)" opacity="0.8"/>
+                  <ellipse cx="60" cy="95" rx="15" ry="12" fill="white" opacity="0.3"/>
+                  <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#mochi-rabbit-gradient)" opacity="0.9"/>
+                  <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#mochi-rabbit-gradient)" opacity="0.9"/>
+                  <ellipse cx="47" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4"/>
+                  <ellipse cx="53" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4"/>
+                  <ellipse cx="67" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4"/>
+                  <ellipse cx="73" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4"/>
+                </svg>
+              </div>
+
+              <!-- Title -->
+              <h1 class="fade-item text-6xl font-black sm:text-8xl" data-delay="300" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient-shift 8s ease infinite;">
+                Mooch
+              </h1>
+
+              <!-- Description -->
+              <p class="fade-item mt-6 mx-auto max-w-2xl text-lg leading-8 text-white" data-delay="500">
+                The friendly AI-powered interview assistant that helps you ace your interviews.
+              </p>
+
+              <!-- Buttons -->
+              <div class="fade-item mt-10 flex items-center justify-center gap-x-6" data-delay="700">
+                <a href="https://github.com/dweng0/Mooch/releases/latest" class="rounded-md bg-indigo-600 px-6 py-3.5 text-lg font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                  Download Now
+                </a>
+                <a href="#features" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'});return false;" class="cursor-pointer rounded-md bg-yellow-400 px-6 py-3.5 text-lg font-bold text-gray-900 shadow-sm hover:bg-yellow-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400">
+                  <span class="flex items-center gap-1.5">
+                    Learn More
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </span>
+                </a>
+              </div>
+
             </div>
-
-            <!-- Title -->
-            <h1
-              class="fade-in gradient-text text-6xl font-black sm:text-8xl"
-              data-delay="300"
-            >
-              Meet Mooch
-            </h1>
-
-            <!-- Description -->
-            <p
-              class="fade-in mt-6 mx-auto max-w-2xl text-lg leading-8 text-white"
-              data-delay="500"
-            >
-              Mooch on over to your next role.
-            </p>
-
-            <!-- Buttons -->
-            <div
-              class="fade-in mt-10 flex items-center justify-center gap-x-6"
-              data-delay="700"
-            >
-              <a
-                href="https://github.com/dweng0/Mooch/releases/latest"
-                class="rounded-md bg-indigo-600 px-6 py-3.5 text-lg font-bold text-white shadow-sm hover:bg-indigo-500 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                Download Now
-              </a>
-              <a
-                href="https://github.com/dweng0/Mooch"
-                class="rounded-md bg-yellow-400 px-6 py-3.5 text-lg font-bold text-gray-900 shadow-sm hover:bg-yellow-300 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
-              >
-                <span class="flex items-center gap-1.5">
-                  Learn more
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </span>
-              </a>
-            </div>
-
+            <div class="mt-14 flow-root sm:mt-14"></div>
           </div>
         </div>
       </div>
-    </div>
-  </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-gray-800 py-8 px-6 text-center text-sm text-gray-500">
-    <p>© 2025 Mooch. Built with <span class="text-orange-500">♥</span></p>
-  </footer>
+      <!-- Clients / AI Logos -->
+      <div class="mt-12 mx-auto max-w-7xl px-6 lg:px-8 flex flex-col items-between gap-y-6">
+        <style>
+          @keyframes mask-slide {
+            0%   { mask-position: 100% 0%; -webkit-mask-position: 100% 0%; }
+            100% { mask-position: 0% 0%;   -webkit-mask-position: 0% 0%; }
+          }
+        </style>
+        <h2 class="fade-item mb-6 text-center text-lg font-semibold tracking-wide text-gray-300">
+          Use Your own API Key from the provider of your choice. Or let us handle it for you
+        </h2>
+        <div class="relative mx-auto max-w-lg sm:max-w-xl lg:max-w-none w-full">
+
+          <!-- Greyscale base layer -->
+          <div class="grid grid-cols-2 md:grid-cols-4 items-center gap-x-8 gap-y-12 sm:gap-x-10 sm:gap-y-14">
+            <div class="fade-item flex justify-center col-span-1 max-h-12 w-full object-contain grayscale" data-delay="0"><!-- Grok -->
+              <svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 509.641"><path d="M115.612 0h280.776C459.975 0 512 52.026 512 115.612v278.416c0 63.587-52.025 115.613-115.612 115.613H115.612C52.026 509.641 0 457.615 0 394.028V115.612C0 52.026 52.026 0 115.612 0z"/><path fill="#fff" d="M213.235 306.019l178.976-180.002v.169l51.695-51.763c-.924 1.32-1.86 2.605-2.785 3.89-39.281 54.164-58.46 80.649-43.07 146.922l-.09-.101c10.61 45.11-.744 95.137-37.398 131.836-46.216 46.306-120.167 56.611-181.063 14.928l42.462-19.675c38.863 15.278 81.392 8.57 111.947-22.03 30.566-30.6 37.432-75.159 22.065-112.252-2.92-7.025-11.67-8.795-17.792-4.263l-124.947 92.341zm-25.786 22.437l-.033.034L68.094 435.217c7.565-10.429 16.957-20.294 26.327-30.149 26.428-27.803 52.653-55.359 36.654-94.302-21.422-52.112-8.952-113.177 30.724-152.898 41.243-41.254 101.98-51.661 152.706-30.758 11.23 4.172 21.016 10.114 28.638 15.639l-42.359 19.584c-39.44-16.563-84.629-5.299-112.207 22.313-37.298 37.308-44.84 102.003-1.128 143.81z"/></svg>
+            </div>
+            <div class="fade-item flex justify-center col-span-1 max-h-12 w-full object-contain grayscale" data-delay="100"><!-- Gemini -->
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 65 65"><mask id="maskme-g" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="65" height="65"><path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="#000"/><path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="url(#gem-grad)"/></mask><g mask="url(#maskme-g)"><g filter="url(#gf0)"><path d="M-5.859 50.734c7.498 2.663 16.116-2.33 19.249-11.152 3.133-8.821-.406-18.131-7.904-20.794-7.498-2.663-16.116 2.33-19.25 11.151-3.132 8.822.407 18.132 7.905 20.795z" fill="#FFE432"/></g><g filter="url(#gf1)"><path d="M27.433 21.649c10.3 0 18.651-8.535 18.651-19.062 0-10.528-8.35-19.062-18.651-19.062S8.78-7.94 8.78 2.587c0 10.527 8.35 19.062 18.652 19.062z" fill="#FC413D"/></g><g filter="url(#gf2)"><path d="M20.184 82.608c10.753-.525 18.918-12.244 18.237-26.174-.68-13.93-9.95-24.797-20.703-24.271C6.965 32.689-1.2 44.407-.519 58.337c.681 13.93 9.95 24.797 20.703 24.271z" fill="#00B95C"/></g><g filter="url(#gf3)"><path d="M30.954 74.181c9.014-5.485 11.427-17.976 5.389-27.9-6.038-9.925-18.241-13.524-27.256-8.04-9.015 5.486-11.428 17.977-5.39 27.902 6.04 9.924 18.242 13.523 27.257 8.038z" fill="#00B95C"/></g><g filter="url(#gf4)"><path d="M67.391 42.993c10.132 0 18.346-7.91 18.346-17.666 0-9.757-8.214-17.667-18.346-17.667s-18.346 7.91-18.346 17.667c0 9.757 8.214 17.666 18.346 17.666z" fill="#3186FF"/></g><g filter="url(#gf5)"><path d="M-13.065 40.944c9.33 7.094 22.959 4.869 30.442-4.972 7.483-9.84 5.987-23.569-3.343-30.663C4.704-1.786-8.924.439-16.408 10.28c-7.483 9.84-5.986 23.57 3.343 30.664z" fill="#FBBC04"/></g><g filter="url(#gf6)"><path d="M34.74 51.43c11.135 7.656 25.896 5.524 32.968-4.764 7.073-10.287 3.779-24.832-7.357-32.488C49.215 6.52 34.455 8.654 27.382 18.94c-7.072 10.288-3.779 24.833 7.357 32.49z" fill="#3186FF"/></g></g><defs><filter id="gf0" x="-19.824" y="13.152" width="39.274" height="43.217" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="2.46" result="effect1_foregroundBlur"/></filter><filter id="gf1" x="-15.001" y="-40.257" width="84.868" height="85.688" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="11.891" result="effect1_foregroundBlur"/></filter><filter id="gf2" x="-20.776" y="11.927" width="79.454" height="90.916" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur"/></filter><filter id="gf3" x="-19.845" y="15.459" width="79.731" height="81.505" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur"/></filter><filter id="gf4" x="29.832" y="-11.552" width="75.117" height="73.758" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="9.606" result="effect1_foregroundBlur"/></filter><filter id="gf5" x="-38.583" y="-16.253" width="78.135" height="78.758" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="8.706" result="effect1_foregroundBlur"/></filter><filter id="gf6" x="8.107" y="-5.966" width="78.877" height="77.539" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="7.775" result="effect1_foregroundBlur"/></filter><linearGradient id="gem-grad" x1="18.447" y1="43.42" x2="52.153" y2="15.004" gradientUnits="userSpaceOnUse"><stop stop-color="#4893FC"/><stop offset=".27" stop-color="#4893FC"/><stop offset=".777" stop-color="#969DFF"/><stop offset="1" stop-color="#BD99FE"/></linearGradient></defs></svg>
+            </div>
+            <div class="fade-item flex justify-center col-span-1 max-h-12 w-full object-contain grayscale" data-delay="200"><!-- Claude -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><g><path fill="#d97757" stroke="none" d="M 233.959793 800.214905 L 468.644287 668.536987 L 472.590637 657.100647 L 468.644287 650.738403 L 457.208069 650.738403 L 417.986633 648.322144 L 283.892639 644.69812 L 167.597321 639.865845 L 54.926208 633.825623 L 26.577238 627.785339 L 3.3e-05 592.751709 L 2.73832 575.27533 L 26.577238 559.248352 L 60.724873 562.228149 L 136.187973 567.382629 L 249.422867 575.194763 L 331.570496 580.026978 L 453.261841 592.671082 L 472.590637 592.671082 L 475.328857 584.859009 L 468.724915 580.026978 L 463.570557 575.194763 L 346.389313 495.785217 L 219.543671 411.865906 L 153.100723 363.543762 L 117.181267 339.060425 L 99.060455 316.107361 L 91.248367 266.01355 L 123.865784 230.093994 L 167.677887 233.073853 L 178.872513 236.053772 L 223.248367 270.201477 L 318.040283 343.570496 L 441.825592 434.738342 L 459.946411 449.798706 L 467.194672 444.64447 L 468.080597 441.020203 L 459.946411 427.409485 L 392.617493 305.718323 L 320.778564 181.932983 L 288.80542 130.630859 L 280.348999 99.865845 C 277.369171 87.221436 275.194641 76.590698 275.194641 63.624268 L 312.322174 13.20813 L 332.8591 6.604126 L 382.389313 13.20813 L 403.248352 31.328979 L 434.013519 101.71814 L 483.865753 212.537048 L 561.181274 363.221497 L 583.812134 407.919434 L 595.892639 449.315491 L 600.40271 461.959839 L 608.214783 461.959839 L 608.214783 454.711609 L 614.577271 369.825623 L 626.335632 265.61084 L 637.771851 131.516846 L 641.718201 93.745117 L 660.402832 48.483276 L 697.530334 24.000122 L 726.52356 37.852417 L 750.362549 72 L 747.060486 94.067139 L 732.886047 186.201416 L 705.100708 330.52356 L 686.979919 427.167847 L 697.530334 427.167847 L 709.61084 415.087341 L 758.496704 350.174561 L 840.644348 247.490051 L 876.885925 206.738342 L 919.167847 161.71814 L 946.308838 140.29541 L 997.61084 140.29541 L 1035.38269 196.429626 L 1018.469849 254.416199 L 965.637634 321.422852 L 921.825562 378.201538 L 859.006714 462.765259 L 819.785278 530.41626 L 823.409424 535.812073 L 832.75177 534.92627 L 974.657776 504.724915 L 1051.328979 490.872559 L 1142.818848 475.167786 L 1184.214844 494.496582 L 1188.724854 514.147644 L 1172.456421 554.335693 L 1074.604126 578.496765 L 959.838989 601.449829 L 788.939636 641.879272 L 786.845764 643.409485 L 789.261841 646.389343 L 866.255127 653.637634 L 899.194702 655.409424 L 979.812134 655.409424 L 1129.932861 666.604187 L 1169.154419 692.537109 L 1192.671265 724.268677 L 1188.724854 748.429688 L 1128.322144 779.194641 L 1046.818848 759.865845 L 856.590759 714.604126 L 791.355774 698.335754 L 782.335693 698.335754 L 782.335693 703.731567 L 836.69812 756.885986 L 936.322205 846.845581 L 1061.073975 962.81897 L 1067.436279 991.490112 L 1051.409424 1014.120911 L 1034.496704 1011.704712 L 924.885986 929.234924 L 882.604126 892.107544 L 786.845764 811.48999 L 780.483276 811.48999 L 780.483276 819.946289 L 802.550415 852.241699 L 919.087341 1027.409424 L 925.127625 1081.127686 L 916.671204 1098.604126 L 886.469849 1109.154419 L 853.288696 1103.114136 L 785.073914 1007.355835 L 714.684631 899.516785 L 657.906067 802.872498 L 650.979858 806.81897 L 617.476624 1167.704834 L 601.771851 1186.147705 L 565.530212 1200 L 535.328857 1177.046997 L 519.302124 1139.919556 L 535.328857 1066.550537 L 554.657776 970.792053 L 570.362488 894.68457 L 584.536926 800.134277 L 592.993347 768.724976 L 592.429626 766.630859 L 585.503479 767.516968 L 514.22821 865.369263 L 405.825531 1011.865906 L 320.053711 1103.677979 L 299.516815 1111.812256 L 263.919525 1093.369263 L 267.221497 1060.429688 L 287.114136 1031.114136 L 405.825531 880.107361 L 477.422913 786.52356 L 523.651062 732.483276 L 523.328918 724.671265 L 520.590698 724.671265 L 205.288605 929.395935 L 149.154434 936.644409 L 124.993355 914.01355 L 127.973183 876.885986 L 139.409409 864.80542 L 234.201385 799.570435 Z"/></g></svg>
+            </div>
+            <div class="fade-item flex justify-center col-span-1 max-h-12 w-full object-contain grayscale" data-delay="300"><!-- OpenAI -->
+              <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 260"><path fill="#545454" d="M239.184 106.203a64.716 64.716 0 0 0-5.576-53.103C219.452 28.459 191 15.784 163.213 21.74A65.586 65.586 0 0 0 52.096 45.22a64.716 64.716 0 0 0-43.23 31.36c-14.31 24.602-11.061 55.634 8.033 76.74a64.665 64.665 0 0 0 5.525 53.102c14.174 24.65 42.644 37.324 70.446 31.36a64.72 64.72 0 0 0 48.754 21.744c28.481.025 53.714-18.361 62.414-45.481a64.767 64.767 0 0 0 43.229-31.36c14.137-24.558 10.875-55.423-8.083-76.483Zm-97.56 136.338a48.397 48.397 0 0 1-31.105-11.255l1.535-.87 51.67-29.825a8.595 8.595 0 0 0 4.247-7.367v-72.85l21.845 12.636c.218.111.37.32.409.563v60.367c-.056 26.818-21.783 48.545-48.601 48.601Zm-104.466-44.61a48.345 48.345 0 0 1-5.781-32.589l1.534.921 51.722 29.826a8.339 8.339 0 0 0 8.441 0l63.181-36.425v25.221a.87.87 0 0 1-.358.665l-52.335 30.184c-23.257 13.398-52.97 5.431-66.404-17.803ZM23.549 85.38a48.499 48.499 0 0 1 25.58-21.333v61.39a8.288 8.288 0 0 0 4.195 7.316l62.874 36.272-21.845 12.636a.819.819 0 0 1-.767 0L41.353 151.53c-23.211-13.454-31.171-43.144-17.804-66.405v.256Zm179.466 41.695-63.08-36.63L161.73 77.86a.819.819 0 0 1 .768 0l52.233 30.184a48.6 48.6 0 0 1-7.316 87.635v-61.391a8.544 8.544 0 0 0-4.4-7.213Zm21.742-32.69-1.535-.922-51.619-30.081a8.39 8.39 0 0 0-8.492 0L99.98 99.808V74.587a.716.716 0 0 1 .307-.665l52.233-30.133a48.652 48.652 0 0 1 72.236 50.391v.205ZM88.061 139.097l-21.845-12.585a.87.87 0 0 1-.41-.614V65.685a48.652 48.652 0 0 1 79.757-37.346l-1.535.87-51.67 29.825a8.595 8.595 0 0 0-4.246 7.367l-.051 72.697Zm11.868-25.58 28.138-16.217 28.188 16.218v32.434l-28.086 16.218-28.188-16.218-.052-32.434Z"/></svg>
+            </div>
+          </div>
+
+          <!-- Colour reveal layer (animated mask) -->
+          <div class="absolute inset-0 grid grid-cols-2 md:grid-cols-4 items-center gap-x-8 gap-y-12 sm:gap-x-10 sm:gap-y-14"
+               style="mask-image: linear-gradient(to right, black 0%, transparent 60%); -webkit-mask-image: linear-gradient(to right, black 0%, transparent 60%); mask-size: 200% 100%; -webkit-mask-size: 200% 100%; animation: mask-slide 1.3s ease-in-out infinite alternate;">
+            <div class="flex justify-center col-span-1 max-h-12 w-full object-contain">
+              <svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 509.641"><path d="M115.612 0h280.776C459.975 0 512 52.026 512 115.612v278.416c0 63.587-52.025 115.613-115.612 115.613H115.612C52.026 509.641 0 457.615 0 394.028V115.612C0 52.026 52.026 0 115.612 0z"/><path fill="#fff" d="M213.235 306.019l178.976-180.002v.169l51.695-51.763c-.924 1.32-1.86 2.605-2.785 3.89-39.281 54.164-58.46 80.649-43.07 146.922l-.09-.101c10.61 45.11-.744 95.137-37.398 131.836-46.216 46.306-120.167 56.611-181.063 14.928l42.462-19.675c38.863 15.278 81.392 8.57 111.947-22.03 30.566-30.6 37.432-75.159 22.065-112.252-2.92-7.025-11.67-8.795-17.792-4.263l-124.947 92.341zm-25.786 22.437l-.033.034L68.094 435.217c7.565-10.429 16.957-20.294 26.327-30.149 26.428-27.803 52.653-55.359 36.654-94.302-21.422-52.112-8.952-113.177 30.724-152.898 41.243-41.254 101.98-51.661 152.706-30.758 11.23 4.172 21.016 10.114 28.638 15.639l-42.359 19.584c-39.44-16.563-84.629-5.299-112.207 22.313-37.298 37.308-44.84 102.003-1.128 143.81z"/></svg>
+            </div>
+            <div class="flex justify-center col-span-1 max-h-12 w-full object-contain">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 65 65"><mask id="maskme-gc" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="65" height="65"><path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="#000"/><path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="url(#gem-grad2)"/></mask><g mask="url(#maskme-gc)"><g filter="url(#gcf0)"><path d="M-5.859 50.734c7.498 2.663 16.116-2.33 19.249-11.152 3.133-8.821-.406-18.131-7.904-20.794-7.498-2.663-16.116 2.33-19.25 11.151-3.132 8.822.407 18.132 7.905 20.795z" fill="#FFE432"/></g><g filter="url(#gcf1)"><path d="M27.433 21.649c10.3 0 18.651-8.535 18.651-19.062 0-10.528-8.35-19.062-18.651-19.062S8.78-7.94 8.78 2.587c0 10.527 8.35 19.062 18.652 19.062z" fill="#FC413D"/></g><g filter="url(#gcf2)"><path d="M20.184 82.608c10.753-.525 18.918-12.244 18.237-26.174-.68-13.93-9.95-24.797-20.703-24.271C6.965 32.689-1.2 44.407-.519 58.337c.681 13.93 9.95 24.797 20.703 24.271z" fill="#00B95C"/></g><g filter="url(#gcf3)"><path d="M30.954 74.181c9.014-5.485 11.427-17.976 5.389-27.9-6.038-9.925-18.241-13.524-27.256-8.04-9.015 5.486-11.428 17.977-5.39 27.902 6.04 9.924 18.242 13.523 27.257 8.038z" fill="#00B95C"/></g><g filter="url(#gcf4)"><path d="M67.391 42.993c10.132 0 18.346-7.91 18.346-17.666 0-9.757-8.214-17.667-18.346-17.667s-18.346 7.91-18.346 17.667c0 9.757 8.214 17.666 18.346 17.666z" fill="#3186FF"/></g><g filter="url(#gcf5)"><path d="M-13.065 40.944c9.33 7.094 22.959 4.869 30.442-4.972 7.483-9.84 5.987-23.569-3.343-30.663C4.704-1.786-8.924.439-16.408 10.28c-7.483 9.84-5.986 23.57 3.343 30.664z" fill="#FBBC04"/></g><g filter="url(#gcf6)"><path d="M34.74 51.43c11.135 7.656 25.896 5.524 32.968-4.764 7.073-10.287 3.779-24.832-7.357-32.488C49.215 6.52 34.455 8.654 27.382 18.94c-7.072 10.288-3.779 24.833 7.357 32.49z" fill="#3186FF"/></g></g><defs><filter id="gcf0" x="-19.824" y="13.152" width="39.274" height="43.217" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="2.46" result="effect1_foregroundBlur"/></filter><filter id="gcf1" x="-15.001" y="-40.257" width="84.868" height="85.688" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="11.891" result="effect1_foregroundBlur"/></filter><filter id="gcf2" x="-20.776" y="11.927" width="79.454" height="90.916" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur"/></filter><filter id="gcf3" x="-19.845" y="15.459" width="79.731" height="81.505" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur"/></filter><filter id="gcf4" x="29.832" y="-11.552" width="75.117" height="73.758" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="9.606" result="effect1_foregroundBlur"/></filter><filter id="gcf5" x="-38.583" y="-16.253" width="78.135" height="78.758" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="8.706" result="effect1_foregroundBlur"/></filter><filter id="gcf6" x="8.107" y="-5.966" width="78.877" height="77.539" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="7.775" result="effect1_foregroundBlur"/></filter><linearGradient id="gem-grad2" x1="18.447" y1="43.42" x2="52.153" y2="15.004" gradientUnits="userSpaceOnUse"><stop stop-color="#4893FC"/><stop offset=".27" stop-color="#4893FC"/><stop offset=".777" stop-color="#969DFF"/><stop offset="1" stop-color="#BD99FE"/></linearGradient></defs></svg>
+            </div>
+            <div class="flex justify-center col-span-1 max-h-12 w-full object-contain">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><g><path fill="#d97757" stroke="none" d="M 233.959793 800.214905 L 468.644287 668.536987 L 472.590637 657.100647 L 468.644287 650.738403 L 457.208069 650.738403 L 417.986633 648.322144 L 283.892639 644.69812 L 167.597321 639.865845 L 54.926208 633.825623 L 26.577238 627.785339 L 3.3e-05 592.751709 L 2.73832 575.27533 L 26.577238 559.248352 L 60.724873 562.228149 L 136.187973 567.382629 L 249.422867 575.194763 L 331.570496 580.026978 L 453.261841 592.671082 L 472.590637 592.671082 L 475.328857 584.859009 L 468.724915 580.026978 L 463.570557 575.194763 L 346.389313 495.785217 L 219.543671 411.865906 L 153.100723 363.543762 L 117.181267 339.060425 L 99.060455 316.107361 L 91.248367 266.01355 L 123.865784 230.093994 L 167.677887 233.073853 L 178.872513 236.053772 L 223.248367 270.201477 L 318.040283 343.570496 L 441.825592 434.738342 L 459.946411 449.798706 L 467.194672 444.64447 L 468.080597 441.020203 L 459.946411 427.409485 L 392.617493 305.718323 L 320.778564 181.932983 L 288.80542 130.630859 L 280.348999 99.865845 C 277.369171 87.221436 275.194641 76.590698 275.194641 63.624268 L 312.322174 13.20813 L 332.8591 6.604126 L 382.389313 13.20813 L 403.248352 31.328979 L 434.013519 101.71814 L 483.865753 212.537048 L 561.181274 363.221497 L 583.812134 407.919434 L 595.892639 449.315491 L 600.40271 461.959839 L 608.214783 461.959839 L 608.214783 454.711609 L 614.577271 369.825623 L 626.335632 265.61084 L 637.771851 131.516846 L 641.718201 93.745117 L 660.402832 48.483276 L 697.530334 24.000122 L 726.52356 37.852417 L 750.362549 72 L 747.060486 94.067139 L 732.886047 186.201416 L 705.100708 330.52356 L 686.979919 427.167847 L 697.530334 427.167847 L 709.61084 415.087341 L 758.496704 350.174561 L 840.644348 247.490051 L 876.885925 206.738342 L 919.167847 161.71814 L 946.308838 140.29541 L 997.61084 140.29541 L 1035.38269 196.429626 L 1018.469849 254.416199 L 965.637634 321.422852 L 921.825562 378.201538 L 859.006714 462.765259 L 819.785278 530.41626 L 823.409424 535.812073 L 832.75177 534.92627 L 974.657776 504.724915 L 1051.328979 490.872559 L 1142.818848 475.167786 L 1184.214844 494.496582 L 1188.724854 514.147644 L 1172.456421 554.335693 L 1074.604126 578.496765 L 959.838989 601.449829 L 788.939636 641.879272 L 786.845764 643.409485 L 789.261841 646.389343 L 866.255127 653.637634 L 899.194702 655.409424 L 979.812134 655.409424 L 1129.932861 666.604187 L 1169.154419 692.537109 L 1192.671265 724.268677 L 1188.724854 748.429688 L 1128.322144 779.194641 L 1046.818848 759.865845 L 856.590759 714.604126 L 791.355774 698.335754 L 782.335693 698.335754 L 782.335693 703.731567 L 836.69812 756.885986 L 936.322205 846.845581 L 1061.073975 962.81897 L 1067.436279 991.490112 L 1051.409424 1014.120911 L 1034.496704 1011.704712 L 924.885986 929.234924 L 882.604126 892.107544 L 786.845764 811.48999 L 780.483276 811.48999 L 780.483276 819.946289 L 802.550415 852.241699 L 919.087341 1027.409424 L 925.127625 1081.127686 L 916.671204 1098.604126 L 886.469849 1109.154419 L 853.288696 1103.114136 L 785.073914 1007.355835 L 714.684631 899.516785 L 657.906067 802.872498 L 650.979858 806.81897 L 617.476624 1167.704834 L 601.771851 1186.147705 L 565.530212 1200 L 535.328857 1177.046997 L 519.302124 1139.919556 L 535.328857 1066.550537 L 554.657776 970.792053 L 570.362488 894.68457 L 584.536926 800.134277 L 592.993347 768.724976 L 592.429626 766.630859 L 585.503479 767.516968 L 514.22821 865.369263 L 405.825531 1011.865906 L 320.053711 1103.677979 L 299.516815 1111.812256 L 263.919525 1093.369263 L 267.221497 1060.429688 L 287.114136 1031.114136 L 405.825531 880.107361 L 477.422913 786.52356 L 523.651062 732.483276 L 523.328918 724.671265 L 520.590698 724.671265 L 205.288605 929.395935 L 149.154434 936.644409 L 124.993355 914.01355 L 127.973183 876.885986 L 139.409409 864.80542 L 234.201385 799.570435 Z"/></g></svg>
+            </div>
+            <div class="flex justify-center col-span-1 max-h-12 w-full object-contain">
+              <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 260"><path fill="#545454" d="M239.184 106.203a64.716 64.716 0 0 0-5.576-53.103C219.452 28.459 191 15.784 163.213 21.74A65.586 65.586 0 0 0 52.096 45.22a64.716 64.716 0 0 0-43.23 31.36c-14.31 24.602-11.061 55.634 8.033 76.74a64.665 64.665 0 0 0 5.525 53.102c14.174 24.65 42.644 37.324 70.446 31.36a64.72 64.72 0 0 0 48.754 21.744c28.481.025 53.714-18.361 62.414-45.481a64.767 64.767 0 0 0 43.229-31.36c14.137-24.558 10.875-55.423-8.083-76.483Zm-97.56 136.338a48.397 48.397 0 0 1-31.105-11.255l1.535-.87 51.67-29.825a8.595 8.595 0 0 0 4.247-7.367v-72.85l21.845 12.636c.218.111.37.32.409.563v60.367c-.056 26.818-21.783 48.545-48.601 48.601Zm-104.466-44.61a48.345 48.345 0 0 1-5.781-32.589l1.534.921 51.722 29.826a8.339 8.339 0 0 0 8.441 0l63.181-36.425v25.221a.87.87 0 0 1-.358.665l-52.335 30.184c-23.257 13.398-52.97 5.431-66.404-17.803ZM23.549 85.38a48.499 48.499 0 0 1 25.58-21.333v61.39a8.288 8.288 0 0 0 4.195 7.316l62.874 36.272-21.845 12.636a.819.819 0 0 1-.767 0L41.353 151.53c-23.211-13.454-31.171-43.144-17.804-66.405v.256Zm179.466 41.695-63.08-36.63L161.73 77.86a.819.819 0 0 1 .768 0l52.233 30.184a48.6 48.6 0 0 1-7.316 87.635v-61.391a8.544 8.544 0 0 0-4.4-7.213Zm21.742-32.69-1.535-.922-51.619-30.081a8.39 8.39 0 0 0-8.492 0L99.98 99.808V74.587a.716.716 0 0 1 .307-.665l52.233-30.133a48.652 48.652 0 0 1 72.236 50.391v.205ZM88.061 139.097l-21.845-12.585a.87.87 0 0 1-.41-.614V65.685a48.652 48.652 0 0 1 79.757-37.346l-1.535.87-51.67 29.825a8.595 8.595 0 0 0-4.246 7.367l-.051 72.697Zm11.868-25.58 28.138-16.217 28.188 16.218v32.434l-28.086 16.218-28.188-16.218-.052-32.434Z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div id="features"></div>
+      <div class="mx-auto mt-48 max-w-7xl px-6 lg:px-8">
+        <div class="fade-item mx-auto max-w-2xl text-center">
+          <p class="mt-2 text-4xl font-bold tracking-tight text-gray-200 sm:text-5xl">
+            <span class="text-4xl font-black sm:text-5xl" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient-shift 8s ease infinite;">Mooch</span>  can
+          </p>
+        </div>
+        <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
+          <dl class="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
+
+            <div class="fade-item relative pl-40" data-delay="0">
+              <dt class="text-2xl font-semibold leading-7 text-gray-200">
+                <div class="absolute left-0 top-0 h-32 w-32 rounded-lg p-1" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite;">
+                  <div class="flex h-full w-full items-center justify-center rounded-md overflow-hidden bg-white">
+                    <video src="videos/icons/Presentation.webm" autoplay muted playsinline class="w-full h-full object-contain pointer-events-none"></video>
+                  </div>
+                </div>
+                Remind you of principles and best practices
+              </dt>
+              <dd class="mt-2 text-xl leading-7 text-gray-600">Get real-time answer suggestions during your interviews.</dd>
+            </div>
+
+            <div class="fade-item relative pl-40" data-delay="100">
+              <dt class="text-2xl font-semibold leading-7 text-gray-200">
+                <div class="absolute left-0 top-0 h-32 w-32 rounded-lg p-1" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite;">
+                  <div class="flex h-full w-full items-center justify-center rounded-md overflow-hidden bg-white">
+                    <video src="videos/icons/Web_Development.webm" autoplay muted playsinline class="w-full h-full object-contain pointer-events-none"></video>
+                  </div>
+                </div>
+                Analyze your technical interview code
+              </dt>
+              <dd class="mt-2 text-xl leading-7 text-gray-600">He will help you with understand what the code is doing and suggest answers</dd>
+            </div>
+
+            <div class="fade-item relative pl-40" data-delay="200">
+              <dt class="text-2xl font-semibold leading-7 text-gray-200">
+                <div class="absolute left-0 top-0 h-32 w-32 rounded-lg p-1" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite;">
+                  <div class="flex h-full w-full items-center justify-center rounded-md overflow-hidden bg-white">
+                    <video src="videos/icons/Idea.webm" autoplay muted playsinline class="w-full h-full object-contain pointer-events-none"></video>
+                  </div>
+                </div>
+                Listen to you OR the interviewer
+              </dt>
+              <dd class="mt-2 text-xl leading-7 text-gray-600">You can embelish the question with your own input, or let Mooch listen to the interviewer and suggest answers based on that.</dd>
+            </div>
+
+            <div class="fade-item relative pl-40" data-delay="300">
+              <dt class="text-2xl font-semibold leading-7 text-gray-200">
+                <div class="absolute left-0 top-0 h-32 w-32 rounded-lg p-1" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite;">
+                  <div class="flex h-full w-full items-center justify-center rounded-md overflow-hidden bg-white">
+                    <video src="videos/icons/Rocket.webm" autoplay muted playsinline class="w-full h-full object-contain pointer-events-none"></video>
+                  </div>
+                </div>
+                Brings you confidence and peace of mind
+              </dt>
+              <dd class="mt-2 text-xl leading-7 text-gray-600">Describe your cool feature here.</dd>
+            </div>
+
+          </dl>
+        </div>
+      </div>
+
+      <!-- Testimonials -->
+      <div class="mx-auto mt-32 max-w-7xl sm:mt-56 sm:px-6 lg:px-8">
+        <div class="relative sm:left-5 -m-2 rounded-xl bg-yellow-400/20 lg:ring-1 lg:ring-yellow-500/50 lg:-m-4">
+          <div class="relative sm:top-5 sm:right-5 bg-gray-900 px-8 py-20 shadow-xl sm:rounded-xl sm:px-10 sm:py-16 md:px-12 lg:px-20">
+            <h2 class="fade-item text-left text-xl font-semibold tracking-wide leading-7 text-gray-300">
+              What Our Users Say
+            </h2>
+            <div class="relative flex flex-wrap gap-6 w-full mt-6 z-10 justify-between lg:mx-0">
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="0" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>Having it there to jog my memory was really useful. I felt more confident and less stressed during the interview.</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">Senior Data Analyst</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="150" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>As a remote SWE, I interview with companies across different time zones. Having this tool gave me the confidence to tackle technical questions without freezing up. Game changer!</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">Software Engineer (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="300" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>Interviewing remotely for PM roles can feel isolating. This tool helped me stay composed and articulate my thoughts clearly. Walked into every interview feeling prepared and confident.</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">Product Manager (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="450" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>I get nervous during live coding interviews, especially remote ones. This tool was like having a safety net—it kept me calm and helped me think through problems methodically.</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">Frontend Developer (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="600" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>Remote interviews for data roles can be intense with all the technical deep-dives. Having this support made me feel like I had a backup plan, which boosted my confidence significantly.</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">Data Scientist (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="750" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>I used to blank out on architecture questions during video calls. This tool helped me stay focused and remember key concepts. I actually looked forward to interviews after using it!</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">DevOps Engineer (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+              <div class="fade-item w-full lg:w-1/4 box-content rounded-xl" data-delay="900" style="background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c); background-size: 200% 100%; animation: gradient-shift 8s ease infinite; padding: 4px;">
+                <figure class="w-full h-full flex flex-col justify-between p-8 rounded-xl bg-gray-200">
+                  <blockquote class="text-lg text-black sm:leading-8"><p>Remote UX interviews often involve complex case studies. This gave me the confidence to structure my answers better and not panic when thrown unexpected questions.</p></blockquote>
+                  <figcaption class="mt-6 text-base text-black"><div class="font-semibold">Anonymous</div><div class="mt-1">UX Researcher (Remote)</div></figcaption>
+                </figure>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="mt-32 mx-auto max-w-2xl divide-y divide-gray-900/10 px-6 pb-8 sm:pb-24 sm:pt-12 lg:max-w-7xl lg:px-8 lg:py-32">
+        <h2 class="fade-item text-2xl font-bold leading-10 tracking-tight text-gray-200">Frequently asked questions</h2>
+        <dl class="mt-10 space-y-8 divide-y divide-gray-900/10">
+
+          <div class="fade-item pt-8 lg:grid lg:grid-cols-12 lg:gap-8" data-delay="0">
+            <dt class="text-base font-semibold leading-7 text-gray-200 lg:col-span-5">What is Mooch?</dt>
+            <dd class="mt-4 lg:col-span-7 lg:mt-0"><p class="text-base leading-7 text-gray-600">Mooch is an AI-powered desktop app designed to help you ace job interviews. It listens to your interview in real time and surfaces relevant hints, talking points, and answers to keep you calm and confident — like having a brilliant friend whispering in your ear.</p></dd>
+          </div>
+
+          <div class="fade-item pt-8 lg:grid lg:grid-cols-12 lg:gap-8" data-delay="0">
+            <dt class="text-base font-semibold leading-7 text-gray-200 lg:col-span-5">How does it work?</dt>
+            <dd class="mt-4 lg:col-span-7 lg:mt-0"><p class="text-base leading-7 text-gray-600">Mooch runs as a discreet overlay on your desktop. It can listen via your microphone or capture system audio from your interview call. As questions come up, it transcribes them and uses an AI model to generate helpful responses and reminders, which appear on screen for you to reference.</p></dd>
+          </div>
+
+          <div class="fade-item pt-8 lg:grid lg:grid-cols-12 lg:gap-8" data-delay="0">
+            <dt class="text-base font-semibold leading-7 text-gray-200 lg:col-span-5">How much does it cost?</dt>
+            <dd class="mt-4 lg:col-span-7 lg:mt-0"><p class="text-base leading-7 text-gray-600">It's completely free if you bring your own LLM API key — we support Gemini, OpenAI, and Claude. Just enter your key in the app settings and you're good to go. If you'd rather skip the setup, a managed subscription (no key required) is coming soon.</p></dd>
+          </div>
+
+          <div class="fade-item pt-8 lg:grid lg:grid-cols-12 lg:gap-8" data-delay="0">
+            <dt class="text-base font-semibold leading-7 text-gray-200 lg:col-span-5">Will I get caught?</dt>
+            <dd class="mt-4 lg:col-span-7 lg:mt-0"><p class="text-base leading-7 text-gray-600">When screen sharing, make sure to share a specific window rather than your whole desktop — that way Mooch stays out of frame. More importantly, Mooch isn't really "cheating": it acts as a memory aid, surfacing things you already know but might blank on under pressure. Think of it like notes you're allowed to bring — it keeps you composed, not dishonest.</p></dd>
+          </div>
+
+          <div class="fade-item pt-8 lg:grid lg:grid-cols-12 lg:gap-8" data-delay="0">
+            <dt class="text-base font-semibold leading-7 text-gray-200 lg:col-span-5">Help, I can't close the app</dt>
+            <dd class="mt-4 lg:col-span-7 lg:mt-0"><p class="text-base leading-7 text-gray-600">It purposefully does <strong>not</strong> have window closing properties. Please right click on it and close it that way — this is to prevent users from accidentally closing it as they move the app into position over their interviewer.</p></dd>
+          </div>
+
+        </dl>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <div class="mx-auto mt-6 max-w-7xl px-6 lg:px-8">
+      <footer aria-labelledby="footer-heading" class="relative border-t border-gray-900/10 py-24 sm:mt-32">
+        <h2 id="footer-heading" class="sr-only">Footer</h2>
+        <div class="flex items-start justify-end mt-10 gap-20">
+          <div>
+            <h3 class="text-sm font-semibold leading-6 text-gray-200">App</h3>
+            <ul role="list" class="mt-6 space-y-4">
+              <li><a href="https://github.com/dweng0/Mooch" class="text-sm leading-6 text-gray-600 hover:text-gray-200">Documentation</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold leading-6 text-gray-200">Company</h3>
+            <ul role="list" class="mt-6 space-y-4">
+              <li><a href="https://github.com/dweng0/Mooch" class="text-sm leading-6 text-gray-600 hover:text-gray-200">About</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+  </div>
 
   <script>
     // Random background video
-    const videos = [
+    const bgVideos = [
       'videos/abs-geo-01.webm',
       'videos/abstract.webm',
       'videos/abs-geo-02.webm',
@@ -226,22 +470,21 @@
       'videos/abs-geo-04.webm',
       'videos/abs-geo-05.webm',
     ];
-    const vid = document.getElementById('bg-video');
-    vid.src = videos[Math.floor(Math.random() * videos.length)];
+    document.getElementById('bg-video').src = bgVideos[Math.floor(Math.random() * bgVideos.length)];
 
-    // Intersection observer fade-ins
+    // Intersection observer for fade-in
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const el = entry.target;
-          const delay = el.dataset.delay || 0;
-          setTimeout(() => el.classList.add('visible'), Number(delay));
+          const delay = Number(el.dataset.delay || 0);
+          setTimeout(() => el.classList.add('visible'), delay);
           observer.unobserve(el);
         }
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    document.querySelectorAll('.fade-item').forEach(el => observer.observe(el));
   </script>
 </body>
 </html>
