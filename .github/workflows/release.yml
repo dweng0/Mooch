@@ -62,7 +62,19 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package and publish to GitHub Releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder ${{ matrix.args }} --publish always
+      - name: Install setuptools (macOS Python 3.12+ drops distutils, needed by node-gyp)
+        if: matrix.os == 'macos-latest'
+        run: pip3 install setuptools
+
+      - name: Package
+        run: npx electron-builder ${{ matrix.args }} --publish never
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Mooch-*.exe
+            dist/Mooch-*.dmg
+            dist/Mooch-*.zip
+            dist/Mooch-*.AppImage
+            dist/Mooch-*.deb
