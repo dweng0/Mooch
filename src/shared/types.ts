@@ -1,5 +1,5 @@
-export type AIProvider = 'claude' | 'gemini' | 'openai'
-export type AudioSource = 'microphone' | 'system' 
+export type AIProvider = 'claude' | 'gemini' | 'openai' | 'qwen' | 'custom'
+export type AudioSource = 'microphone' | 'system'
 export type TextSize = 'small' | 'medium' | 'large' | 'extra-large'
 export type OAuthProvider = 'google' | 'github' | 'discord'
 
@@ -15,10 +15,20 @@ export interface UserContext {
   manualContext: string
 }
 
+export interface CustomProviderConfig {
+  baseUrl: string
+  apiKey: string
+  model: string
+  label?: string
+}
+
 export interface UserApiKeys {
   anthropicApiKey?: string
   geminiApiKey?: string
   openaiApiKey?: string
+  qwenApiKey?: string
+  qwenModel?: string
+  customProvider?: CustomProviderConfig
 }
 
 export interface WindowSource {
@@ -78,8 +88,12 @@ export interface ElectronAPI {
   getApiUrl: () => Promise<string>
   // API Keys
   getApiKeys: () => Promise<UserApiKeys>
-  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai', apiKey: string) => Promise<void>
-  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai') => Promise<void>
+  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => Promise<void>
+  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => Promise<void>
+  setQwenModel: (model: string) => Promise<void>
+  // Custom provider
+  setCustomProvider: (config: CustomProviderConfig) => Promise<void>
+  clearCustomProvider: () => Promise<void>
   // Hotkeys
   onHotkeyRecordStart: (callback: () => void) => () => void
   onHotkeyRecordStop: (callback: () => void) => () => void

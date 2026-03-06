@@ -50,6 +50,8 @@ export default function App() {
     if (keys.anthropicApiKey) derived.push('claude')
     if (keys.geminiApiKey) derived.push('gemini')
     if (keys.openaiApiKey) derived.push('openai')
+    if (keys.qwenApiKey) derived.push('qwen')
+    if (keys.customProvider?.baseUrl && keys.customProvider?.model) derived.push('custom')
 
     setHasApiKey(derived.length > 0)
 
@@ -61,6 +63,8 @@ export default function App() {
         storedByok === 'anthropic' ? 'claude' :
         storedByok === 'gemini' ? 'gemini' :
         storedByok === 'openai' ? 'openai' :
+        storedByok === 'qwen' ? 'qwen' :
+        storedByok === 'custom' ? 'custom' :
         null
       const preferred = preferredProvider && derived.includes(preferredProvider)
         ? preferredProvider
@@ -840,13 +844,13 @@ export default function App() {
               >
                 {providers.map((p) => (
                   <option key={p} value={p}>
-                    {p === 'claude' ? 'Claude' : p === 'gemini' ? 'Gemini' : 'OpenAI'}
+                    {p === 'claude' ? 'Claude' : p === 'gemini' ? 'Gemini' : p === 'qwen' ? 'Qwen' : p === 'custom' ? 'Custom' : 'OpenAI'}
                   </option>
                 ))}
               </select>
             ) : providers.length === 1 ? (
               <span className="text-xs text-gray-500">
-                {providers[0] === 'claude' ? 'Claude' : providers[0] === 'gemini' ? 'Gemini' : 'OpenAI'}
+                {providers[0] === 'claude' ? 'Claude' : providers[0] === 'gemini' ? 'Gemini' : providers[0] === 'qwen' ? 'Qwen' : providers[0] === 'custom' ? 'Custom' : 'OpenAI'}
               </span>
             ) : null}
 

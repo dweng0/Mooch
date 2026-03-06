@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, FileText, KeyRound, X, Eye, EyeOff, Check, Trash2, Star } from 'lucide-react'
-import type { UserApiKeys } from '../../shared/types'
+import type { UserApiKeys, CustomProviderConfig } from '../../shared/types'
 
 const BYOK_STORAGE_KEY = 'byok_provider'
 
@@ -16,7 +16,7 @@ interface Props {
   onManualContextChange: (value: string) => void
 }
 
-type Provider = 'anthropic' | 'gemini' | 'openai'
+type Provider = 'anthropic' | 'gemini' | 'openai' | 'qwen'
 
 interface ProviderConfig {
   key: Provider
@@ -28,13 +28,27 @@ const PROVIDERS: ProviderConfig[] = [
   { key: 'anthropic', label: 'Claude (Anthropic)', placeholder: 'sk-ant-api03-...' },
   { key: 'gemini', label: 'Gemini (Google)', placeholder: 'AIzaSy...' },
   { key: 'openai', label: 'OpenAI', placeholder: 'sk-...' },
+  { key: 'qwen', label: 'Qwen (Alibaba)', placeholder: 'sk-...' },
 ]
 
 const PROVIDER_KEY_MAP: Record<Provider, keyof UserApiKeys> = {
   anthropic: 'anthropicApiKey',
   gemini: 'geminiApiKey',
   openai: 'openaiApiKey',
+  qwen: 'qwenApiKey',
 }
+
+const QWEN_MODELS = [
+  { value: 'qwen-max', label: 'Qwen Max (best quality)' },
+  { value: 'qwen-plus', label: 'Qwen Plus (balanced)' },
+  { value: 'qwen-turbo', label: 'Qwen Turbo (fast)' },
+  { value: 'qwen3-235b-a22b', label: 'Qwen3 235B' },
+  { value: 'qwen3-72b', label: 'Qwen3 72B' },
+  { value: 'qwen3-30b-a3b', label: 'Qwen3 30B' },
+  { value: 'qwen3-14b', label: 'Qwen3 14B' },
+]
+
+const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '', label: '' }
 
 export default function SettingsScreen({
   onBack,
@@ -53,17 +67,24 @@ export default function SettingsScreen({
     anthropic: false,
     gemini: false,
     openai: false,
+    qwen: false,
   })
   const [inputValues, setInputValues] = useState<Record<Provider, string>>({
     anthropic: '',
     gemini: '',
     openai: '',
+    qwen: '',
   })
   const [saving, setSaving] = useState<Record<Provider, boolean>>({
     anthropic: false,
     gemini: false,
     openai: false,
+    qwen: false,
   })
+  const [qwenModel, setQwenModel] = useState('qwen-max')
+  const [customInput, setCustomInput] = useState<CustomProviderConfig>(EMPTY_CUSTOM)
+  const [customSaving, setCustomSaving] = useState(false)
+  const [customVisible, setCustomVisible] = useState(false)
 
   // Load API keys on mount
   useEffect(() => {
@@ -74,7 +95,12 @@ export default function SettingsScreen({
         anthropic: keys.anthropicApiKey || '',
         gemini: keys.geminiApiKey || '',
         openai: keys.openaiApiKey || '',
+        qwen: keys.qwenApiKey || '',
       })
+      if (keys.qwenModel) setQwenModel(keys.qwenModel)
+      if (keys.customProvider) {
+        setCustomInput({ ...EMPTY_CUSTOM, ...keys.customProvider })
+      }
       // Restore stored preference if that provider still has a key
       if (stored && keys[PROVIDER_KEY_MAP[stored]]) {
         setPreferredProvider(stored)
@@ -140,6 +166,35 @@ export default function SettingsScreen({
   }
 
   const hasKeySet = (provider: Provider) => !!apiKeys[PROVIDER_KEY_MAP[provider]]
+
+  const hasCustomSet = !!(apiKeys.customProvider?.baseUrl && apiKeys.customProvider?.model)
+
+  const handleSaveCustom = async () => {
+    if (!customInput.baseUrl.trim() || !customInput.model.trim()) return
+    setCustomSaving(true)
+    try {
+      await window.electronAPI.setCustomProvider({
+        baseUrl: customInput.baseUrl.trim(),
+        apiKey: customInput.apiKey.trim(),
+        model: customInput.model.trim(),
+        label: customInput.label?.trim() || undefined,
+      })
+      setApiKeys(prev => ({ ...prev, customProvider: customInput }))
+    } finally {
+      setCustomSaving(false)
+    }
+  }
+
+  const handleClearCustom = async () => {
+    setCustomSaving(true)
+    try {
+      await window.electronAPI.clearCustomProvider()
+      setApiKeys(prev => { const u = { ...prev }; delete u.customProvider; return u })
+      setCustomInput(EMPTY_CUSTOM)
+    } finally {
+      setCustomSaving(false)
+    }
+  }
 
   return (
     <div className="h-full flex flex-col bg-gray-900/85 rounded-2xl backdrop-blur-sm border border-white/10 overflow-hidden shadow-2xl">
@@ -300,6 +355,22 @@ export default function SettingsScreen({
                     Save
                   </button>
                 </div>
+                {provider.key === 'qwen' && hasKeySet('qwen') && (
+                  <div className="px-3 pb-3">
+                    <select
+                      value={qwenModel}
+                      onChange={async (e) => {
+                        setQwenModel(e.target.value)
+                        await window.electronAPI.setQwenModel(e.target.value)
+                      }}
+                      className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      {QWEN_MODELS.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -329,8 +400,83 @@ export default function SettingsScreen({
             </div>
           )}
           <p className="text-[10px] text-gray-600 mt-2">
-            Your API keys are encrypted and stored locally. They are never sent to our servers except to make AI requests on your behalf.
+            Your API keys are encrypted and stored locally.
           </p>
+        </section>
+
+        {/* Custom / OpenAI-compatible provider */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Custom Provider</h3>
+          <p className="text-[10px] text-gray-500 mb-3">
+            Any OpenAI-compatible API — Groq, OpenRouter, Ollama, Together AI, etc.
+          </p>
+          <div className={`rounded-lg border overflow-hidden ${hasCustomSet ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-gray-800/60 border-white/10'}`}>
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <KeyRound size={13} className={hasCustomSet ? 'text-emerald-400' : 'text-gray-500'} />
+                <span className={`text-xs truncate ${hasCustomSet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  {customInput.label?.trim() || 'Custom'}
+                </span>
+                {hasCustomSet && (
+                  <span className="flex-shrink-0 text-[10px] text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">Set</span>
+                )}
+              </div>
+              {hasCustomSet && (
+                <button onClick={handleClearCustom} disabled={customSaving} className="flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors cursor-pointer" title="Remove">
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-3 flex flex-col gap-2">
+              <input
+                type="text"
+                value={customInput.baseUrl}
+                onChange={(e) => setCustomInput(prev => ({ ...prev, baseUrl: e.target.value }))}
+                placeholder="Base URL (e.g. https://api.groq.com/openai/v1)"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              <div className="relative">
+                <input
+                  type={customVisible ? 'text' : 'password'}
+                  value={customInput.apiKey}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, apiKey: e.target.value }))}
+                  placeholder="API key (leave empty for Ollama)"
+                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                />
+                <button onClick={() => setCustomVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer">
+                  {customVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+              <input
+                type="text"
+                value={customInput.model}
+                onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
+                placeholder="Model (e.g. qwen/qwen3-70b, llama-3.3-70b-versatile)"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={customInput.label || ''}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="Label (optional, e.g. Groq / Qwen)"
+                  className="flex-1 bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                />
+                <button
+                  onClick={handleSaveCustom}
+                  disabled={!customInput.baseUrl.trim() || !customInput.model.trim() || customSaving}
+                  className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  {customSaving ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </div>

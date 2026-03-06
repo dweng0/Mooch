@@ -1,11 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildSystemPrompt } from '../../../config/systemPrompt'
 import type { UserContext } from '../../shared/types'
+import { loadApiKeys } from './api-keys'
 
 export async function getGeminiAnswer(question: string, context: UserContext): Promise<string> {
-  const apiKey = process.env['GEMINI_API_KEY']
+  const apiKey = loadApiKeys().geminiApiKey
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set')
+    throw new Error('Gemini API key is not configured. Add it in Settings.')
   }
 
   const genAI = new GoogleGenerativeAI(apiKey)

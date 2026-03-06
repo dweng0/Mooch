@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser } from '../shared/types'
+import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig } from '../shared/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -81,11 +81,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getApiKeys: (): Promise<UserApiKeys> => {
     return ipcRenderer.invoke('get-api-keys')
   },
-  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai', apiKey: string): Promise<void> => {
+  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string): Promise<void> => {
     return ipcRenderer.invoke('set-api-key', provider, apiKey)
   },
-  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai'): Promise<void> => {
+  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen'): Promise<void> => {
     return ipcRenderer.invoke('clear-api-key', provider)
+  },
+  setQwenModel: (model: string): Promise<void> => {
+    return ipcRenderer.invoke('set-qwen-model', model)
+  },
+  setCustomProvider: (config: CustomProviderConfig): Promise<void> => {
+    return ipcRenderer.invoke('set-custom-provider', config)
+  },
+  clearCustomProvider: (): Promise<void> => {
+    return ipcRenderer.invoke('clear-custom-provider')
   },
 
   // ── Hotkey events ─────────────────────────────────────────────────────────

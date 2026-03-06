@@ -62,7 +62,7 @@ export function clearApiKeys(): void {
 /**
  * Clear a specific API key.
  */
-export function clearApiKey(provider: 'anthropic' | 'gemini' | 'openai'): void {
+export function clearApiKey(provider: 'anthropic' | 'gemini' | 'openai' | 'qwen'): void {
   const keys = loadApiKeys()
   if (provider === 'anthropic') {
     delete keys.anthropicApiKey
@@ -70,6 +70,9 @@ export function clearApiKey(provider: 'anthropic' | 'gemini' | 'openai'): void {
     delete keys.geminiApiKey
   } else if (provider === 'openai') {
     delete keys.openaiApiKey
+  } else if (provider === 'qwen') {
+    delete keys.qwenApiKey
+    delete keys.qwenModel
   }
   saveApiKeys(keys)
 }

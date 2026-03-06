@@ -1,12 +1,14 @@
-import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, screen, nativeImage } from 'electron'
+import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, screen } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
-import { WASP_API_URL, WEBSITE_URL } from './config'
-import { loadSession, clearSession, initAuthWebSocket, disconnectAuthWebSocket, getOAuthUrl } from './services/auth'
-import { fetchSubscriptionStatus, transcribeAudio, getAnswer, analyzeCodeSnapshot, loginWithEmail } from './services/api-client'
 import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
-import type { OAuthProvider, AIProvider, UserContext, CropRect } from '../shared/types'
+import { transcribeAudio } from './services/transcribe'
+import { getAnswer, getAvailableProviders } from './services/ai-provider'
+import { analyzeCodeSnapshot } from './services/claude'
+import { analyzeCodeSnapshotQwen } from './services/qwen'
+import { analyzeCodeSnapshotCustom } from './services/openai-compat'
+import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
 let mainWindow: BrowserWindow | null = null
@@ -60,93 +62,12 @@ function createWindow(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Auth IPC handlers
+// Auth IPC handlers (stubs — no backend, no login required)
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('login', async (_event, email: string, password: string) => {
-  try {
-    await loginWithEmail(email, password)
-    // Return initial subscription status immediately after login
-    const status = await fetchSubscriptionStatus()
-    return status.ok ? status.data : null
-  } catch (err) {
-    // Re-throw with a clean message (avoid Electron's "error invoking remote method" wrapper)
-    throw new Error(err instanceof Error ? err.message : 'Login failed')
-  }
-})
-
-ipcMain.handle('logout', async () => {
-  clearSession()
-})
-
-ipcMain.handle('open-oauth', async (_event, provider: OAuthProvider) => {
-  try {
-    // Check if the user is already logged in
-    const existingSession = loadSession();
-    if (existingSession) {
-      // When an already logged-in user clicks OAuth, we should send status back to clear the wait state
-      // This prevents the stuck spinner issue mentioned
-      
-      // Fetch current status to send back
-      const status = await fetchSubscriptionStatus();
-      if (status.ok) {
-        // User is already logged in with valid subscription
-        mainWindow?.webContents.send('auth:status', {
-          loggedIn: true,
-          ...status.data,
-        });
-      }
-      
-      // Send success notification to clear the waiting state in UI
-      // Since we don't have user details easily accessible here, we send generic success
-      mainWindow?.webContents.send('oauth:success', {
-        loggedIn: true,
-        email: null, // We don't have easy access to email here
-        username: null, // We don't have easy access to username here
-      });
-      
-      // The UI will handle this as 'already logged in' and stop waiting
-      return;
-    }
-  
-    // Initialize WebSocket connection for receiving auth notifications
-    initAuthWebSocket((sessionToken, user) => {
-      console.log('[Main] OAuth success via WebSocket for user:', user.email)
-      
-      // Notify the renderer process
-      mainWindow?.webContents.send('oauth:success', {
-        loggedIn: true,
-        email: user.email,
-        username: user.username,
-      })
-      
-      // Fetch subscription status and update the renderer
-      fetchSubscriptionStatus().then(status => {
-        if (status.ok) {
-          mainWindow?.webContents.send('auth:status', {
-            loggedIn: true,
-            ...status.data,
-          })
-        }
-      })
-    })
-    
-    // Get the OAuth URL with pairing code
-    const oauthUrl = getOAuthUrl(provider)
-    
-    // Open the OAuth URL in the default browser
-    await shell.openExternal(oauthUrl)
-  } catch (error) {
-    console.error('[Main] Error in OAuth flow:', error);
-    
-    // Notify the renderer of failure to clear the waiting state
-    mainWindow?.webContents.send('oauth:success', {
-      loggedIn: false,
-      email: null,
-      username: null,
-    });
-  }
-})
+ipcMain.handle('login', async () => { /* no-op */ })
+ipcMain.handle('logout', async () => { /* no-op */ })
+ipcMain.handle('open-oauth', async () => { /* no-op */ })
 
 // ---------------------------------------------------------------------------
 // API Key IPC handlers
@@ -156,7 +77,7 @@ ipcMain.handle('get-api-keys', async () => {
   return loadApiKeys()
 })
 
-ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai', apiKey: string) => {
+ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => {
   const keys = loadApiKeys()
   if (provider === 'anthropic') {
     keys.anthropicApiKey = apiKey
@@ -164,45 +85,61 @@ ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 
     keys.geminiApiKey = apiKey
   } else if (provider === 'openai') {
     keys.openaiApiKey = apiKey
+  } else if (provider === 'qwen') {
+    keys.qwenApiKey = apiKey
   }
   saveApiKeys(keys)
 })
 
-ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai') => {
+ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => {
   clearApiKey(provider)
 })
 
+ipcMain.handle('set-qwen-model', async (_event, model: string) => {
+  const keys = loadApiKeys()
+  keys.qwenModel = model
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('set-custom-provider', async (_event, config: CustomProviderConfig) => {
+  const keys = loadApiKeys()
+  keys.customProvider = config
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('clear-custom-provider', async () => {
+  const keys = loadApiKeys()
+  delete keys.customProvider
+  saveApiKeys(keys)
+})
+
 ipcMain.handle('get-auth-status', async () => {
-  const session = loadSession()
-  if (!session) return { loggedIn: false }
-
-  const status = await fetchSubscriptionStatus()
-  if (!status.ok) {
-    if (status.status === 401) clearSession()
-    return { loggedIn: status.status !== 401, subscriptionStatus: null }
+  const availableProviders = getAvailableProviders()
+  return {
+    loggedIn: true,
+    isActive: true,
+    availableProviders,
+    transcriptionsUsed: 0,
+    transcriptionLimit: null,
+    snapshotsUsed: 0,
+    snapshotLimit: null,
+    hasCodeSnapshot: availableProviders.includes('claude'),
   }
-  return { loggedIn: true, ...status.data }
 })
 
-ipcMain.handle('open-subscribe', async () => {
-  // Open pricing page for new users to subscribe
-  shell.openExternal(`${WEBSITE_URL}/pricing#pricing`)
-})
-
-ipcMain.handle('open-manage-subscription', async () => {
-  shell.openExternal(`${WEBSITE_URL}/account`)
-})
+ipcMain.handle('open-subscribe', async () => { /* no-op */ })
+ipcMain.handle('open-manage-subscription', async () => { /* no-op */ })
 
 ipcMain.handle('open-external-url', async (_event, url: string) => {
   shell.openExternal(url)
 })
 
 // ---------------------------------------------------------------------------
-// Copilot IPC handlers (proxy to backend)
+// Copilot IPC handlers (direct API calls)
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('transcribe-audio', async (_event, buffer: ArrayBuffer) => {
-  return transcribeAudio(buffer)
+  return transcribeAudio(Buffer.from(buffer))
 })
 
 ipcMain.handle('get-answer', async (_event, question: string, provider: AIProvider, context: UserContext) => {
@@ -210,12 +147,17 @@ ipcMain.handle('get-answer', async (_event, question: string, provider: AIProvid
 })
 
 ipcMain.handle('get-available-providers', async () => {
-  const status = await fetchSubscriptionStatus()
-  if (!status.ok) return []
-  return status.data.availableProviders
+  return getAvailableProviders()
 })
 
 ipcMain.handle('analyze-code-snapshot', async (_event, imageBase64: string, context?: string) => {
+  const keys = loadApiKeys()
+  if (keys.qwenApiKey) {
+    return analyzeCodeSnapshotQwen(imageBase64, context)
+  }
+  if (keys.customProvider?.baseUrl && keys.customProvider?.model) {
+    return analyzeCodeSnapshotCustom(imageBase64, keys.customProvider, context)
+  }
   return analyzeCodeSnapshot(imageBase64, context)
 })
 
@@ -493,7 +435,7 @@ ipcMain.handle('get-desktop-source-id', async () => {
 })
 
 ipcMain.handle('get-api-url', async () => {
-  return WASP_API_URL
+  return ''
 })
 
 ipcMain.handle('restart-app', () => {

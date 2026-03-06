@@ -1,41 +1,18 @@
 ---
-language: typescript
-framework: react-vite
-build_cmd: npm run build
-test_cmd: npm test
-lint_cmd: npm run lint
-fmt_cmd: npm run format
-birth_date: 2026-03-05
+language: 
+framework: electron, typescript
+build_cmd: build
+test_cmd: test
+lint_cmd: lint
+fmt_cmd: fmt
+birth_date: 2026-03-06
 ---
 
-You must only write code and tests that meet the features and scenarios of this behaviour driven development document.
+System: a tool we call mooch, that helps users during interview by listening and providing helpful reminders etc.
 
-System: [Your system description here — e.g. "A blog posting website" or "A REST API for task management"]
+    Feature: remove login
 
-    Feature: [Feature name]
-        As a [role]
-        I want to [action]
-        So that [benefit]
-
-        Background: [Optional — shared precondition for all scenarios in this feature]
-            Given [shared precondition]
-
-        Scenario: [Scenario name]
-            Given [precondition]
-            When [action]
-            Then [expected outcome]
-
-        Scenario: [Another scenario]
-            Given [precondition]
-            When [action]
-            Then [expected outcome]
-
-    Feature: [Second feature]
-        As a [role]
-        I want to [action]
-        So that [benefit]
-
-        Scenario: [Scenario name]
-            Given [precondition]
-            When [action]
-            Then [expected outcome]
+        Scenario: no login required
+            Given the user has started the app
+            When the app loads
+            Then it should not go to the login screen as this should no longer be required.
