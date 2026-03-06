@@ -35,3 +35,11 @@ System: a tool we call mooch, that helps users during interview by listening and
             Given the app is running
             When the user performs any supported action
             Then that action should have an automated test covering it
+
+    Feature: model requirements per feature
+
+        Scenario: feature model requirements are visible
+            Given the user is looking at the app
+            When a feature requires a specific type of API key or model
+            Then the feature section should clearly indicate which model type is required
+            And if the user does not have a matching API key, it should be made clear that the feature is unavailable
