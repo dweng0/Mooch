@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
-import { Settings } from 'lucide-react'
+import { Settings, Lock } from 'lucide-react'
 import StatusIndicator from './StatusIndicator'
 import MochiLogo from './MochiLogo'
 import bunnyLogo from '../assets/bunny-logo.png'
 import generalIcon from '../assets/Presentation.webm'
 import codeIcon from '../assets/Responsive_Design.webm'
 import mockIcon from '../assets/Idea.webm'
+import type { UserApiKeys } from '../../../shared/types'
 
 const HYPE_PHRASES = [
   "You're gonna smash it!",
@@ -40,6 +41,18 @@ interface Props {
   cvName: string
   jobDescName: string
   manualContext: string
+  apiKeys?: UserApiKeys
+}
+
+function hasAnyLlmKey(apiKeys?: UserApiKeys): boolean {
+  if (!apiKeys) return false
+  return !!(
+    apiKeys.anthropicApiKey ||
+    apiKeys.geminiApiKey ||
+    apiKeys.openaiApiKey ||
+    apiKeys.qwenApiKey ||
+    (apiKeys.customProvider?.baseUrl && apiKeys.customProvider?.model)
+  )
 }
 
 export default function ServiceSelection({
@@ -49,8 +62,10 @@ export default function ServiceSelection({
   apiUrl,
   cvName,
   jobDescName,
-  manualContext
+  manualContext,
+  apiKeys,
 }: Props) {
+  const hasKey = hasAnyLlmKey(apiKeys)
   const hypePhrase = useMemo(
     () => HYPE_PHRASES[Math.floor(Math.random() * HYPE_PHRASES.length)],
     []
@@ -115,6 +130,8 @@ export default function ServiceSelection({
           videoSrc={generalIcon}
           borderColor="border-purple-500/30 hover:border-purple-500/60"
           bgHover="hover:bg-purple-500/10"
+          modelRequirement="Any LLM key"
+          unavailable={!hasKey}
           onClick={() => onSelect('general')}
         />
         <ModeCard
@@ -123,6 +140,8 @@ export default function ServiceSelection({
           videoSrc={codeIcon}
           borderColor="border-blue-500/30 hover:border-blue-500/60"
           bgHover="hover:bg-blue-500/10"
+          modelRequirement="Any LLM key"
+          unavailable={!hasKey}
           onClick={() => onSelect('code')}
         />
         <ModeCard
@@ -131,6 +150,8 @@ export default function ServiceSelection({
           videoSrc={mockIcon}
           borderColor="border-green-500/30 hover:border-green-500/60"
           bgHover="hover:bg-green-500/10"
+          modelRequirement="Any LLM key + Browser voice"
+          unavailable={!hasKey}
           onClick={() => onSelect('mock')}
         />
       </div>
@@ -156,6 +177,8 @@ function ModeCard({
   videoSrc,
   borderColor,
   bgHover,
+  modelRequirement,
+  unavailable,
   onClick
 }: {
   title: string
@@ -163,12 +186,14 @@ function ModeCard({
   videoSrc: string
   borderColor: string
   bgHover: string
+  modelRequirement: string
+  unavailable?: boolean
   onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 rounded-xl border bg-white/5 transition-all duration-150 cursor-pointer ${borderColor} ${bgHover}`}
+      className={`w-full text-left px-4 py-3 rounded-xl border bg-white/5 transition-all duration-150 cursor-pointer ${borderColor} ${bgHover} ${unavailable ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-3">
         <span className="flex items-center justify-center h-14 w-14 rounded-xl bg-white flex-shrink-0">
@@ -180,9 +205,26 @@ function ModeCard({
             className="h-12 w-12"
           />
         </span>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-white">{title}</div>
           <div className="text-xs text-gray-400 mt-0.5">{description}</div>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span
+              data-testid="model-requirement"
+              className="text-[10px] text-gray-500 bg-gray-800 border border-white/10 px-1.5 py-0.5 rounded-full"
+            >
+              {modelRequirement}
+            </span>
+            {unavailable && (
+              <span
+                data-testid="feature-unavailable"
+                className="flex items-center gap-1 text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full"
+              >
+                <Lock size={9} />
+                No API key
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>

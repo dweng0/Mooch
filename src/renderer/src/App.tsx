@@ -12,7 +12,7 @@ import CaptureVoiceModal from './components/CaptureVoiceModal'
 import { AudioRecorder } from './services/recorder'
 import { LiveInterviewService } from './services/liveInterview'
 import { PassiveListenService } from './services/passiveListen'
-import type { AIProvider, AudioSource, TextSize, UserContext, WindowSource } from '../../shared/types'
+import type { AIProvider, AudioSource, TextSize, UserApiKeys, UserContext, WindowSource } from '../../shared/types'
 import bunnyLogo from './assets/bunny-logo.png'
 import iconPassiveSys from './assets/Explore.webm'
 import iconPassiveMic from './assets/Innovation.webm'
@@ -34,6 +34,7 @@ export default function App() {
   // ── Auth state ─────────────────────────────────────────────────────────────
   const [authState, setAuthState] = useState<AuthState>('loading')
   const [hasApiKey, setHasApiKey] = useState(false)
+  const [loadedApiKeys, setLoadedApiKeys] = useState<UserApiKeys>({})
   const [transcriptionsUsed, setTranscriptionsUsed] = useState(0)
   const [transcriptionLimit, setTranscriptionLimit] = useState<number | null>(null)
   const [snapshotsUsed, setSnapshotsUsed] = useState(0)
@@ -45,6 +46,7 @@ export default function App() {
   // Respects the provider preference stored in localStorage by SubscribeScreen.
   const loadApiKeyState = async () => {
     const keys = await window.electronAPI.getApiKeys()
+    setLoadedApiKeys(keys)
 
     const derived: AIProvider[] = []
     if (keys.anthropicApiKey) derived.push('claude')
@@ -748,6 +750,7 @@ export default function App() {
       cvName={cvName}
       jobDescName={jobDescName}
       manualContext={manualContext}
+      apiKeys={loadedApiKeys}
     />
   }
 
@@ -767,6 +770,7 @@ export default function App() {
         cvName={cvName}
         jobDescName={jobDescName}
         manualContext={manualContext}
+        apiKeys={loadedApiKeys}
       />
     )
   }
