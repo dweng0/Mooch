@@ -1,10 +1,8 @@
 ---
-language: 
+language: typescript
 framework: electron, typescript
-build_cmd: build
-test_cmd: test
-lint_cmd: lint
-fmt_cmd: fmt
+build_cmd: npm run build
+test_cmd: npm test
 birth_date: 2026-03-06
 ---
 
