@@ -12,6 +12,12 @@ Meet Mooch
 
 Mooch is an interview assistant that can help you. It uses ai to listen to your interviewer and gives you live feedback and suggestions.
 
+## Screenshots
+
+![Mooch main screen](resources/mooch.png)
+
+![Local LLM and custom provider support](resources/localllmsupport.png)
+
 ## Features
 
 - **Real-time feedback** - Mooch listens to your interviewer, transcribes what they are asking, and provides you with real-time feedback and suggestions on how to answer the question.
