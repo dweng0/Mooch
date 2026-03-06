@@ -292,6 +292,11 @@ export default function SettingsScreen({
           <p className="text-[10px] text-gray-500 mb-3">
             Add your own API keys to use your own accounts. Your keys are stored securely on your device.
           </p>
+          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
+            <span className="text-amber-400 text-[10px] leading-relaxed">
+              Tested and works best with a Gemini API key — more provider support coming soon.
+            </span>
+          </div>
           <div className="flex flex-col gap-2">
             {PROVIDERS.map((provider) => (
               <div
