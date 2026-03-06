@@ -25,7 +25,7 @@ function createWindow(): void {
     require('electron').screen.getPrimaryDisplay().workAreaSize
 
   const winWidth = 500
-  const winHeight = 640
+  const winHeight = 760
 
   mainWindow = new BrowserWindow({
     width: winWidth,

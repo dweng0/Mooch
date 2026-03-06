@@ -1,9 +1,34 @@
+import { useMemo } from 'react'
 import { Settings } from 'lucide-react'
 import StatusIndicator from './StatusIndicator'
+import MochiLogo from './MochiLogo'
 import bunnyLogo from '../assets/bunny-logo.png'
 import generalIcon from '../assets/Presentation.webm'
 import codeIcon from '../assets/Responsive_Design.webm'
 import mockIcon from '../assets/Idea.webm'
+
+const HYPE_PHRASES = [
+  "You're gonna smash it!",
+  "You've got this!",
+  "Do the power stance!",
+  "They're lucky to have you!",
+  "You're more prepared than you think.",
+  "Breathe. You know your stuff.",
+  "Walk in like you own the place.",
+  "This is your moment — take it!",
+  "Every expert was once a beginner.",
+  "Confidence is your superpower.",
+  "You've done hard things before.",
+  "Today's the day. Let's go!",
+  "Trust the prep, trust yourself.",
+  "Nerves mean you care. That's good.",
+  "You belong in that room.",
+  "Channel your inner 10x engineer.",
+  "Smile — they want you to succeed too.",
+  "You're ready. You've always been ready.",
+  "Big energy only from here.",
+  "Go show them what you're made of!",
+]
 
 export type InterviewMode = 'general' | 'code' | 'mock'
 
@@ -26,6 +51,11 @@ export default function ServiceSelection({
   jobDescName,
   manualContext
 }: Props) {
+  const hypePhrase = useMemo(
+    () => HYPE_PHRASES[Math.floor(Math.random() * HYPE_PHRASES.length)],
+    []
+  )
+
   const contextItems = [
     cvName && 'Resume',
     jobDescName && 'Job Desc',
@@ -73,7 +103,11 @@ export default function ServiceSelection({
           </button>
         )}
 
-        <p className="text-xs text-gray-400 font-medium">Choose interview type</p>
+        <div className="flex justify-center py-2">
+          <MochiLogo className="h-36 w-36" />
+        </div>
+
+        <p className="text-sm text-gray-300 font-semibold text-center">{hypePhrase}</p>
 
         <ModeCard
           title="General Interview"
