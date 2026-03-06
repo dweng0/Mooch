@@ -4,7 +4,7 @@
 
 </div>
 
-[![Evolution](https://github.com/dweng0/BAADD/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/BAADD/actions/workflows/evolve.yml)
+[![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)
 
 ## Supported Models
 
