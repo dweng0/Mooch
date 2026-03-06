@@ -1,14 +1,26 @@
 # BDD Status
 
-Checked 1 scenario(s) across 3 test file(s).
+Checked 4 scenario(s) across 4 test file(s).
 
 
 ## Feature: remove login
 
-- [ ] UNCOVERED: no login required
+- [x] no login required
+
+## Feature: better API key errors
+
+- [x] clear API key error message
+
+## Feature: mock interview
+
+- [x] start mock interview with job description
+
+## Feature: user journey test coverage
+
+- [ ] UNCOVERED: user actions have test coverage
 
 ---
-**0/1 scenarios covered.**
+**3/4 scenarios covered.**
 
 1 scenario(s) need tests:
-- no login required
+- user actions have test coverage
