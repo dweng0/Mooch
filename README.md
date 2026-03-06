@@ -1,7 +1,8 @@
 # BAADD — Behaviour and AI Driven Development
 <div align="center">
-<img src="cute_sheep.svg" width="180" alt="BAADD sheep mascot"/>
+<img src="mooch.svg" width="180" alt="Mooch the bunny"/>
 
+Meet Mooch
 </div>
 
 [![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)

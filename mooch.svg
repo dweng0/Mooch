@@ -1,0 +1,84 @@
+<svg viewBox="-10 -10 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+  <style>
+    @keyframes head-rotate {
+      0%, 100% { transform: rotate(-2deg); }
+      50% { transform: rotate(2deg); }
+    }
+    @keyframes ear-wiggle-left {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+    @keyframes ear-wiggle-right {
+      0%, 100% { transform: rotate(5deg); }
+      50% { transform: rotate(-5deg); }
+    }
+    @keyframes eye-blink {
+      0%, 90%, 100% { opacity: 1; }
+      95% { opacity: 0; }
+    }
+    .mochi-rabbit-head {
+      transform-origin: 60px 55px;
+      animation: head-rotate 3s ease-in-out infinite;
+    }
+    .mochi-ear-left {
+      transform-origin: 40px 30px;
+      animation: ear-wiggle-left 2s ease-in-out infinite;
+    }
+    .mochi-ear-right {
+      transform-origin: 80px 30px;
+      animation: ear-wiggle-right 2s ease-in-out infinite 0.3s;
+    }
+    .mochi-eye {
+      animation: eye-blink 4s ease-in-out infinite;
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="mochi-rabbit-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#fb923c" />
+    </linearGradient>
+  </defs>
+
+  <g class="mochi-rabbit-head">
+    <!-- Left Ear -->
+    <ellipse class="mochi-ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#mochi-rabbit-gradient)" />
+    <ellipse class="mochi-ear-left" cx="40" cy="30" rx="6" ry="28" fill="#111827" opacity="0.2" />
+
+    <!-- Right Ear -->
+    <ellipse class="mochi-ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#mochi-rabbit-gradient)" />
+    <ellipse class="mochi-ear-right" cx="80" cy="30" rx="6" ry="28" fill="#111827" opacity="0.2" />
+
+    <!-- Head -->
+    <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#mochi-rabbit-gradient)" />
+
+    <!-- Eyes - Happy ^ ^ -->
+    <path class="mochi-eye" d="M43 52 Q48 47 53 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none" />
+    <path class="mochi-eye" d="M67 52 Q72 47 77 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+    <!-- Smiling Mouth -->
+    <path d="M52 62 Q60 67 68 62" stroke="#111827" stroke-width="2" stroke-linecap="round" fill="none" />
+
+    <!-- Whiskers -->
+    <path d="M35 58 Q25 58 20 55" stroke="#374151" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+    <path d="M35 62 Q25 63 18 65" stroke="#374151" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+    <path d="M85 58 Q95 58 100 55" stroke="#374151" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+    <path d="M85 62 Q95 63 102 65" stroke="#374151" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+  </g>
+
+  <!-- Body -->
+  <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#mochi-rabbit-gradient)" opacity="0.8" />
+
+  <!-- Belly -->
+  <ellipse cx="60" cy="95" rx="15" ry="12" fill="white" opacity="0.3" />
+
+  <!-- Feet -->
+  <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#mochi-rabbit-gradient)" opacity="0.9" />
+  <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#mochi-rabbit-gradient)" opacity="0.9" />
+
+  <!-- Toe details -->
+  <ellipse cx="47" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="53" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="67" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="73" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+</svg>
