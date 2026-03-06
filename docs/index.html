@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mooch — Ace your next interview</title>
+  <meta name="description" content="Mooch on over to your next role. An AI-powered interview copilot that helps you stay calm and confident." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    @keyframes head-rotate {
+      0%, 100% { transform: rotate(-2deg); }
+      50% { transform: rotate(2deg); }
+    }
+    @keyframes ear-wiggle-left {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+    @keyframes ear-wiggle-right {
+      0%, 100% { transform: rotate(5deg); }
+      50% { transform: rotate(-5deg); }
+    }
+    @keyframes eye-blink {
+      0%, 90%, 100% { opacity: 1; }
+      95% { opacity: 0; }
+    }
+    .mochi-rabbit-head {
+      transform-origin: 60px 55px;
+      animation: head-rotate 3s ease-in-out infinite;
+    }
+    .mochi-ear-left {
+      transform-origin: 40px 30px;
+      animation: ear-wiggle-left 2s ease-in-out infinite;
+    }
+    .mochi-ear-right {
+      transform-origin: 80px 30px;
+      animation: ear-wiggle-right 2s ease-in-out infinite 0.3s;
+    }
+    .mochi-eye {
+      animation: eye-blink 4s ease-in-out infinite;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #ea580c, #fb923c, #fbbf24, #06b6d4, #0891b2, #ea580c);
+      background-size: 200% 100%;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient-shift 8s ease infinite;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(2rem);
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="bg-black text-white">
+
+  <!-- Nav -->
+  <header class="sticky inset-x-0 top-0 z-50 bg-black">
+    <nav class="flex items-center justify-between px-6 py-4 lg:px-8">
+      <a href="#" class="flex items-center gap-2 text-gray-200 hover:text-yellow-400 transition-colors duration-300">
+        <!-- Mooch logo (small) -->
+        <svg viewBox="-10 -10 140 140" class="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="nav-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ea580c" />
+              <stop offset="100%" stop-color="#fb923c" />
+            </linearGradient>
+          </defs>
+          <g class="mochi-rabbit-head">
+            <ellipse class="mochi-ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#nav-gradient)" />
+            <ellipse class="mochi-ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#nav-gradient)" />
+            <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#nav-gradient)" />
+            <path class="mochi-eye" d="M43 52 Q48 47 53 52" stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            <path class="mochi-eye" d="M67 52 Q72 47 77 52" stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            <path d="M52 62 Q60 67 68 62" stroke="#111" stroke-width="2" stroke-linecap="round" fill="none" />
+          </g>
+          <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#nav-gradient)" opacity="0.8" />
+          <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#nav-gradient)" opacity="0.9" />
+          <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#nav-gradient)" opacity="0.9" />
+        </svg>
+        <span class="text-sm font-semibold leading-6">Mooch</span>
+      </a>
+      <a
+        href="https://github.com/dweng0/Mooch/releases/latest"
+        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 transition-colors duration-200"
+      >
+        Download
+      </a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <main>
+    <div class="relative pt-14 w-full overflow-hidden min-h-screen">
+      <!-- Video background -->
+      <video
+        id="bg-video"
+        autoplay
+        loop
+        muted
+        playsinline
+        class="absolute inset-0 w-full h-full object-cover"
+        style="z-index: -10;"
+      ></video>
+      <!-- Dark overlay -->
+      <div class="absolute inset-0 bg-black/70" style="z-index: -10;"></div>
+      <!-- Edge gradients -->
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="z-index: -10; background: linear-gradient(to right, black 0%, transparent 15%, transparent 85%, black 100%), linear-gradient(to bottom, black 0%, transparent 15%, transparent 80%, black 100%);"
+      ></div>
+
+      <div class="py-24 sm:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+
+            <!-- Logo -->
+            <div class="fade-in mb-6" data-delay="100">
+              <svg viewBox="-10 -10 140 140" class="mx-auto h-40 w-40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <style>
+                  @keyframes head-rotate { 0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)} }
+                  @keyframes ear-wiggle-left { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
+                  @keyframes ear-wiggle-right { 0%,100%{transform:rotate(5deg)}50%{transform:rotate(-5deg)} }
+                  @keyframes eye-blink { 0%,90%,100%{opacity:1}95%{opacity:0} }
+                  .h-head { transform-origin:60px 55px; animation:head-rotate 3s ease-in-out infinite; }
+                  .h-ear-l { transform-origin:40px 30px; animation:ear-wiggle-left 2s ease-in-out infinite; }
+                  .h-ear-r { transform-origin:80px 30px; animation:ear-wiggle-right 2s ease-in-out infinite 0.3s; }
+                  .h-eye { animation:eye-blink 4s ease-in-out infinite; }
+                </style>
+                <defs>
+                  <linearGradient id="hero-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f97316" />
+                    <stop offset="100%" stop-color="#fb923c" />
+                  </linearGradient>
+                </defs>
+                <g class="h-head">
+                  <ellipse class="h-ear-l" cx="40" cy="30" rx="12" ry="35" fill="url(#hero-gradient)" />
+                  <ellipse class="h-ear-l" cx="40" cy="30" rx="6" ry="28" fill="#111" opacity="0.2" />
+                  <ellipse class="h-ear-r" cx="80" cy="30" rx="12" ry="35" fill="url(#hero-gradient)" />
+                  <ellipse class="h-ear-r" cx="80" cy="30" rx="6" ry="28" fill="#111" opacity="0.2" />
+                  <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#hero-gradient)" />
+                  <path class="h-eye" d="M43 52 Q48 47 53 52" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                  <path class="h-eye" d="M67 52 Q72 47 77 52" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                  <path d="M52 62 Q60 67 68 62" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" fill="none" />
+                  <path d="M35 58 Q25 58 20 55" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                  <path d="M35 62 Q25 63 18 65" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                  <path d="M85 58 Q95 58 100 55" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                  <path d="M85 62 Q95 63 102 65" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                </g>
+                <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#hero-gradient)" opacity="0.8" />
+                <ellipse cx="60" cy="95" rx="15" ry="12" fill="white" opacity="0.3" />
+                <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#hero-gradient)" opacity="0.9" />
+                <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#hero-gradient)" opacity="0.9" />
+                <ellipse cx="47" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
+                <ellipse cx="53" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
+                <ellipse cx="67" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
+                <ellipse cx="73" cy="110" rx="2" ry="1.5" fill="#1a1a1a" opacity="0.4" />
+              </svg>
+            </div>
+
+            <!-- Title -->
+            <h1
+              class="fade-in gradient-text text-6xl font-black sm:text-8xl"
+              data-delay="300"
+            >
+              Meet Mooch
+            </h1>
+
+            <!-- Description -->
+            <p
+              class="fade-in mt-6 mx-auto max-w-2xl text-lg leading-8 text-white"
+              data-delay="500"
+            >
+              Mooch on over to your next role.
+            </p>
+
+            <!-- Buttons -->
+            <div
+              class="fade-in mt-10 flex items-center justify-center gap-x-6"
+              data-delay="700"
+            >
+              <a
+                href="https://github.com/dweng0/Mooch/releases/latest"
+                class="rounded-md bg-indigo-600 px-6 py-3.5 text-lg font-bold text-white shadow-sm hover:bg-indigo-500 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                Download Now
+              </a>
+              <a
+                href="https://github.com/dweng0/Mooch"
+                class="rounded-md bg-yellow-400 px-6 py-3.5 text-lg font-bold text-gray-900 shadow-sm hover:bg-yellow-300 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+              >
+                <span class="flex items-center gap-1.5">
+                  Learn more
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 py-8 px-6 text-center text-sm text-gray-500">
+    <p>© 2025 Mooch. Built with <span class="text-orange-500">♥</span></p>
+  </footer>
+
+  <script>
+    // Random background video
+    const videos = [
+      'videos/abs-geo-01.webm',
+      'videos/abstract.webm',
+      'videos/abs-geo-02.webm',
+      'videos/abs-geo-03.webm',
+      'videos/abs-geo-04.webm',
+      'videos/abs-geo-05.webm',
+    ];
+    const vid = document.getElementById('bg-video');
+    vid.src = videos[Math.floor(Math.random() * videos.length)];
+
+    // Intersection observer fade-ins
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const delay = el.dataset.delay || 0;
+          setTimeout(() => el.classList.add('visible'), Number(delay));
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
