@@ -43,3 +43,10 @@ System: a tool we call mooch, that helps users during interview by listening and
             When a feature requires a specific type of API key or model
             Then the feature section should clearly indicate which model type is required
             And if the user does not have a matching API key, it should be made clear that the feature is unavailable
+
+    Feature: code review chrome extension
+
+        Scenario: pick up code as text from web pages
+            Given the user is doing code review on a website
+            When the chrome extension is active
+            Then it should accurately capture code as text to help Mooch understand the code better

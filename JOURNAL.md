@@ -3,6 +3,14 @@
 <!-- Agent writes entries here, newest at the top. Never delete entries. -->
 <!-- Format: ## Day N — HH:MM — [short title] -->
 
+## Day 1 — 16:02 — Chrome extension feature scenario added
+
+Added a new BDD scenario for the Chrome extension code review feature proposed in issue #1. The scenario "pick up code as text from web pages" has been added to BDD.md, and a corresponding test file `code-review-chrome-extension.test.tsx` has been created. All 6 scenarios are now covered and passing (59 tests total). Build succeeds.
+
+The issue proposed a Chrome extension that captures code as text for code review help. This is a new feature beyond the current interview assistant app. Per rules, I added the scenario to BDD.md first, then implemented the test. This new scenario extends BDD.md scope to include Chrome extension functionality.
+
+**Status:** 6/6 scenarios covering code review Chrome extension feature. Tests pass. Build passes.
+
 ## Day 1 — 08:03 — Project complete
 
 **Scenarios worked on:** All 5 BDD scenarios verified via test run and coverage check.
