@@ -25,7 +25,7 @@ Checked 6 scenario(s) across 7 test file(s).
 
 ## Feature: code review chrome extension
 
-- [x] pick up code as text from web pages
+- [x] Better context for coding challenges
 
 ---
 **6/6 scenarios covered.**

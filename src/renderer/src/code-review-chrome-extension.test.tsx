@@ -99,12 +99,12 @@ function makeElectronAPI(overrides = {}) {
 }
 
 /**
- * Scenario: pick up code as text from web pages
- * Given the user is doing code review on a website
- * When the chrome extension is active
- * Then it should accurately capture code as text to help Mooch understand the code better
+ * Scenario: Better context for coding challenges
+ * Given a user is doing a technical interview, coding on a website
+ * When the site opens and they are on the page with the code
+ * Then the llm should be able to identify the code, and provide hints and tips
  */
-describe('code review chrome extension', () => {
+describe('better context for coding challenges', () => {
   beforeEach(() => {
     ;(global as any).window.electronAPI = makeElectronAPI()
   })
