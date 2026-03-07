@@ -1,0 +1,23 @@
+{
+  "version": "v1.0.0",
+  "files": [
+    "install.sh",
+    "IDENTITY.md",
+    "CLAUDE.md",
+    "BDD.example.md",
+    "scripts/agent.py",
+    "scripts/evolve.sh",
+    "scripts/bootstrap.sh",
+    "scripts/build.sh",
+    "scripts/check_bdd_coverage.py",
+    "scripts/parse_bdd_config.py",
+    "scripts/setup_env.sh",
+    "scripts/format_issues.py",
+    "scripts/verify_issue_trust.py",
+    ".github/workflows/evolve.yml",
+    "skills/evolve/SKILL.md",
+    "skills/communicate/SKILL.md",
+    "skills/research/SKILL.md",
+    "skills/self-assess/SKILL.md"
+  ]
+}
