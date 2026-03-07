@@ -44,7 +44,7 @@ In order to help more with code review, the screen shots are good, but we should
 
 As a user
 When i'm doing a code review on a site
-then a browser extension may help Mooch understand the code better
+then a chrome extension may help Mooch understand the code better
 [USER-SUBMITTED CONTENT END]
 
 ---
