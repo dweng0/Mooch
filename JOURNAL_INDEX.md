@@ -8,3 +8,4 @@
 | 1 | 2026-03-07 | 00:09 | 5/5 | Day 1 (00:09): project checked — all scenarios complete, no open issues |
 | 1 | 2026-03-07 | 08:03 | 5/5 | Day 1 (08:03): project checked — all scenarios complete, no open issues |
 | 1 | 2026-03-07 | 16:02 | 6/6 | Day 1 (16:02): add Chrome extension scenario and test |
+| 1 | 2026-03-07 | 21:18 | 6/6 | Day 1 (21:18): fix coverage detection for Chrome extension scenario |
