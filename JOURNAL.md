@@ -3,6 +3,12 @@
 <!-- Agent writes entries here, newest at the top. Never delete entries. -->
 <!-- Format: ## Day N — HH:MM — [short title] -->
 
+## Day 2 — 16:02 — Project complete
+
+All BDD scenarios are covered and passing. No open issues. Nothing to implement this session.
+
+## Day 1 — 16:02 — Chrome extension feature scenario added
+
 ## Day 1 — 16:02 — Chrome extension feature scenario added
 
 Added a new BDD scenario for the Chrome extension code review feature proposed in issue #1. The scenario "pick up code as text from web pages" has been added to BDD.md, and a corresponding test file `code-review-chrome-extension.test.tsx` has been created. All 6 scenarios are now covered and passing (59 tests total). Build succeeds.
