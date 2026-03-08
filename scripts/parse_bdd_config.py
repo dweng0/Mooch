@@ -46,7 +46,11 @@ def parse_frontmatter(path):
             continue
         if ":" in line:
             key, _, value = line.partition(":")
-            result[key.strip().lower()] = value.strip().strip('"').strip("'")
+            k = key.strip().lower()
+            v = value.strip().strip('"').strip("'")
+            if k == "language":
+                v = v.lower()
+            result[k] = v
 
     return result
 
