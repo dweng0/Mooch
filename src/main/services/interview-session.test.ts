@@ -546,7 +546,7 @@ describe('Interview Session Manager', () => {
   })
 
   describe('Feedback JSON storage', () => {
-    it('store real-time LLM feedback as JSON with turn-N.json format', async () => {
+    it('store real-time LLM feedback as json stores turn-N format with rating and context', async () => {
       const metadata = await manager.createSession('Role', 'Resume')
 
       const feedback = {
