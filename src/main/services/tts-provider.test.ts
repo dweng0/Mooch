@@ -164,11 +164,15 @@ describe('TTS Provider Manager', () => {
       manager.setConfig(config)
 
       const mockFetch = vi.mocked(global.fetch)
-      const mockAudioBuffer = new ArrayBuffer(1024)
+      const audioBase64 = Buffer.from('fake-audio-data').toString('base64')
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        arrayBuffer: vi.fn().mockResolvedValueOnce(mockAudioBuffer),
+        json: vi.fn().mockResolvedValueOnce({
+          output: {
+            audio: audioBase64,
+          },
+        }),
       } as any)
 
       const result = await manager.synthesize('Hello')
@@ -186,9 +190,14 @@ describe('TTS Provider Manager', () => {
       manager.setConfig(config)
 
       const mockFetch = vi.mocked(global.fetch)
+      const audioBase64 = Buffer.from('fake-audio-data').toString('base64')
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        arrayBuffer: vi.fn().mockResolvedValueOnce(new ArrayBuffer(100)),
+        json: vi.fn().mockResolvedValueOnce({
+          output: {
+            audio: audioBase64,
+          },
+        }),
       } as any)
 
       await manager.synthesize('Test text for synthesis')
@@ -212,9 +221,14 @@ describe('TTS Provider Manager', () => {
       manager.setConfig(config)
 
       const mockFetch = vi.mocked(global.fetch)
+      const audioBase64 = Buffer.from('fake-audio-data').toString('base64')
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        arrayBuffer: vi.fn().mockResolvedValueOnce(new ArrayBuffer(100)),
+        json: vi.fn().mockResolvedValueOnce({
+          output: {
+            audio: audioBase64,
+          },
+        }),
       } as any)
 
       const connected = await manager.testConnection()

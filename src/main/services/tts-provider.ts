@@ -51,33 +51,47 @@ export class TTSProviderManager {
       throw new Error('Cosyvoice API key is required')
     }
 
-    // Cosyvoice implementation placeholder
-    // In production, this would call the Cosyvoice API
+    // Cosyvoice via Dashscope (Alibaba)
+    // Model: cosyvoice-v3-flash
     try {
-      const response = await fetch('https://api.cosyvoice.cn/v1/synthesize', {
+      const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/tts/text-to-speech', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
+          'X-DashScope-Async': 'false',
+          'Authorization': `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify({
-          text,
-          voice: this.config.voice || 'default',
-          speed: this.config.speed || 1.0,
-          pitch: this.config.pitch || 1.0,
+          model: this.config.model || 'cosyvoice-v3-flash',
+          input: {
+            text,
+          },
+          parameters: {
+            voice: this.config.voice || 'longxiao',
+            rate: this.config.speed ? Math.round(this.config.speed * 100) : 100,
+            pitch: this.config.pitch ? Math.round(this.config.pitch * 100) : 100,
+            format: 'wav',
+          },
         }),
       })
 
       if (!response.ok) {
-        throw new Error(`Cosyvoice API error: ${response.statusText}`)
+        const errorData = await response.json()
+        throw new Error(`Cosyvoice API error: ${errorData.message || response.statusText}`)
       }
 
-      const audioBuffer = await response.arrayBuffer()
+      const result = await response.json()
 
-      return {
-        audioBuffer: Buffer.from(audioBuffer),
-        mimeType: 'audio/wav',
+      // Dashscope returns audio as base64 in the output field
+      if (result.output?.audio) {
+        const audioBuffer = Buffer.from(result.output.audio, 'base64')
+        return {
+          audioBuffer,
+          mimeType: 'audio/wav',
+        }
       }
+
+      throw new Error('No audio data in Cosyvoice response')
     } catch (error) {
       throw new Error(`Failed to synthesize with Cosyvoice: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
