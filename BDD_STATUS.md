@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 26 scenario(s) across 10 test file(s).
+Checked 26 scenario(s) across 12 test file(s).
 
 
 ## Feature: remove login
@@ -15,20 +15,20 @@ Checked 26 scenario(s) across 10 test file(s).
 
 - [x] create new interview session with job description and resume
 - [x] list and view previous interview sessions
-- [ ] UNCOVERED: start real-time voice interview
-- [ ] UNCOVERED: degrade gracefully when TTS provider is unavailable
+- [x] start real-time voice interview
+- [x] degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
 - [x] record and store interview audio per turn
 - [ ] UNCOVERED: store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
 - [x] mark interview as complete or incomplete
 - [x] resume incomplete interview session
-- [ ] UNCOVERED: graceful failure recovery during interview
+- [x] graceful failure recovery during interview
 
 ## Feature: TTS provider support
 
-- [ ] UNCOVERED: configure Cosyvoice TTS provider
-- [ ] UNCOVERED: modular TTS architecture for future providers
+- [x] configure Cosyvoice TTS provider
+- [x] modular TTS architecture for future providers
 
 ## Feature: user journey test coverage
 
@@ -57,12 +57,7 @@ Checked 26 scenario(s) across 10 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**20/26 scenarios covered.**
+**25/26 scenarios covered.**
 
-6 scenario(s) need tests:
-- start real-time voice interview
-- degrade gracefully when TTS provider is unavailable
+1 scenario(s) need tests:
 - store real-time LLM feedback as JSON
-- graceful failure recovery during interview
-- configure Cosyvoice TTS provider
-- modular TTS architecture for future providers

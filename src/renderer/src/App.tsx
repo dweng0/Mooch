@@ -9,6 +9,7 @@ import SettingsScreen from './components/SettingsScreen'
 import WindowPicker from './components/WindowPicker'
 import StatusIndicator from './components/StatusIndicator'
 import CaptureVoiceModal from './components/CaptureVoiceModal'
+import MockInterviewScreen from './components/MockInterviewScreen'
 import { AudioRecorder } from './services/recorder'
 import { LiveInterviewService } from './services/liveInterview'
 import { PassiveListenService } from './services/passiveListen'
@@ -797,6 +798,16 @@ export default function App() {
         onClearCV={() => { setCv(''); setCvName('') }}
         onClearJobDesc={() => { setJobDesc(''); setJobDescName('') }}
         onManualContextChange={setManualContext}
+      />
+    )
+  }
+
+  // ── Mock Interview Screen ───────────────────────────────────────────────────
+
+  if (appView === 'mock') {
+    return (
+      <MockInterviewScreen
+        onBack={() => setAppView('select')}
       />
     )
   }
