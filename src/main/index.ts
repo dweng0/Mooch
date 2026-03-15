@@ -166,12 +166,24 @@ ipcMain.handle('open-external-url', async (_event, url: string) => {
 
 ipcMain.handle('interview-create-session', async (_event, jobDescription: string, resume: string) => {
   const keys = loadApiKeys()
+  console.log('[IPC] interview-create-session received', {
+    hasCosyvoiceKey: !!keys.cosyvoiceApiKey,
+    availableLlmProviders: getAvailableProviders(),
+    hasCustomProvider: !!keys.customProvider?.baseUrl,
+  })
+
   // Configure TTS if cosyvoice key exists
   if (keys.cosyvoiceApiKey) {
+    console.log('[IPC] Configuring TTS with Cosyvoice')
     ttsManager.setConfig({ provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey })
+  } else {
+    console.log('[IPC] No Cosyvoice key found, TTS will be optional')
   }
+
   // Create session (this will throw if no LLM provider is configured)
   const metadata = await sessionManager.createSession(jobDescription, resume)
+  console.log('[IPC] Session created:', metadata.sessionId)
+
   // Start orchestrator with the session
   await interviewOrchestrator.startRealTimeVoiceInterview({
     sessionId: metadata.sessionId,

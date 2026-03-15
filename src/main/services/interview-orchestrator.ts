@@ -35,15 +35,23 @@ export class InterviewOrchestrator {
     this.currentTurn = 0
     this.conversationHistory = []
 
+    console.log('[Interview] Starting interview session:', {
+      sessionId: config.sessionId,
+      llmProvider: config.llmProvider,
+      hasTtsConfig: !!config.ttsConfig,
+      ttsProvider: config.ttsConfig?.provider,
+    })
+
     // Initialize TTS if configured (optional)
     if (config.ttsConfig) {
       try {
         this.ttsManager.setConfig(config.ttsConfig)
+        console.log('[Interview] TTS configured successfully:', config.ttsConfig.provider)
       } catch (error) {
-        console.warn('Failed to initialize TTS:', error)
+        console.warn('[Interview] Failed to initialize TTS:', error)
       }
     } else {
-      console.warn('TTS provider not configured - will use browser fallback for speech')
+      console.warn('[Interview] TTS provider not configured - will use browser fallback for speech')
     }
   }
 
@@ -134,6 +142,12 @@ export class InterviewOrchestrator {
     const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
     const client = this.createLLMClient()
 
+    console.log('[Interview] Generating opener', {
+      model: this.getModelName(),
+      userMessage: userMessage.substring(0, 100),
+      systemPromptStart: systemPrompt.substring(0, 80),
+    })
+
     try {
       const response = await client.chat.completions.create({
         model: this.getModelName(),
@@ -145,13 +159,15 @@ export class InterviewOrchestrator {
       })
 
       const question = response.choices[0]?.message?.content ?? ''
+      console.log('[Interview] Generated opener:', question.substring(0, 150))
+
       this.conversationHistory.push({
         role: 'assistant',
         content: question,
       })
       return question
     } catch (error) {
-      console.error('Failed to generate opener:', error)
+      console.error('[Interview] Failed to generate opener:', error)
       throw error
     }
   }

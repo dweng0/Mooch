@@ -96,6 +96,9 @@ export default function SettingsScreen({
   const [testResult, setTestResult] = useState<{ reasoning: boolean; stt: boolean } | null>(null)
   const [testing, setTesting] = useState(false)
   const [unreachableWarning, setUnreachableWarning] = useState(false)
+  const [cosyvoiceInput, setCosyvoiceInput] = useState('')
+  const [cosyvoiceVisible, setCosyvoiceVisible] = useState(false)
+  const [cosyvoiceSaving, setCosyvoiceSaving] = useState(false)
 
   // Load API keys on mount
   useEffect(() => {
@@ -108,6 +111,7 @@ export default function SettingsScreen({
         openai: keys.openaiApiKey || '',
         qwen: keys.qwenApiKey || '',
       })
+      if (keys.cosyvoiceApiKey) setCosyvoiceInput(keys.cosyvoiceApiKey)
       if (keys.qwenModel) setQwenModel(keys.qwenModel)
       if (keys.customProvider) {
         setCustomInput({ ...EMPTY_CUSTOM, ...keys.customProvider })
@@ -216,6 +220,41 @@ export default function SettingsScreen({
       setCustomSaving(false)
     }
   }
+
+  const handleSaveCosyvoice = async () => {
+    const value = cosyvoiceInput.trim()
+    if (!value) return
+    setCosyvoiceSaving(true)
+    try {
+      await window.electronAPI.setApiKey('cosyvoice', value)
+      setApiKeys(prev => ({ ...prev, cosyvoiceApiKey: value }))
+      console.log('Cosyvoice API key saved successfully')
+    } catch (error) {
+      console.error('Failed to save Cosyvoice key:', error)
+    } finally {
+      setCosyvoiceSaving(false)
+    }
+  }
+
+  const handleClearCosyvoice = async () => {
+    setCosyvoiceSaving(true)
+    try {
+      await window.electronAPI.clearApiKey('cosyvoice')
+      setApiKeys(prev => {
+        const updated = { ...prev }
+        delete updated.cosyvoiceApiKey
+        return updated
+      })
+      setCosyvoiceInput('')
+      console.log('Cosyvoice API key cleared')
+    } catch (error) {
+      console.error('Failed to clear Cosyvoice key:', error)
+    } finally {
+      setCosyvoiceSaving(false)
+    }
+  }
+
+  const hasCosyvoiceSet = !!apiKeys.cosyvoiceApiKey
 
   const handleProviderChange = (providerKey: string) => {
     setSelectedProvider(providerKey)
@@ -448,6 +487,79 @@ export default function SettingsScreen({
           <p className="text-[10px] text-gray-600 mt-2">
             Your API keys are encrypted and stored locally.
           </p>
+        </section>
+
+        {/* Cosyvoice TTS */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Text-to-Speech (TTS)</h3>
+          <p className="text-[10px] text-gray-500 mb-3">
+            Add your Cosyvoice (Alibaba DashScope) API key for high-quality interview audio.
+          </p>
+          <div className={`rounded-lg border overflow-hidden ${
+            hasCosyvoiceSet
+              ? 'bg-emerald-500/5 border-emerald-500/30'
+              : 'bg-gray-800/60 border-white/10'
+          }`}>
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <KeyRound size={13} className={hasCosyvoiceSet ? 'text-emerald-400' : 'text-gray-500'} />
+                <span className={`text-xs truncate ${hasCosyvoiceSet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  Cosyvoice (DashScope)
+                </span>
+                {hasCosyvoiceSet && (
+                  <span className="flex-shrink-0 text-[10px] text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                    Set
+                  </span>
+                )}
+              </div>
+              {hasCosyvoiceSet && (
+                <button
+                  onClick={handleClearCosyvoice}
+                  disabled={cosyvoiceSaving}
+                  className="flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                  title="Remove API key"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-3 flex items-center gap-2">
+              <div className="flex-1 relative">
+                <input
+                  type={cosyvoiceVisible ? 'text' : 'password'}
+                  value={cosyvoiceInput}
+                  onChange={(e) => setCosyvoiceInput(e.target.value)}
+                  placeholder={hasCosyvoiceSet ? '••••••••••••••••••••' : 'sk-...'}
+                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                />
+                <button
+                  onClick={() => setCosyvoiceVisible(!cosyvoiceVisible)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                  title={cosyvoiceVisible ? 'Hide' : 'Show'}
+                >
+                  {cosyvoiceVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+              <button
+                onClick={handleSaveCosyvoice}
+                disabled={!cosyvoiceInput.trim() || cosyvoiceSaving || cosyvoiceInput === apiKeys.cosyvoiceApiKey}
+                className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+              >
+                {cosyvoiceSaving ? (
+                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check size={12} />
+                )}
+                Save
+              </button>
+            </div>
+            <div className="px-3 pb-3 text-[10px] text-gray-500">
+              Get your free API key from <a href="#" onClick={(e) => {
+                e.preventDefault()
+                window.electronAPI.openExternalUrl('https://dashscope.aliyuncs.com')
+              }} className="text-blue-400 hover:text-blue-300 underline">DashScope</a>
+            </div>
+          </div>
         </section>
 
         {/* Custom / OpenAI-compatible provider */}
