@@ -98,16 +98,39 @@ export class TTSProviderManager {
 
       const result = await response.json()
 
+      console.log('[TTS] Response structure:', {
+        hasOutput: !!result.output,
+        outputType: typeof result.output,
+        outputKeys: result.output ? Object.keys(result.output) : null,
+        hasAudio: !!result.output?.audio,
+        audioType: typeof result.output?.audio,
+      })
+
       // Dashscope returns audio as base64 in the output field
       if (result.output?.audio) {
-        const audioBuffer = Buffer.from(result.output.audio, 'base64')
+        const audioData = result.output.audio
+
+        // Handle case where audio might be an object with encoded data
+        let audioBuffer
+        if (typeof audioData === 'string') {
+          audioBuffer = Buffer.from(audioData, 'base64')
+        } else if (Buffer.isBuffer(audioData)) {
+          audioBuffer = audioData
+        } else if (audioData.type === 'Buffer' && Array.isArray(audioData.data)) {
+          // Handle Buffer serialization
+          audioBuffer = Buffer.from(audioData.data)
+        } else {
+          throw new Error(`Unexpected audio data type: ${typeof audioData}`)
+        }
+
+        console.log('[TTS] Audio buffer created:', audioBuffer.length, 'bytes')
         return {
           audioBuffer,
           mimeType: 'audio/wav',
         }
       }
 
-      throw new Error('No audio data in Cosyvoice response')
+      throw new Error(`No audio data in response. Got: ${JSON.stringify(result).substring(0, 200)}`)
     } catch (error) {
       throw new Error(`Failed to synthesize with Cosyvoice: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
