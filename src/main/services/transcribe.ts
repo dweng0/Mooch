@@ -101,96 +101,152 @@ async function transcribeWithWhisper(audioBuffer: Buffer, apiKey: string): Promi
 }
 
 async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<string> {
-  // Use DashScope ASR REST API (asynchronous task submission)
+  // Convert WebM to PCM format expected by DashScope WebSocket API
+  let pcmBuffer: Buffer
   try {
-    console.log('[Qwen] Converting WebM to base64...')
-    const audioBase64 = audioBuffer.toString('base64')
-    console.log(`[Qwen] Base64 encoded: ${audioBase64.length} chars`)
+    console.log('[Qwen] Converting WebM to PCM...')
+    pcmBuffer = await convertWebmToPcm(audioBuffer)
+    console.log(`[Qwen] Conversion complete: ${pcmBuffer.length} bytes PCM`)
+  } catch (error) {
+    const msg = `Failed to convert audio format: ${error instanceof Error ? error.message : String(error)}`
+    console.error('[Qwen]', msg)
+    throw new Error(msg)
+  }
 
-    const transcriptionEndpoint = 'https://dashscope-intl.aliyuncs.com/api/v1/services/audio/asr/transcription'
+  return new Promise((resolve, reject) => {
+    const taskId = randomUUID()
+    let fullText = ''
+    let ws: WebSocket | null = null
+    let resolved = false
+    let timeout: NodeJS.Timeout | null = null
 
-    // Step 1: Submit transcription task
-    console.log('[Qwen] Submitting transcription task...')
-    const submitPayload = {
-      model: 'qwen3-asr-flash-2025-09-08',
-      input: {
-        audio: `data:audio/webm;base64,${audioBase64}`
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout)
+      if (ws) {
+        try {
+          ws.close()
+        } catch (e) {
+          // ignore
+        }
       }
     }
 
-    const submitResponse = await fetch(transcriptionEndpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(submitPayload)
-    })
-
-    if (!submitResponse.ok) {
-      const errorData = await submitResponse.text()
-      console.error(`[Qwen] Submit HTTP ${submitResponse.status}:`)
-      console.error(`[Qwen] Full response: ${errorData}`)
-      try {
-        const errorJson = JSON.parse(errorData)
-        console.error(`[Qwen] Error code: ${errorJson.code}`)
-        console.error(`[Qwen] Error message: ${errorJson.message}`)
-      } catch (e) {}
-      throw new Error(`Qwen submit failed: ${submitResponse.status}`)
+    const handleError = (error: Error) => {
+      if (!resolved) {
+        resolved = true
+        cleanup()
+        reject(error)
+      }
     }
 
-    const submitResult = await submitResponse.json() as any
-    const taskId = submitResult.output?.task_id
-    console.log(`[Qwen] Task submitted, ID: ${taskId}`)
-
-    if (!taskId) {
-      console.error('[Qwen] No task_id in response:', JSON.stringify(submitResult))
-      throw new Error('Qwen: No task ID returned')
+    const handleSuccess = (text: string) => {
+      if (!resolved) {
+        resolved = true
+        cleanup()
+        resolve(text)
+      }
     }
 
-    // Step 2: Poll for task result (with timeout)
-    const maxWaitMs = 30000
-    const pollIntervalMs = 1000
-    const startTime = Date.now()
-
-    while (Date.now() - startTime < maxWaitMs) {
-      const queryUrl = `https://dashscope-intl.aliyuncs.com/api/v1/tasks/${taskId}`
-      console.log(`[Qwen] Polling task status...`)
-
-      const queryResponse = await fetch(queryUrl, {
-        method: 'GET',
+    try {
+      console.log('[Qwen] Connecting to DashScope WebSocket...')
+      ws = new WebSocket(DASHSCOPE_WSS_URL, {
         headers: {
           'Authorization': `Bearer ${apiKey}`
         }
       })
 
-      if (!queryResponse.ok) {
-        throw new Error(`Qwen query failed: ${queryResponse.status}`)
-      }
+      ws.on('open', () => {
+        console.log('[Qwen] WebSocket connected, sending task...')
+        // Send run-task instruction
+        const runTask = {
+          header: {
+            action: 'run-task',
+            task_id: taskId,
+            streaming: 'duplex'
+          },
+          payload: {
+            task_group: 'audio',
+            task: 'asr',
+            function: 'recognition',
+            model: 'fun-asr-realtime-2025-11-07',
+            parameters: {
+              format: 'pcm',
+              sample_rate: 16000
+            },
+            input: {}
+          }
+        }
+        ws!.send(JSON.stringify(runTask))
 
-      const queryResult = await queryResponse.json() as any
-      const status = queryResult.output?.status
+        // Send PCM audio data
+        ws!.send(pcmBuffer)
 
-      if (status === 'SUCCEEDED') {
-        const text = queryResult.output?.results?.[0]?.transcription || 'No speech detected'
-        console.log(`[Qwen] ✓ Transcribed: "${text}"`)
-        return text
-      } else if (status === 'FAILED') {
-        const errorMsg = queryResult.output?.message || 'Unknown error'
-        console.error(`[Qwen] Task failed: ${errorMsg}`)
-        throw new Error(`Qwen task failed: ${errorMsg}`)
-      }
+        // Send finish-task instruction
+        const finishTask = {
+          header: {
+            action: 'finish-task',
+            task_id: taskId,
+            streaming: 'duplex'
+          },
+          payload: {
+            input: {}
+          }
+        }
+        ws!.send(JSON.stringify(finishTask))
+      })
 
-      // Still processing, wait before next poll
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+      ws.on('message', (data: Buffer) => {
+        try {
+          // Try to parse as JSON (text message)
+          const message = JSON.parse(data.toString())
+          console.log(`[Qwen] Received event: ${message.header?.event}`)
+
+          if (message.header?.event === 'task-started') {
+            console.log('[Qwen] Task started successfully')
+          } else if (message.header?.event === 'result-generated') {
+            // Extract recognized text from result
+            const text = message.payload?.output?.sentence?.text
+            if (text) {
+              console.log(`[Qwen] Transcribed: "${text}"`)
+              fullText += text
+            }
+          } else if (message.header?.event === 'task-finished') {
+            // Task finished, return collected text
+            console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
+            handleSuccess(fullText || 'No speech detected')
+          } else if (message.header?.event === 'task-failed') {
+            // Task failed - error is in header, not payload
+            const errorMsg = message.header?.error_message || message.payload?.error_message || 'Unknown error'
+            console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
+            if (process.env.DEBUG) {
+              console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
+            }
+            handleError(new Error(`Qwen task failed: ${errorMsg}`))
+          }
+        } catch (e) {
+          // Not JSON, ignore (could be binary data)
+        }
+      })
+
+      ws.on('error', (error: Error) => {
+        handleError(new Error(`Qwen WSS connection error: ${error.message}`))
+      })
+
+      ws.on('close', () => {
+        // If not already resolved, assume incomplete
+        if (!resolved) {
+          handleSuccess(fullText || 'No speech detected')
+        }
+      })
+
+      // Timeout after 30 seconds
+      timeout = setTimeout(() => {
+        handleError(new Error('Qwen transcription timeout'))
+      }, 30000)
+    } catch (error) {
+      handleError(error instanceof Error ? error : new Error(String(error)))
     }
-
-    throw new Error('Qwen transcription timeout')
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.error('[Qwen] ✗ REST API error:', msg)
-    throw new Error(`Qwen transcription failed: ${msg}`)
-  }
+  })
 }
 
 async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
