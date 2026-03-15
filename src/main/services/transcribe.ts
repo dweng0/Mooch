@@ -20,51 +20,69 @@ const DASHSCOPE_WSS_URL = 'wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference
 
 export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
   const keys = loadApiKeys()
+  console.log('[STT] Starting transcription...')
 
   // Build available STT providers
   const available: Array<{ type: 'openai' | 'gemini' | 'qwen' | 'custom'; test: () => Promise<string> }> = []
 
   // Add preferred provider first (if available)
   const preferred = keys.preferredSttProvider
+  console.log('[STT] Preferred provider:', preferred)
+
   if (preferred === 'openai' && keys.openaiApiKey) {
+    console.log('[STT] Adding OpenAI (preferred)')
     available.push({ type: 'openai', test: () => transcribeWithWhisper(audioBuffer, keys.openaiApiKey!) })
   }
   if (preferred === 'gemini' && keys.geminiApiKey) {
+    console.log('[STT] Adding Gemini (preferred)')
     available.push({ type: 'gemini', test: () => transcribeWithGemini(audioBuffer, keys.geminiApiKey!) })
   }
   if (preferred === 'qwen' && keys.qwenApiKey) {
+    console.log('[STT] Adding Qwen (preferred)')
     available.push({ type: 'qwen', test: () => transcribeWithQwen(audioBuffer, keys.qwenApiKey!) })
   }
   if (preferred === 'custom' && keys.customProvider?.sttEnabled && keys.customProvider?.baseUrl) {
+    console.log('[STT] Adding custom provider (preferred)')
     available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, keys.customProvider!) })
   }
 
   // Add remaining providers in default order (if not already added)
   if (!preferred?.startsWith('openai') && keys.openaiApiKey) {
+    console.log('[STT] Adding OpenAI (fallback)')
     available.push({ type: 'openai', test: () => transcribeWithWhisper(audioBuffer, keys.openaiApiKey!) })
   }
   if (!preferred?.startsWith('gemini') && keys.geminiApiKey) {
+    console.log('[STT] Adding Gemini (fallback)')
     available.push({ type: 'gemini', test: () => transcribeWithGemini(audioBuffer, keys.geminiApiKey!) })
   }
   if (!preferred?.startsWith('qwen') && keys.qwenApiKey) {
+    console.log('[STT] Adding Qwen (fallback)')
     available.push({ type: 'qwen', test: () => transcribeWithQwen(audioBuffer, keys.qwenApiKey!) })
   }
   if (!preferred?.startsWith('custom') && keys.customProvider?.sttEnabled && keys.customProvider?.baseUrl) {
+    console.log('[STT] Adding custom provider (fallback)')
     available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, keys.customProvider!) })
   }
+
+  console.log('[STT] Available providers:', available.map(p => p.type))
 
   // Try each provider in order
   let lastError: Error | null = null
   for (const provider of available) {
     try {
-      return await provider.test()
+      console.log(`[STT] Trying ${provider.type}...`)
+      const result = await provider.test()
+      console.log(`[STT] ✓ Success with ${provider.type}: "${result}"`)
+      return result
     } catch (error) {
       lastError = error as Error
+      console.error(`[STT] ✗ Failed with ${provider.type}:`, error instanceof Error ? error.message : String(error))
       continue
     }
   }
 
   // All providers failed
+  console.error('[STT] All providers failed')
   if (lastError) throw lastError
   throw new Error('Transcription requires an OpenAI, Gemini, or Qwen API key. Add one in Settings.')
 }
@@ -86,9 +104,13 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
   // Convert WebM to PCM format expected by DashScope
   let pcmBuffer: Buffer
   try {
+    console.log('[Qwen] Converting WebM to PCM...')
     pcmBuffer = await convertWebmToPcm(audioBuffer)
+    console.log(`[Qwen] Conversion complete: ${pcmBuffer.length} bytes PCM`)
   } catch (error) {
-    throw new Error(`Failed to convert audio format: ${error instanceof Error ? error.message : String(error)}`)
+    const msg = `Failed to convert audio format: ${error instanceof Error ? error.message : String(error)}`
+    console.error('[Qwen]', msg)
+    throw new Error(msg)
   }
 
   return new Promise((resolve, reject) => {
@@ -126,6 +148,7 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
     }
 
     try {
+      console.log('[Qwen] Connecting to DashScope WebSocket...')
       ws = new WebSocket(DASHSCOPE_WSS_URL, {
         headers: {
           'Authorization': `Bearer ${apiKey}`
@@ -133,6 +156,7 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
       })
 
       ws.on('open', () => {
+        console.log('[Qwen] WebSocket connected, sending task...')
         // Send run-task instruction
         const runTask = {
           header: {
@@ -175,15 +199,18 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
         try {
           // Try to parse as JSON (text message)
           const message = JSON.parse(data.toString())
+          console.log(`[Qwen] Received event: ${message.header?.event}`)
 
           if (message.header?.event === 'result-generated') {
             // Extract recognized text from result
             const text = message.payload?.output?.sentence?.text
             if (text) {
+              console.log(`[Qwen] Transcribed: "${text}"`)
               fullText += text
             }
           } else if (message.header?.event === 'task-finished') {
             // Task finished, return collected text
+            console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
             handleSuccess(fullText || 'No speech detected')
           }
         } catch (e) {
