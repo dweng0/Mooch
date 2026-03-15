@@ -33,6 +33,7 @@ export interface UserApiKeys {
   qwenModel?: string
   customProvider?: CustomProviderConfig
   preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom'
+  cosyvoiceApiKey?: string
 }
 
 export interface InterviewFeedback {
@@ -67,6 +68,19 @@ export interface InterviewSession {
   transcript: string
   feedback: InterviewFeedback[]
 }
+
+export interface InterviewTurn {
+  turn: number
+  userText: string
+  llmQuestion: string
+  llmFeedback: {
+    rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
+    comment: string
+    context?: { jobRequirement?: string; resumeSkill?: string; conversationNote?: string }
+  }
+}
+
+export type InterviewStatus = 'idle' | 'analyzing' | 'questioning' | 'responding' | 'listening' | 'processing' | 'complete'
 
 export interface WindowSource {
   id: string
@@ -125,8 +139,8 @@ export interface ElectronAPI {
   getApiUrl: () => Promise<string>
   // API Keys
   getApiKeys: () => Promise<UserApiKeys>
-  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => Promise<void>
-  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => Promise<void>
+  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => Promise<void>
+  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice') => Promise<void>
   setQwenModel: (model: string) => Promise<void>
   // Custom provider
   setCustomProvider: (config: CustomProviderConfig) => Promise<void>
@@ -136,6 +150,14 @@ export interface ElectronAPI {
   // Hotkeys
   onHotkeyRecordStart: (callback: () => void) => () => void
   onHotkeyRecordStop: (callback: () => void) => () => void
+  // Interview
+  interviewCreateSession: (jobDescription: string, resume: string) => Promise<InterviewSessionMetadata>
+  interviewListSessions: () => Promise<InterviewSessionMetadata[]>
+  interviewGetSession: (sessionId: string) => Promise<InterviewSession | null>
+  interviewGenerateOpener: (sessionId: string) => Promise<string>
+  interviewProcessTurn: (sessionId: string, userText: string) => Promise<InterviewTurn>
+  interviewEndSession: (sessionId: string, isComplete: boolean) => Promise<void>
+  interviewSynthesize: (text: string) => Promise<ArrayBuffer | null>
 }
 
 declare global {

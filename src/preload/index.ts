@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig } from '../shared/types'
+import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn } from '../shared/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -123,5 +123,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event: any, status: AuthStatus) => callback(status)
     ipcRenderer.on('auth:status', handler)
     return () => { ipcRenderer.removeListener('auth:status', handler) }
+  },
+
+  // ── Interview ─────────────────────────────────────────────────────────────
+  interviewCreateSession: (jobDescription: string, resume: string): Promise<InterviewSessionMetadata> => {
+    return ipcRenderer.invoke('interview-create-session', jobDescription, resume)
+  },
+  interviewListSessions: (): Promise<InterviewSessionMetadata[]> => {
+    return ipcRenderer.invoke('interview-list-sessions')
+  },
+  interviewGetSession: (sessionId: string): Promise<InterviewSession | null> => {
+    return ipcRenderer.invoke('interview-get-session', sessionId)
+  },
+  interviewGenerateOpener: (sessionId: string): Promise<string> => {
+    return ipcRenderer.invoke('interview-generate-opener', sessionId)
+  },
+  interviewProcessTurn: (sessionId: string, userText: string): Promise<InterviewTurn> => {
+    return ipcRenderer.invoke('interview-process-turn', sessionId, userText)
+  },
+  interviewEndSession: (sessionId: string, isComplete: boolean): Promise<void> => {
+    return ipcRenderer.invoke('interview-end-session', sessionId, isComplete)
+  },
+  interviewSynthesize: (text: string): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('interview-synthesize', text)
   }
 })

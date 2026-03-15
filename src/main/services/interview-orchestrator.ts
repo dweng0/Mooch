@@ -1,6 +1,12 @@
-import type { AIProvider } from '../../shared/types'
+import type { AIProvider, InterviewTurn } from '../../shared/types'
 import { TTSProviderManager, type TTSConfig } from './tts-provider'
 import { InterviewSessionManager } from './interview-session'
+import { buildInterviewerSystemPrompt, buildInterviewerOpenerMessage } from '../../../config/systemPrompt'
+import { loadApiKeys } from './api-keys'
+import OpenAI from 'openai'
+
+const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+const DEFAULT_MODEL = 'qwen-max'
 
 export interface InterviewConfig {
   sessionId: string
@@ -8,22 +14,6 @@ export interface InterviewConfig {
   ttsConfig?: TTSConfig
   jobDescription: string
   resume: string
-}
-
-export interface InterviewTurn {
-  turn: number
-  userText: string
-  userAudioPath?: string
-  llmQuestion: string
-  llmFeedback: {
-    rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
-    comment: string
-    context?: {
-      jobRequirement?: string
-      resumeSkill?: string
-      conversationNote?: string
-    }
-  }
 }
 
 export class InterviewOrchestrator {
@@ -40,25 +30,20 @@ export class InterviewOrchestrator {
   }
 
   async startRealTimeVoiceInterview(config: InterviewConfig): Promise<void> {
-    // Validate all required providers are configured
-    const errors: string[] = []
-
-    if (!config.ttsConfig) {
-      errors.push('TTS provider not configured')
-    }
-
-    if (errors.length > 0) {
-      throw new Error(`Cannot start interview: ${errors.join(', ')}`)
-    }
-
     this.config = config
     this.currentSessionId = config.sessionId
     this.currentTurn = 0
     this.conversationHistory = []
 
-    // Initialize TTS
+    // Initialize TTS if configured (optional)
     if (config.ttsConfig) {
-      this.ttsManager.setConfig(config.ttsConfig)
+      try {
+        this.ttsManager.setConfig(config.ttsConfig)
+      } catch (error) {
+        console.warn('Failed to initialize TTS:', error)
+      }
+    } else {
+      console.warn('TTS provider not configured - will use browser fallback for speech')
     }
   }
 
@@ -76,11 +61,8 @@ export class InterviewOrchestrator {
         content: userText,
       })
 
-      // Generate LLM question/response based on job description, resume, and conversation
-      const llmQuestion = await this.generateLLMResponse(userText)
-
-      // Provide feedback on user's response
-      const feedback = await this.generateFeedback(userText, llmQuestion)
+      // Generate LLM response with feedback
+      const { nextQuestion, feedback } = await this.generateLLMResponse(userText)
 
       // Save feedback to session
       await this.sessionManager.saveFeedback(this.currentSessionId, {
@@ -94,14 +76,12 @@ export class InterviewOrchestrator {
       // Add LLM response to history
       this.conversationHistory.push({
         role: 'assistant',
-        content: llmQuestion,
+        content: nextQuestion,
       })
 
       // Try to synthesize LLM response with TTS (degrade gracefully if fails)
-      let synthesisSucceeded = false
       try {
-        await this.ttsManager.synthesize(llmQuestion)
-        synthesisSucceeded = true
+        await this.ttsManager.synthesize(nextQuestion)
       } catch (error) {
         console.warn(`TTS synthesis failed, continuing without audio: ${error}`)
       }
@@ -113,8 +93,7 @@ export class InterviewOrchestrator {
       return {
         turn: this.currentTurn,
         userText,
-        userAudioPath: audioPath,
-        llmQuestion,
+        llmQuestion: nextQuestion,
         llmFeedback: feedback,
       }
     } catch (error) {
@@ -146,24 +125,125 @@ export class InterviewOrchestrator {
     this.config = null
   }
 
-  private async generateLLMResponse(userText: string): Promise<string> {
-    // In production, this would call the LLM API
-    // For now, return a placeholder that a real implementation would replace
-    return `Thank you for that response about "${userText.substring(0, 30)}...". That's a valuable insight. Next, I'd like to explore...`
+  async generateOpener(): Promise<string> {
+    if (!this.config) {
+      throw new Error('Interview not configured')
+    }
+
+    const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
+    const client = this.createLLMClient()
+
+    try {
+      const response = await client.chat.completions.create({
+        model: this.getModelName(),
+        max_tokens: 500,
+        messages: [
+          { role: 'user', content: userMessage }
+        ]
+      })
+
+      const question = response.choices[0]?.message?.content ?? ''
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: question,
+      })
+      return question
+    } catch (error) {
+      console.error('Failed to generate opener:', error)
+      throw error
+    }
   }
 
-  private async generateFeedback(userText: string, llmQuestion: string): Promise<any> {
-    // In production, this would use the LLM to generate contextual feedback
-    // For now, return a basic structure that would be filled by the actual implementation
-    return {
-      rating: 'solid' as const,
-      comment: 'Good answer with relevant examples',
-      context: {
-        jobRequirement: 'Communication skills',
-        resumeSkill: 'Demonstrated in past roles',
-        conversationNote: 'Response aligned well with question',
-      },
+  private async generateLLMResponse(userText: string): Promise<{ nextQuestion: string; feedback: InterviewTurn['llmFeedback'] }> {
+    if (!this.config) {
+      throw new Error('Interview not configured')
     }
+
+    const systemPrompt = buildInterviewerSystemPrompt(this.config.jobDescription, this.config.resume)
+    const client = this.createLLMClient()
+
+    try {
+      const response = await client.chat.completions.create({
+        model: this.getModelName(),
+        max_tokens: 1000,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...this.conversationHistory,
+          { role: 'user', content: userText }
+        ]
+      })
+
+      const content = response.choices[0]?.message?.content ?? ''
+
+      // Try to parse as JSON (for turns > 0)
+      if (this.currentTurn > 0) {
+        try {
+          const parsed = JSON.parse(content)
+          if (parsed.next_question && parsed.feedback) {
+            return {
+              nextQuestion: parsed.next_question,
+              feedback: {
+                rating: parsed.feedback.rating || 'solid',
+                comment: parsed.feedback.comment || '',
+                context: parsed.feedback.context,
+              }
+            }
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse JSON response, treating as plain question:', parseError)
+        }
+      }
+
+      // Fallback: treat entire response as the question with default feedback
+      return {
+        nextQuestion: content,
+        feedback: {
+          rating: 'solid' as const,
+          comment: 'Response noted. Moving forward.',
+          context: {
+            jobRequirement: 'Technical assessment',
+            resumeSkill: 'Demonstrated experience',
+            conversationNote: 'Candidate engaging with question',
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate LLM response:', error)
+      throw error
+    }
+  }
+
+  private createLLMClient(): OpenAI {
+    const keys = loadApiKeys()
+
+    // Prefer Qwen (DashScope) since it supports OpenAI-compatible API
+    if (keys.qwenApiKey) {
+      return new OpenAI({
+        apiKey: keys.qwenApiKey,
+        baseURL: DASHSCOPE_BASE_URL,
+        dangerouslyAllowBrowser: true,
+      })
+    }
+
+    // Fallback to other providers via OpenAI SDK
+    if (keys.customProvider?.baseUrl && keys.customProvider?.apiKey) {
+      return new OpenAI({
+        apiKey: keys.customProvider.apiKey,
+        baseURL: keys.customProvider.baseUrl,
+        dangerouslyAllowBrowser: true,
+      })
+    }
+
+    if (keys.openaiApiKey) {
+      return new OpenAI({ apiKey: keys.openaiApiKey })
+    }
+
+    throw new Error('No LLM provider configured. Please set an API key in Settings.')
+  }
+
+  private getModelName(): string {
+    const keys = loadApiKeys()
+    return keys.qwenModel || DEFAULT_MODEL
   }
 
   private async buildTranscript(): Promise<string> {

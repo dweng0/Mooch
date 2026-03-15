@@ -1,36 +1,116 @@
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Upload, Play, Square, RotateCcw } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ArrowLeft, Mic, MicOff, Volume2, Square, RotateCcw } from 'lucide-react'
+import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
   onBack: () => void
 }
 
-interface InterviewSession {
-  sessionId: string
-  createdAt: string
-  jobTitle: string
-  isComplete: boolean
-  totalTurns: number
-}
-
-interface InterviewFeedback {
-  turn: number
-  rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
-  comment: string
-}
-
 type MockScreenView = 'setup' | 'sessions' | 'interview' | 'review'
+
+// Simple Web Speech API wrapper
+class LiveService {
+  private recognition: any = null
+  private isListening = false
+  private transcript = ''
+
+  constructor() {
+    const SpeechRecognition = window.webkitSpeechRecognition || (window as any).SpeechRecognition
+    if (SpeechRecognition) {
+      this.recognition = new SpeechRecognition()
+      this.recognition.continuous = true
+      this.recognition.interimResults = true
+      this.recognition.lang = 'en-US'
+    }
+  }
+
+  start(onInterim: (text: string) => void, onFinal: (text: string) => void) {
+    if (!this.recognition) return
+    this.isListening = true
+    this.transcript = ''
+
+    this.recognition.onstart = () => {
+      console.log('Listening started')
+    }
+
+    this.recognition.onresult = (event: any) => {
+      let interimTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          this.transcript += transcript + ' '
+        } else {
+          interimTranscript += transcript
+        }
+      }
+      if (interimTranscript) {
+        onInterim(interimTranscript)
+      }
+    }
+
+    this.recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error)
+    }
+
+    this.recognition.onend = () => {
+      console.log('Listening ended')
+      if (this.isListening && this.transcript) {
+        onFinal(this.transcript.trim())
+      }
+    }
+
+    this.recognition.start()
+  }
+
+  stop() {
+    if (!this.recognition) return
+    this.isListening = false
+    this.recognition.stop()
+  }
+
+  pauseListening() {
+    if (this.recognition && this.isListening) {
+      this.recognition.abort()
+      this.isListening = false
+    }
+  }
+
+  resumeListening(onInterim: (text: string) => void, onFinal: (text: string) => void) {
+    if (!this.isListening) {
+      this.start(onInterim, onFinal)
+    }
+  }
+
+  speak(text: string, onEnd: () => void) {
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.volume = 1
+    utterance.onend = onEnd
+    speechSynthesis.speak(utterance)
+  }
+
+  stopSpeaking() {
+    speechSynthesis.cancel()
+  }
+}
 
 export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps) {
   const [view, setView] = useState<MockScreenView>('sessions')
-  const [sessions, setSessions] = useState<InterviewSession[]>([])
-  const [currentSession, setCurrentSession] = useState<InterviewSession | null>(null)
+  const [status, setStatus] = useState<InterviewStatus>('idle')
+  const [sessions, setSessions] = useState<InterviewSessionMetadata[]>([])
+  const [currentSession, setCurrentSession] = useState<InterviewSessionMetadata | null>(null)
   const [jobDescription, setJobDescription] = useState('')
   const [resume, setResume] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState('')
+  const [interimTranscript, setInterimTranscript] = useState('')
+  const [finalTranscript, setFinalTranscript] = useState('')
+  const [feedbackHistory, setFeedbackHistory] = useState<InterviewTurn['llmFeedback'][]>([])
   const [currentTurn, setCurrentTurn] = useState(0)
-  const [currentFeedback, setCurrentFeedback] = useState<InterviewFeedback | null>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const liveServiceRef = useRef(new LiveService())
 
   // Load sessions on mount
   useEffect(() => {
@@ -39,14 +119,11 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
   const loadSessions = async () => {
     try {
-      // In production, this would call the electron API to load sessions from the main process
-      // For now, we'll use localStorage as a fallback
-      const stored = localStorage.getItem('mock_interview_sessions')
-      if (stored) {
-        setSessions(JSON.parse(stored))
-      }
+      const sessionList = await window.electronAPI.interviewListSessions()
+      setSessions(sessionList)
     } catch (err) {
       console.error('Failed to load sessions:', err)
+      setError('Failed to load sessions')
     }
   }
 
@@ -64,62 +141,136 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     setError('')
 
     try {
-      // Create session via electron API (would be implemented in main process)
-      const sessionId = new Date().toISOString().replace(/[:.]/g, '-')
-      const newSession: InterviewSession = {
-        sessionId,
-        createdAt: new Date().toISOString(),
-        jobTitle: jobDescription.split('\n')[0],
-        isComplete: false,
-        totalTurns: 0,
-      }
+      setStatus('analyzing')
+      const metadata = await window.electronAPI.interviewCreateSession(jobDescription, resume)
+      setCurrentSession(metadata)
 
-      // Update sessions list
-      const updated = [newSession, ...sessions]
-      setSessions(updated)
-      localStorage.setItem('mock_interview_sessions', JSON.stringify(updated))
+      setStatus('questioning')
+      const opener = await window.electronAPI.interviewGenerateOpener(metadata.sessionId)
+      setCurrentQuestion(opener)
 
-      // Start interview
-      setCurrentSession(newSession)
       setCurrentTurn(0)
+      setFeedbackHistory([])
+      setFinalTranscript('')
+      setInterimTranscript('')
+
+      // Play the first question
+      await speakQuestion(opener)
       setView('interview')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session')
+      setStatus('idle')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const resumeSession = (session: InterviewSession) => {
-    setCurrentSession(session)
-    setCurrentTurn(session.totalTurns)
-    setView('interview')
+  const speakQuestion = async (text: string) => {
+    setStatus('responding')
+    liveServiceRef.current.pauseListening()
+
+    try {
+      const buffer = await window.electronAPI.interviewSynthesize(text)
+      if (buffer) {
+        // Play via HTML audio element
+        const blob = new Blob([buffer], { type: 'audio/wav' })
+        const url = URL.createObjectURL(blob)
+        if (audioRef.current) {
+          audioRef.current.src = url
+          audioRef.current.play()
+          await new Promise(resolve => {
+            if (audioRef.current) audioRef.current.onended = resolve
+          })
+        }
+      } else {
+        // Fallback to browser TTS
+        await new Promise(resolve => {
+          liveServiceRef.current.speak(text, () => resolve(null))
+        })
+      }
+    } catch (err) {
+      console.warn('TTS failed, using browser fallback:', err)
+      await new Promise(resolve => {
+        liveServiceRef.current.speak(text, () => resolve(null))
+      })
+    }
+
+    // Start listening after speaking
+    setStatus('listening')
+    setFinalTranscript('')
+    setInterimTranscript('')
+    liveServiceRef.current.start(
+      (interim) => setInterimTranscript(interim),
+      (final) => handleUserAnswer(final)
+    )
+  }
+
+  const handleUserAnswer = async (text: string) => {
+    if (!currentSession) return
+
+    setStatus('processing')
+    liveServiceRef.current.pauseListening()
+    setFinalTranscript(text)
+
+    try {
+      const turn = await window.electronAPI.interviewProcessTurn(currentSession.sessionId, text)
+      setCurrentTurn(turn.turn)
+      setFeedbackHistory(prev => [...prev, turn.llmFeedback])
+      setCurrentQuestion(turn.llmQuestion)
+      await speakQuestion(turn.llmQuestion)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process answer')
+      setStatus('idle')
+    }
   }
 
   const endInterview = async (complete: boolean) => {
     if (!currentSession) return
 
     try {
-      // Update session
-      const updated = sessions.map((s) =>
-        s.sessionId === currentSession.sessionId
-          ? { ...s, isComplete: complete, totalTurns: currentTurn }
-          : s
-      )
-      setSessions(updated)
-      localStorage.setItem('mock_interview_sessions', JSON.stringify(updated))
+      liveServiceRef.current.stop()
+      liveServiceRef.current.stopSpeaking()
+      await window.electronAPI.interviewEndSession(currentSession.sessionId, complete)
 
+      // Reload sessions
+      await loadSessions()
+      setStatus('complete')
       setView('sessions')
-      setCurrentSession(null)
-      setCurrentTurn(0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to end session')
     }
   }
 
-  const reviewSession = (session: InterviewSession) => {
-    setCurrentSession(session)
-    setView('review')
+  const reviewSession = async (session: InterviewSessionMetadata) => {
+    try {
+      const fullSession = await window.electronAPI.interviewGetSession(session.sessionId)
+      if (fullSession) {
+        setCurrentSession(session)
+        setFeedbackHistory(fullSession.feedback.map((f: any) => f.feedback))
+        setView('review')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load session')
+    }
+  }
+
+  const getStatusMessage = (): string => {
+    switch (status) {
+      case 'idle': return ''
+      case 'analyzing': return 'Analyzing your CV...'
+      case 'questioning': return 'Crafting first question...'
+      case 'responding': return 'Interviewer speaking...'
+      case 'listening': return 'Listening...'
+      case 'processing': return 'Processing your response...'
+      case 'complete': return 'Interview complete'
+      default: return ''
+    }
+  }
+
+  const getFeedbackColor = (rating: string): string => {
+    if (rating === 'excellent' || rating === 'good') return 'bg-green-900/50 text-green-200'
+    if (rating === 'solid') return 'bg-yellow-900/50 text-yellow-200'
+    return 'bg-orange-900/50 text-orange-200'
   }
 
   return (
@@ -135,44 +286,48 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         <h1 className="text-xl font-bold">Mock Interview</h1>
       </div>
 
+      {/* Status Bar */}
+      {status !== 'idle' && (
+        <div className="bg-blue-900/30 border-b border-blue-700 px-4 py-2 text-sm text-blue-200">
+          {status === 'listening' && <span className="inline-block animate-pulse">● </span>}
+          {getStatusMessage()}
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Setup View: Create New Session */}
+        {/* Setup View */}
         {view === 'setup' && (
           <div className="p-6 max-w-2xl">
             <h2 className="text-lg font-semibold mb-4">Prepare for Your Interview</h2>
 
             <div className="space-y-4">
-              {/* Job Description Input */}
               <div>
                 <label className="block text-sm font-medium mb-2">Job Description</label>
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
                   placeholder="Paste the job description..."
                 />
               </div>
 
-              {/* Resume Input */}
               <div>
                 <label className="block text-sm font-medium mb-2">Your Resume</label>
                 <textarea
                   value={resume}
                   onChange={(e) => setResume(e.target.value)}
-                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
                   placeholder="Paste your resume..."
                 />
               </div>
 
-              {/* Error Message */}
               {error && (
                 <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200">
                   {error}
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex gap-3">
                 <button
                   onClick={() => setView('sessions')}
@@ -192,7 +347,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </div>
         )}
 
-        {/* Sessions View: List and Manage */}
+        {/* Sessions View */}
         {view === 'sessions' && (
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -204,9 +359,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   setError('')
                   setView('setup')
                 }}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
               >
-                <Play size={16} />
                 New Interview
               </button>
             </div>
@@ -244,15 +398,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      {!session.isComplete && (
-                        <button
-                          onClick={() => resumeSession(session)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors flex items-center gap-1"
-                        >
-                          <RotateCcw size={14} />
-                          Resume
-                        </button>
-                      )}
                       <button
                         onClick={() => reviewSession(session)}
                         className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
@@ -267,78 +412,141 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </div>
         )}
 
-        {/* Interview View: Live Interview */}
+        {/* Interview View */}
         {view === 'interview' && currentSession && (
-          <div className="p-6">
+          <div className="p-6 max-w-4xl mx-auto">
             <h2 className="text-lg font-semibold mb-4">{currentSession.jobTitle}</h2>
 
-            <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-              {/* Status */}
-              <div>
-                <p className="text-sm text-gray-400">Turn {currentTurn + 1}</p>
-                <p className="text-2xl font-bold text-green-400">Ready to Practice</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Interview Area */}
+              <div className="lg:col-span-2">
+                <div className="bg-gray-800 rounded-lg p-6 space-y-6">
+                  {/* Question Display */}
+                  <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 min-h-24">
+                    <p className="text-sm text-gray-400 mb-2">Current Question</p>
+                    <p className="text-base leading-relaxed">{currentQuestion}</p>
+                  </div>
+
+                  {/* Transcript Display */}
+                  <div className="space-y-3">
+                    {interimTranscript && (
+                      <div className="bg-blue-900/20 rounded-lg p-3 text-blue-200 italic border border-blue-700/30">
+                        <p className="text-sm text-gray-400 mb-1">You (interim):</p>
+                        {interimTranscript}
+                      </div>
+                    )}
+                    {finalTranscript && (
+                      <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
+                        <p className="text-sm text-gray-400 mb-1">You:</p>
+                        {finalTranscript}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex gap-3">
+                    {status === 'listening' ? (
+                      <button
+                        onClick={() => {
+                          liveServiceRef.current.stop()
+                          setStatus('idle')
+                        }}
+                        className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <MicOff size={16} />
+                        Stop Listening
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => speakQuestion(currentQuestion)}
+                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        disabled={status !== 'idle'}
+                      >
+                        <Mic size={16} />
+                        Speak Question Again
+                      </button>
+                    )}
+                    <button
+                      onClick={() => endInterview(true)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                    >
+                      Complete
+                    </button>
+                    <button
+                      onClick={() => endInterview(false)}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Square size={16} />
+                      End
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Current Feedback */}
-              {currentFeedback && (
-                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`font-semibold ${
-                      currentFeedback.rating === 'excellent' ? 'text-green-400' :
-                      currentFeedback.rating === 'good' ? 'text-green-400' :
-                      currentFeedback.rating === 'solid' ? 'text-yellow-400' :
-                      'text-orange-400'
-                    }`}>
-                      {currentFeedback.rating.toUpperCase()}
-                    </span>
+              {/* Feedback Panel */}
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 max-h-96 overflow-y-auto">
+                <p className="text-sm font-semibold text-gray-300 mb-4">Feedback</p>
+                {feedbackHistory.length === 0 ? (
+                  <p className="text-sm text-gray-400">Feedback will appear here</p>
+                ) : (
+                  <div className="space-y-3">
+                    {feedbackHistory.map((feedback, idx) => (
+                      <div key={idx} className={`rounded-lg p-3 border ${getFeedbackColor(feedback.rating)} border-opacity-30`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold uppercase">{feedback.rating}</span>
+                        </div>
+                        <p className="text-xs leading-relaxed">{feedback.comment}</p>
+                        {feedback.context?.jobRequirement && (
+                          <p className="text-xs text-gray-300 mt-2">
+                            <span className="font-semibold">Req:</span> {feedback.context.jobRequirement}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-gray-300">{currentFeedback.comment}</p>
-                </div>
-              )}
-
-              {/* Controls */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => endInterview(true)}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <Play size={16} />
-                  Next Question
-                </button>
-                <button
-                  onClick={() => endInterview(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Square size={16} />
-                  End
-                </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Review View: Review Session */}
+        {/* Review View */}
         {view === 'review' && currentSession && (
-          <div className="p-6">
+          <div className="p-6 max-w-4xl mx-auto">
             <h2 className="text-lg font-semibold mb-4">Review: {currentSession.jobTitle}</h2>
 
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="space-y-4">
+            <div className="bg-gray-800 rounded-lg p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4 border-b border-gray-700 pb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Date</p>
+                  <p className="text-sm text-gray-400 mb-1">Date</p>
                   <p className="font-semibold">{new Date(currentSession.createdAt).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Status</p>
+                  <p className="text-sm text-gray-400 mb-1">Status</p>
                   <p className="font-semibold">{currentSession.isComplete ? '✓ Completed' : 'In Progress'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Total Turns</p>
+                  <p className="text-sm text-gray-400 mb-1">Total Turns</p>
                   <p className="font-semibold">{currentSession.totalTurns}</p>
                 </div>
               </div>
 
-              <div className="mt-6 flex gap-3">
+              {/* Feedback Summary */}
+              <div>
+                <p className="text-sm font-semibold text-gray-300 mb-3">Feedback Summary</p>
+                <div className="space-y-2">
+                  {feedbackHistory.map((feedback, idx) => (
+                    <div key={idx} className={`rounded-lg p-3 border ${getFeedbackColor(feedback.rating)}`}>
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-semibold uppercase">Turn {idx + 1}: {feedback.rating}</span>
+                      </div>
+                      <p className="text-sm mt-1">{feedback.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
                 <button
                   onClick={() => setView('sessions')}
                   className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
@@ -350,6 +558,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </div>
         )}
       </div>
+
+      {/* Hidden audio element for TTS playback */}
+      <audio ref={audioRef} className="hidden" />
     </div>
   )
 }

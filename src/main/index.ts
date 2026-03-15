@@ -8,6 +8,9 @@ import { getAnswer, getAvailableProviders } from './services/ai-provider'
 import { analyzeCodeSnapshot } from './services/claude'
 import { analyzeCodeSnapshotQwen } from './services/qwen'
 import { analyzeCodeSnapshotCustom, testCustomProvider } from './services/openai-compat'
+import { InterviewSessionManager } from './services/interview-session'
+import { TTSProviderManager } from './services/tts-provider'
+import { InterviewOrchestrator } from './services/interview-orchestrator'
 import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
@@ -19,6 +22,11 @@ let areaSelectionResolve: ((rect: CropRect | null) => void) | null = null
 let cachedWindowSources: DesktopCapturerSource[] = []
 let cacheTimestamp = 0
 const CACHE_DURATION_MS = 30000 // 30 seconds
+
+// Interview services
+const sessionManager = new InterviewSessionManager()
+const ttsManager = new TTSProviderManager()
+const interviewOrchestrator = new InterviewOrchestrator(sessionManager, ttsManager)
 
 function createWindow(): void {
   const { width: screenWidth, height: screenHeight } =
@@ -77,7 +85,7 @@ ipcMain.handle('get-api-keys', async () => {
   return loadApiKeys()
 })
 
-ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => {
+ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => {
   const keys = loadApiKeys()
   if (provider === 'anthropic') {
     keys.anthropicApiKey = apiKey
@@ -87,12 +95,20 @@ ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 
     keys.openaiApiKey = apiKey
   } else if (provider === 'qwen') {
     keys.qwenApiKey = apiKey
+  } else if (provider === 'cosyvoice') {
+    keys.cosyvoiceApiKey = apiKey
   }
   saveApiKeys(keys)
 })
 
-ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => {
-  clearApiKey(provider)
+ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice') => {
+  const keys = loadApiKeys()
+  if (provider === 'cosyvoice') {
+    delete keys.cosyvoiceApiKey
+    saveApiKeys(keys)
+  } else {
+    clearApiKey(provider)
+  }
 })
 
 ipcMain.handle('set-qwen-model', async (_event, model: string) => {
@@ -143,6 +159,70 @@ ipcMain.handle('open-manage-subscription', async () => { /* no-op */ })
 ipcMain.handle('open-external-url', async (_event, url: string) => {
   shell.openExternal(url)
 })
+
+// ---------------------------------------------------------------------------
+// Interview IPC handlers
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('interview-create-session', async (_event, jobDescription: string, resume: string) => {
+  const keys = loadApiKeys()
+  // Configure TTS if cosyvoice key exists
+  if (keys.cosyvoiceApiKey) {
+    ttsManager.setConfig({ provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey })
+  }
+  // Create session (this will throw if no LLM provider is configured)
+  const metadata = await sessionManager.createSession(jobDescription, resume)
+  // Start orchestrator with the session
+  await interviewOrchestrator.startRealTimeVoiceInterview({
+    sessionId: metadata.sessionId,
+    llmProvider: getFirstProvider(keys),
+    jobDescription,
+    resume,
+    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey } : undefined
+  })
+  return metadata
+})
+
+ipcMain.handle('interview-list-sessions', async () => {
+  return sessionManager.listSessions()
+})
+
+ipcMain.handle('interview-get-session', async (_event, sessionId: string) => {
+  return sessionManager.getSession(sessionId)
+})
+
+ipcMain.handle('interview-generate-opener', async (_event, sessionId: string) => {
+  return interviewOrchestrator.generateOpener()
+})
+
+ipcMain.handle('interview-process-turn', async (_event, sessionId: string, userText: string) => {
+  return interviewOrchestrator.processUserResponse(userText)
+})
+
+ipcMain.handle('interview-end-session', async (_event, sessionId: string, isComplete: boolean) => {
+  return interviewOrchestrator.endInterview(isComplete)
+})
+
+ipcMain.handle('interview-synthesize', async (_event, text: string) => {
+  if (!ttsManager.getConfig()) return null
+  try {
+    const response = await ttsManager.synthesize(text)
+    if (!response.audioBuffer) return null
+    return response.audioBuffer.buffer.slice(response.audioBuffer.byteOffset, response.audioBuffer.byteOffset + response.audioBuffer.byteLength)
+  } catch (error) {
+    console.warn('TTS synthesis failed:', error)
+    return null
+  }
+})
+
+// Helper to get the first available LLM provider
+function getFirstProvider(keys: any): AIProvider {
+  const available = getAvailableProviders()
+  if (available.length === 0) {
+    throw new Error('No LLM provider configured. Please set an API key in Settings.')
+  }
+  return available[0]
+}
 
 // ---------------------------------------------------------------------------
 // Copilot IPC handlers (direct API calls)
