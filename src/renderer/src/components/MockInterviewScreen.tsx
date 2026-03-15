@@ -708,8 +708,15 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           <div className="p-6 w-full h-full overflow-y-auto">
             <h2 className="text-lg font-semibold mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
 
-            {/* Chat Thread */}
-            <div className="space-y-6 max-w-3xl mx-auto">
+            {reviewSession.feedback.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <p className="mb-4">No interview responses to review yet.</p>
+                <p className="text-sm">This may happen if the interview was ended before any questions were answered.</p>
+              </div>
+            ) : (
+              <>
+                {/* Chat Thread */}
+                <div className="space-y-6 max-w-3xl mx-auto">
               {reviewSession.feedback.map((feedback, idx) => (
                 <div key={idx} className="space-y-4">
                   {/* Interviewer Question - Left */}
@@ -801,6 +808,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 ← Back to Sessions
               </button>
             </div>
+              </>
+            )}
           </div>
         )}
       </div>
