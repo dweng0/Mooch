@@ -112,7 +112,7 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
     // Step 1: Submit transcription task
     console.log('[Qwen] Submitting transcription task...')
     const submitPayload = {
-      model: 'qwen3-asr-flash-filetrans',
+      model: 'qwen3-asr-flash-2025-09-08',
       input: {
         audio: `data:audio/webm;base64,${audioBase64}`
       }
@@ -130,7 +130,12 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
     if (!submitResponse.ok) {
       const errorData = await submitResponse.text()
       console.error(`[Qwen] Submit HTTP ${submitResponse.status}:`)
-      console.error(`[Qwen] Response: ${errorData}`)
+      console.error(`[Qwen] Full response: ${errorData}`)
+      try {
+        const errorJson = JSON.parse(errorData)
+        console.error(`[Qwen] Error code: ${errorJson.code}`)
+        console.error(`[Qwen] Error message: ${errorJson.message}`)
+      } catch (e) {}
       throw new Error(`Qwen submit failed: ${submitResponse.status}`)
     }
 
