@@ -55,4 +55,11 @@ global.Blob = function (chunks: any[], options: any) {
   transcribeAudio: vi.fn(),
   getAnswer: vi.fn(),
   analyzeCodeSnapshot: vi.fn(),
+  interviewCreateSession: vi.fn(),
+  interviewListSessions: vi.fn(),
+  interviewGetSession: vi.fn(),
+  interviewGenerateOpener: vi.fn(),
+  interviewProcessTurn: vi.fn(),
+  interviewEndSession: vi.fn(),
+  interviewSynthesize: vi.fn(),
 }
