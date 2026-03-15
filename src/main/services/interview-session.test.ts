@@ -134,6 +134,15 @@ const createTestManager = (testDir: string): ManagerType => {
 
       fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
     },
+
+    async saveAudio(sessionId: string, turn: number, audioBuffer: Buffer): Promise<string> {
+      const sessionPath = path.join(testDir, `interview-${sessionId}`)
+      const audioPath = path.join(sessionPath, 'audio', `user-turn-${turn}.wav`)
+
+      fs.writeFileSync(audioPath, audioBuffer)
+
+      return audioPath
+    },
   }
 
   return manager
@@ -202,7 +211,7 @@ describe('Interview Session Manager', () => {
   })
 
   describe('List Interview Sessions', () => {
-    it('should return empty array when no sessions exist', async () => {
+    it('list and view previous interview sessions - return empty array when no sessions exist', async () => {
       const sessions = await manager.listSessions()
 
       expect(Array.isArray(sessions)).toBe(true)
@@ -213,12 +222,16 @@ describe('Interview Session Manager', () => {
       const job2 = 'Job 2'
       const resume = 'Resume'
 
-      await manager.createSession(job1, resume)
-      await manager.createSession(job2, resume)
+      const meta1 = await manager.createSession(job1, resume)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      const meta2 = await manager.createSession(job2, resume)
 
       const sessions = await manager.listSessions()
 
-      expect(sessions.length).toBeGreaterThanOrEqual(2)
+      expect(sessions.length).toBe(2)
+      const sessionIds = sessions.map((s) => s.sessionId)
+      expect(sessionIds).toContain(meta1.sessionId)
+      expect(sessionIds).toContain(meta2.sessionId)
     })
 
     it('should include session metadata in list', async () => {
@@ -428,6 +441,107 @@ describe('Interview Session Manager', () => {
       expect(session).not.toBeNull()
       expect(session?.jobDescription).toBe(jobDescription)
       expect(session?.resume).toBe(resume)
+    })
+  })
+
+  describe('Store real-time LLM feedback as JSON', () => {
+    it('store real-time llm feedback as json - with rating and context', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+
+      const feedback = {
+        turn: 1,
+        timestamp: new Date().toISOString(),
+        audioFile: 'user-turn-1.wav',
+        userResponseText: 'My response',
+        feedback: {
+          rating: 'excellent' as const,
+          comment: 'Outstanding response',
+          context: {
+            jobRequirement: 'Leadership',
+            resumeSkill: 'Management',
+          },
+        },
+      }
+
+      await manager.saveFeedback(metadata.sessionId, feedback)
+
+      const session = await manager.getSession(metadata.sessionId)
+      expect(session?.feedback[0].feedback.context?.jobRequirement).toBe('Leadership')
+    })
+  })
+
+  describe('Mark interview as complete or incomplete', () => {
+    it('mark interview as complete or incomplete - toggle completion status', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+      expect(metadata.isComplete).toBe(false)
+
+      await manager.markComplete(metadata.sessionId)
+
+      const session = await manager.getSession(metadata.sessionId)
+      expect(session?.metadata.isComplete).toBe(true)
+    })
+  })
+
+  describe('Playback interview with synchronized feedback', () => {
+    it('playback interview with synchronized feedback - load feedback and audio metadata', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+
+      const feedback = {
+        turn: 1,
+        timestamp: new Date().toISOString(),
+        audioFile: 'user-turn-1.wav',
+        userResponseText: 'Response',
+        feedback: {
+          rating: 'solid' as const,
+          comment: 'Good',
+        },
+      }
+
+      await manager.saveFeedback(metadata.sessionId, feedback)
+
+      const session = await manager.getSession(metadata.sessionId)
+      expect(session?.feedback).toHaveLength(1)
+      expect(session?.feedback[0].audioFile).toBe('user-turn-1.wav')
+    })
+  })
+
+  describe('Record and store interview audio per turn', () => {
+    it('record and store interview audio per turn - maintains audio files', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+
+      const audioData = Buffer.from('fake-audio-data')
+      const audioPath = await manager.saveAudio(metadata.sessionId, 1, audioData)
+
+      expect(audioPath).toContain('user-turn-1.wav')
+      expect(fs.existsSync(audioPath)).toBe(true)
+    })
+  })
+
+  describe('Resume incomplete interview session', () => {
+    it('resume incomplete interview session - reload previous context', async () => {
+      const jobDescription = 'Senior Role'
+      const resume = 'Experienced'
+
+      const metadata = await manager.createSession(jobDescription, resume)
+
+      const feedback = {
+        turn: 2,
+        timestamp: new Date().toISOString(),
+        audioFile: 'user-turn-2.wav',
+        userResponseText: 'Previous response',
+        feedback: {
+          rating: 'good' as const,
+          comment: 'Previous feedback',
+        },
+      }
+
+      await manager.saveFeedback(metadata.sessionId, feedback)
+
+      // Resume - retrieve incomplete session
+      const session = await manager.getSession(metadata.sessionId)
+      expect(session?.metadata.isComplete).toBe(false)
+      expect(session?.feedback).toHaveLength(1)
+      expect(session?.jobDescription).toContain('Senior Role')
     })
   })
 })
