@@ -560,7 +560,7 @@ export default function SettingsScreen({
             { key: 'custom' as const, label: customInput.label || 'Custom', enabled: customInput.sttEnabled && !!customInput.baseUrl }
           ].filter(p => p.enabled)
 
-          return sttProviders.length > 1 ? (
+          return sttProviders.length > 0 ? (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Preferred STT Provider</h3>
               <div className="rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
