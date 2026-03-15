@@ -175,7 +175,11 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
   // Configure TTS if cosyvoice key exists
   if (keys.cosyvoiceApiKey) {
     console.log('[IPC] Configuring TTS with Cosyvoice')
-    ttsManager.setConfig({ provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey })
+    ttsManager.setConfig({
+      provider: 'cosyvoice',
+      apiKey: keys.cosyvoiceApiKey,
+      model: 'qwen3-tts-vd-2026-01-26'
+    })
   } else {
     console.log('[IPC] No Cosyvoice key found, TTS will be optional')
   }
@@ -190,7 +194,7 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
     llmProvider: getFirstProvider(keys),
     jobDescription,
     resume,
-    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey } : undefined
+    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-vd-2026-01-26' } : undefined
   })
   return metadata
 })
