@@ -14,15 +14,15 @@ Checked 26 scenario(s) across 10 test file(s).
 ## Feature: mock interview sessions
 
 - [x] create new interview session with job description and resume
-- [ ] UNCOVERED: list and view previous interview sessions
+- [x] list and view previous interview sessions
 - [ ] UNCOVERED: start real-time voice interview
 - [ ] UNCOVERED: degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
-- [ ] UNCOVERED: record and store interview audio per turn
+- [x] record and store interview audio per turn
 - [ ] UNCOVERED: store real-time LLM feedback as JSON
-- [ ] UNCOVERED: playback interview with synchronized feedback
-- [ ] UNCOVERED: mark interview as complete or incomplete
-- [ ] UNCOVERED: resume incomplete interview session
+- [x] playback interview with synchronized feedback
+- [x] mark interview as complete or incomplete
+- [x] resume incomplete interview session
 - [ ] UNCOVERED: graceful failure recovery during interview
 
 ## Feature: TTS provider support
@@ -57,17 +57,12 @@ Checked 26 scenario(s) across 10 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**15/26 scenarios covered.**
+**20/26 scenarios covered.**
 
-11 scenario(s) need tests:
-- list and view previous interview sessions
+6 scenario(s) need tests:
 - start real-time voice interview
 - degrade gracefully when TTS provider is unavailable
-- record and store interview audio per turn
 - store real-time LLM feedback as JSON
-- playback interview with synchronized feedback
-- mark interview as complete or incomplete
-- resume incomplete interview session
 - graceful failure recovery during interview
 - configure Cosyvoice TTS provider
 - modular TTS architecture for future providers
