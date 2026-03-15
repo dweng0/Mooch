@@ -51,29 +51,26 @@ export class TTSProviderManager {
       throw new Error('Cosyvoice API key is required')
     }
 
-    const model = this.config.model || 'cosyvoice-v3-flash'
-    const url = 'https://dashscope.aliyuncs.com/api/v1/services/tts/text-to-speech'
+    // Use Qwen3 TTS models via MultiModalConversation endpoint
+    const model = this.config.model || 'qwen3-tts-flash'
+    const url = 'https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation'
 
-    console.log('[TTS] Cosyvoice synthesis request:', {
+    console.log('[TTS] Qwen3 TTS synthesis request:', {
       url,
       model,
       apiKeyPrefix: this.config.apiKey.substring(0, 20),
       textLength: text.length,
-      voice: this.config.voice || 'longxiao',
+      voice: this.config.voice || 'Cherry',
     })
 
-    // Cosyvoice via Dashscope (Alibaba)
+    // Qwen3 TTS via Dashscope MultiModalConversation endpoint
     try {
       const requestBody = {
         model,
         input: {
           text,
-        },
-        parameters: {
-          voice: this.config.voice || 'longxiao',
-          rate: this.config.speed ? Math.round(this.config.speed * 100) : 100,
-          pitch: this.config.pitch ? Math.round(this.config.pitch * 100) : 100,
-          format: 'wav',
+          voice: this.config.voice || 'Cherry',
+          language_type: 'English',
         },
       }
 
@@ -83,7 +80,6 @@ export class TTSProviderManager {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-DashScope-Async': 'false',
           'Authorization': `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify(requestBody),
@@ -94,7 +90,7 @@ export class TTSProviderManager {
       if (!response.ok) {
         const errorData = await response.json()
         console.error('[TTS] API error response:', errorData)
-        throw new Error(`Cosyvoice API error: ${errorData.message || response.statusText}`)
+        throw new Error(`Qwen3 TTS API error: ${errorData.message || response.statusText}`)
       }
 
       const result = await response.json()
