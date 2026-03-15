@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Square, RotateCcw, X, Trash2 } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2 } from 'lucide-react'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -8,8 +8,22 @@ interface MockInterviewScreenProps {
 
 type MockScreenView = 'setup' | 'sessions' | 'interview' | 'review'
 
+type ChatMessage =
+  | { role: 'interviewer'; text: string; audioBuffer?: ArrayBuffer | null; status: 'loading' | 'done' }
+  | { role: 'user'; text: string; feedback?: InterviewTurn['llmFeedback'] }
+
 // Import the proven working implementation
 import { LiveInterviewService } from '../services/liveInterview'
+
+function PulsingDots() {
+  return (
+    <div className="flex gap-1 py-1">
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+    </div>
+  )
+}
 
 export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps) {
   const [view, setView] = useState<MockScreenView>('sessions')
@@ -20,16 +34,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [resume, setResume] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [currentQuestion, setCurrentQuestion] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [interimTranscript, setInterimTranscript] = useState('')
   const [finalTranscript, setFinalTranscript] = useState('')
-  const [feedbackHistory, setFeedbackHistory] = useState<InterviewTurn['llmFeedback'][]>([])
-  const [currentTurn, setCurrentTurn] = useState(0)
-  const [currentQuestionAudio, setCurrentQuestionAudio] = useState<ArrayBuffer | null>(null)
   const [reviewSession, setReviewSession] = useState<InterviewSession | null>(null)
   const [expandedFeedback, setExpandedFeedback] = useState<Set<number>>(new Set())
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const liveServiceRef = useRef(new LiveInterviewService())
 
   // Load sessions on mount
@@ -43,6 +55,11 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       liveServiceRef.current.stopSpeaking()
     }
   }, [])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const loadSessions = async () => {
     try {
@@ -90,15 +107,19 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
       setStatus('questioning')
       const opener = await window.electronAPI.interviewGenerateOpener(metadata.sessionId)
-      setCurrentQuestion(opener)
 
-      setCurrentTurn(0)
-      setFeedbackHistory([])
+      setMessages([])
       setFinalTranscript('')
       setInterimTranscript('')
 
+      // Add loading message
+      setMessages([{ role: 'interviewer', text: '', status: 'loading' }])
+
       // Play the first question
-      await speakQuestion(opener)
+      const audioBuffer = await speakQuestion(opener)
+
+      // Update message with the spoken question
+      setMessages([{ role: 'interviewer', text: opener, status: 'done', audioBuffer }])
       setView('interview')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session')
@@ -124,7 +145,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     }
   }
 
-  const speakQuestion = async (text: string) => {
+  const speakQuestion = async (text: string): Promise<ArrayBuffer | null> => {
     setStatus('thinking')
     console.log('[MockInterview] Starting to speak question')
 
@@ -147,46 +168,50 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       const buffer = await window.electronAPI.interviewSynthesize(questionToSpeak)
 
       if (buffer) {
-        // Store the buffer for later replay
-        setCurrentQuestionAudio(buffer)
         console.log('[MockInterview] TTS synthesis complete, playing audio')
 
         // Play the audio
         setStatus('speaking')
         await playAudioBuffer(buffer)
+        setStatus('idle')
+        setFinalTranscript('')
+        setInterimTranscript('')
+        return buffer
       } else {
         // Fallback to browser TTS
         console.log('[MockInterview] No TTS buffer, using browser speech synthesis')
-        setCurrentQuestionAudio(null)
         setStatus('speaking')
         await new Promise(resolve => {
           liveServiceRef.current.speak(questionToSpeak, () => resolve(null))
         })
+        setStatus('idle')
+        setFinalTranscript('')
+        setInterimTranscript('')
+        return null
       }
     } catch (err) {
       console.error('[MockInterview] TTS failed:', err)
-      setCurrentQuestionAudio(null)
       setStatus('speaking')
       await new Promise(resolve => {
         liveServiceRef.current.speak(text, () => resolve(null))
       })
+      setStatus('idle')
+      setFinalTranscript('')
+      setInterimTranscript('')
+      return null
     }
-
-    // Ready for user to click record
-    setStatus('idle')
-    setFinalTranscript('')
-    setInterimTranscript('')
   }
 
   const replayQuestion = async () => {
-    if (currentQuestionAudio) {
-      // Replay the stored audio without making a new TTS request
-      await playAudioBuffer(currentQuestionAudio)
-    } else {
+    // Find the last interviewer message
+    const lastQuestion = messages.findLast(m => m.role === 'interviewer' && m.status === 'done')
+    if (lastQuestion && lastQuestion.role === 'interviewer' && lastQuestion.audioBuffer) {
+      await playAudioBuffer(lastQuestion.audioBuffer)
+    } else if (lastQuestion && lastQuestion.role === 'interviewer') {
       // Fallback if no audio is stored
       console.warn('No stored audio, falling back to browser TTS')
       await new Promise(resolve => {
-        liveServiceRef.current.speak(currentQuestion, () => resolve(null))
+        liveServiceRef.current.speak(lastQuestion.text, () => resolve(null))
       })
     }
   }
@@ -211,15 +236,43 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     if (!currentSession) return
 
     setStatus('processing')
-    setFinalTranscript(text)
-    setCurrentQuestionAudio(null) // Clear old audio buffer for new question
 
     try {
+      // Add user message immediately
+      setMessages(prev => [...prev, { role: 'user', text }])
+      setFinalTranscript('')
+      setInterimTranscript('')
+
+      // Process the turn
       const turn = await window.electronAPI.interviewProcessTurn(currentSession.sessionId, text)
-      setCurrentTurn(turn.turn)
-      setFeedbackHistory(prev => [...prev, turn.llmFeedback])
-      setCurrentQuestion(turn.llmQuestion)
-      await speakQuestion(turn.llmQuestion)
+
+      // Update the user message with feedback
+      setMessages(prev => {
+        const newMessages = [...prev]
+        const lastUserMsg = newMessages.findLast(m => m.role === 'user')
+        if (lastUserMsg && lastUserMsg.role === 'user') {
+          lastUserMsg.feedback = turn.llmFeedback
+        }
+        return newMessages
+      })
+
+      // Add loading message for next question
+      setMessages(prev => [...prev, { role: 'interviewer', text: '', status: 'loading' }])
+
+      // Speak the next question
+      const audioBuffer = await speakQuestion(turn.llmQuestion)
+
+      // Update the loading message with the question and audio
+      setMessages(prev => {
+        const newMessages = [...prev]
+        const lastMsg = newMessages[newMessages.length - 1]
+        if (lastMsg && lastMsg.role === 'interviewer') {
+          lastMsg.text = turn.llmQuestion
+          lastMsg.status = 'done'
+          lastMsg.audioBuffer = audioBuffer ?? undefined
+        }
+        return newMessages
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process answer')
       setStatus('idle')
@@ -260,6 +313,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       case 'idle': return ''
       case 'analyzing': return 'Analyzing your CV...'
       case 'questioning': return 'Crafting first question...'
+      case 'thinking': return 'Thinking...'
+      case 'formulating': return 'Formulating question...'
+      case 'speaking': return 'Speaking...'
       case 'responding': return 'Interviewer speaking...'
       case 'listening': return 'Listening...'
       case 'processing': return 'Processing your response...'
@@ -448,125 +504,128 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </div>
         )}
 
-        {/* Interview View */}
+        {/* Interview View - Chat Interface */}
         {view === 'interview' && currentSession && (
-          <div className="p-6 w-full h-full">
-            <h2 className="text-lg font-semibold mb-4">{currentSession.jobTitle}</h2>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Interview Area */}
-              <div className="lg:col-span-2">
-                <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-                  {/* Question Display */}
-                  <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 min-h-24">
-                    <p className="text-sm text-gray-400 mb-2">Question</p>
-                    <p className="text-lg leading-relaxed font-medium">{currentQuestion}</p>
-                  </div>
-
-                  {/* Transcript Display */}
-                  <div className="space-y-3">
-                    {interimTranscript && (
-                      <div className="bg-blue-900/20 rounded-lg p-3 text-blue-200 italic border border-blue-700/30">
-                        <p className="text-sm text-gray-400 mb-1">You (interim):</p>
-                        {interimTranscript}
+          <div className="flex flex-col h-full">
+            {/* Chat Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message, idx) => (
+                <div key={idx} className={`flex ${message.role === 'interviewer' ? 'justify-start' : 'justify-end'}`}>
+                  {message.role === 'interviewer' ? (
+                    <div className="flex items-end gap-2 max-w-[80%]">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs shrink-0 font-semibold">
+                        AI
                       </div>
-                    )}
-                    {finalTranscript && (
-                      <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                        <p className="text-sm text-gray-400 mb-1">You:</p>
-                        {finalTranscript}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Controls */}
-                  <div className="flex gap-3">
-                    {status === 'listening' ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            liveServiceRef.current.stop()
-                            setStatus('processing')
-                            handleUserAnswer(finalTranscript || interimTranscript)
-                          }}
-                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                          disabled={!finalTranscript && !interimTranscript}
-                        >
-                          <Mic size={16} />
-                          Submit Answer
-                        </button>
-                        <button
-                          onClick={() => {
-                            liveServiceRef.current.stop()
-                            setStatus('idle')
-                            setFinalTranscript('')
-                            setInterimTranscript('')
-                          }}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
-                        >
-                          <MicOff size={16} />
-                          Clear
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={startRecording}
-                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                          disabled={status !== 'idle'}
-                        >
-                          <Mic size={16} />
-                          Record Answer
-                        </button>
-                        <button
-                          onClick={() => replayQuestion()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                          disabled={!currentQuestionAudio && status === 'responding'}
-                        >
-                          <Volume2 size={16} />
-                          Replay
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => endInterview(true)}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                    >
-                      Complete
-                    </button>
-                    <button
-                      onClick={() => endInterview(false)}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
-                    >
-                      <Square size={16} />
-                      End
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feedback Panel */}
-              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 max-h-96 overflow-y-auto">
-                <p className="text-sm font-semibold text-gray-300 mb-4">Feedback</p>
-                {feedbackHistory.length === 0 ? (
-                  <p className="text-sm text-gray-400">Feedback will appear here</p>
-                ) : (
-                  <div className="space-y-3">
-                    {feedbackHistory.map((feedback, idx) => (
-                      <div key={idx} className={`rounded-lg p-3 border ${getFeedbackColor(feedback.rating)} border-opacity-30`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold uppercase">{feedback.rating}</span>
-                        </div>
-                        <p className="text-xs leading-relaxed">{feedback.comment}</p>
-                        {feedback.context?.jobRequirement && (
-                          <p className="text-xs text-gray-300 mt-2">
-                            <span className="font-semibold">Req:</span> {feedback.context.jobRequirement}
-                          </p>
+                      <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                        {message.status === 'loading' ? (
+                          <PulsingDots />
+                        ) : (
+                          <>
+                            <p className="text-sm">{message.text}</p>
+                            {message.audioBuffer && (
+                              <button
+                                onClick={() => playAudioBuffer(message.audioBuffer!)}
+                                className="mt-2 flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors"
+                              >
+                                <Volume2 size={12} />
+                                Play
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-end gap-1 max-w-[80%]">
+                      <div className="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                        <p className="text-sm">{message.text}</p>
+                      </div>
+                      {message.feedback && (
+                        <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(message.feedback.rating)}`}>
+                          <span className="font-semibold uppercase">{message.feedback.rating}</span>
+                          <p className="mt-1">{message.feedback.comment}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Bottom Input Bar */}
+            <div className="border-t border-gray-700 p-3 space-y-2">
+              {/* Interim transcript display */}
+              {status === 'listening' && interimTranscript && (
+                <div className="text-sm text-gray-400 italic px-3">{interimTranscript}</div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={finalTranscript}
+                  onChange={(e) => setFinalTranscript(e.target.value)}
+                  placeholder="Type a message..."
+                  disabled={status !== 'idle' && status !== 'listening'}
+                  className="flex-1 bg-gray-800 rounded-2xl px-4 py-3 text-sm resize-none max-h-28 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (finalTranscript.trim()) {
+                        handleUserAnswer(finalTranscript)
+                      }
+                    }
+                  }}
+                />
+                {status === 'listening' ? (
+                  <button
+                    onClick={() => {
+                      liveServiceRef.current.stop()
+                      if (finalTranscript.trim() || interimTranscript.trim()) {
+                        handleUserAnswer(finalTranscript || interimTranscript)
+                      }
+                    }}
+                    className="p-3 bg-red-600 hover:bg-red-700 rounded-full transition-colors flex-shrink-0 animate-pulse"
+                    title="Stop recording"
+                  >
+                    <MicOff size={20} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={
+                      finalTranscript.trim()
+                        ? () => handleUserAnswer(finalTranscript)
+                        : startRecording
+                    }
+                    disabled={status !== 'idle'}
+                    className="p-3 bg-blue-600 hover:bg-blue-700 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
+                    title={finalTranscript.trim() ? 'Send message' : 'Record answer'}
+                  >
+                    {finalTranscript.trim() ? <Send size={20} /> : <Mic size={20} />}
+                  </button>
                 )}
+              </div>
+
+              {/* End Interview Buttons */}
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => replayQuestion()}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors flex items-center gap-1"
+                >
+                  <Volume2 size={14} />
+                  Replay
+                </button>
+                <button
+                  onClick={() => endInterview(true)}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors"
+                >
+                  Complete
+                </button>
+                <button
+                  onClick={() => endInterview(false)}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                >
+                  End
+                </button>
               </div>
             </div>
           </div>

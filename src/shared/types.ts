@@ -82,7 +82,7 @@ export interface InterviewTurn {
   }
 }
 
-export type InterviewStatus = 'idle' | 'analyzing' | 'questioning' | 'responding' | 'listening' | 'processing' | 'complete'
+export type InterviewStatus = 'idle' | 'analyzing' | 'questioning' | 'thinking' | 'formulating' | 'speaking' | 'responding' | 'listening' | 'processing' | 'complete'
 
 export interface WindowSource {
   id: string
