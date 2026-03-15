@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 14 scenario(s) across 9 test file(s).
+Checked 26 scenario(s) across 12 test file(s).
 
 
 ## Feature: remove login
@@ -11,9 +11,24 @@ Checked 14 scenario(s) across 9 test file(s).
 
 - [x] clear API key error message
 
-## Feature: mock interview
+## Feature: mock interview sessions
 
-- [x] start mock interview with job description
+- [x] create new interview session with job description and resume
+- [x] list and view previous interview sessions
+- [x] start real-time voice interview
+- [x] degrade gracefully when TTS provider is unavailable
+- [x] save interview transcript as markdown
+- [x] record and store interview audio per turn
+- [ ] UNCOVERED: store real-time LLM feedback as JSON
+- [x] playback interview with synchronized feedback
+- [x] mark interview as complete or incomplete
+- [x] resume incomplete interview session
+- [x] graceful failure recovery during interview
+
+## Feature: TTS provider support
+
+- [x] configure Cosyvoice TTS provider
+- [x] modular TTS architecture for future providers
 
 ## Feature: user journey test coverage
 
@@ -42,4 +57,7 @@ Checked 14 scenario(s) across 9 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**14/14 scenarios covered.**
+**25/26 scenarios covered.**
+
+1 scenario(s) need tests:
+- store real-time LLM feedback as JSON
