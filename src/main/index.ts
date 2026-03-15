@@ -172,13 +172,18 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
     hasCustomProvider: !!keys.customProvider?.baseUrl,
   })
 
+  // Select a random voice for this session
+  const voices = ['Cherry', 'Ethan', 'Kai', 'Ryan', 'Aiden', 'Jennifer']
+  const randomVoice = voices[Math.floor(Math.random() * voices.length)]
+
   // Configure TTS if cosyvoice key exists
   if (keys.cosyvoiceApiKey) {
-    console.log('[IPC] Configuring TTS with Cosyvoice')
+    console.log('[IPC] Configuring TTS with Qwen3 TTS, voice:', randomVoice)
     ttsManager.setConfig({
       provider: 'cosyvoice',
       apiKey: keys.cosyvoiceApiKey,
-      model: 'qwen3-tts-flash'
+      model: 'qwen3-tts-flash',
+      voice: randomVoice
     })
   } else {
     console.log('[IPC] No Cosyvoice key found, TTS will be optional')
@@ -194,7 +199,7 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
     llmProvider: getFirstProvider(keys),
     jobDescription,
     resume,
-    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-flash' } : undefined
+    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-flash', voice: randomVoice } : undefined
   })
   return metadata
 })

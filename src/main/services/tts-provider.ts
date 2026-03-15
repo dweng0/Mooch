@@ -65,14 +65,17 @@ export class TTSProviderManager {
 
     // Qwen3 TTS via Dashscope MultiModalConversation endpoint
     try {
+      const voice = this.config.voice || 'Cherry'
       const requestBody = {
         model,
         input: {
           text,
-          voice: this.config.voice || 'Cherry',
+          voice,
           language_type: 'English',
         },
       }
+
+      console.log('[TTS] Using voice:', voice)
 
       console.log('[TTS] Request body:', JSON.stringify(requestBody, null, 2))
 

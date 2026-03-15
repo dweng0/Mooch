@@ -16,6 +16,12 @@ export interface InterviewConfig {
   resume: string
 }
 
+const TTS_VOICES = ['Cherry', 'Ethan', 'Kai', 'Ryan', 'Aiden', 'Jennifer']
+
+function getRandomVoice(): string {
+  return TTS_VOICES[Math.floor(Math.random() * TTS_VOICES.length)]
+}
+
 export class InterviewOrchestrator {
   private currentSessionId: string | null = null
   private sessionManager: InterviewSessionManager
