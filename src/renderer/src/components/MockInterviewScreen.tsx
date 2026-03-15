@@ -737,99 +737,149 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
         {/* Review View - Chat Thread Interface */}
         {view === 'review' && reviewSession && (
-          <div className="p-6 w-full h-full overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
+          <div className="flex flex-col h-full">
+            {/* Chat Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <h2 className="text-lg font-semibold mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
 
-            {reviewSession.feedback.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <p className="mb-4">No interview responses to review yet.</p>
-                <p className="text-sm">This may happen if the interview was ended before any questions were answered.</p>
-              </div>
-            ) : (
-              <>
-                {/* Chat Thread */}
-                <div className="space-y-6 max-w-3xl mx-auto">
-              {reviewSession.feedback.map((feedback, idx) => (
-                <div key={idx} className="space-y-4">
-                  {/* Interviewer Question - Left */}
-                  <div className="flex justify-start">
-                    <div className="bg-blue-600 text-white rounded-lg p-4 max-w-sm">
-                      <p className="text-sm font-semibold text-blue-100 mb-2">Question {idx + 1}</p>
-                      <p className="text-sm leading-relaxed mb-3">{feedback.llmQuestion || 'Question'}</p>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const audioBuffer = await window.electronAPI.interviewGetAudio(
-                              reviewSession.metadata.sessionId,
-                              feedback.turn - 1,
-                              'question'
-                            )
-                            if (audioBuffer) {
-                              const blob = new Blob([audioBuffer], { type: 'audio/wav' })
-                              const url = URL.createObjectURL(blob)
-                              if (audioRef.current) {
-                                audioRef.current.src = url
-                                audioRef.current.play()
-                              }
-                            }
-                          } catch (err) {
-                            console.error('Failed to play audio:', err)
-                          }
-                        }}
-                        className="flex items-center gap-2 text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded transition-colors"
-                      >
-                        <Volume2 size={14} />
-                        Play Audio
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* User Response - Right */}
-                  <div className="flex justify-end">
-                    <div className="bg-gray-700 text-white rounded-lg p-4 max-w-sm space-y-3">
-                      <p className="text-sm">{feedback.userResponseText || 'User response'}</p>
-
-                      {/* Expandable Feedback Badges */}
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => {
-                            const newExpanded = new Set(expandedFeedback)
-                            if (newExpanded.has(idx)) {
-                              newExpanded.delete(idx)
-                            } else {
-                              newExpanded.add(idx)
-                            }
-                            setExpandedFeedback(newExpanded)
-                          }}
-                          className={`text-xs px-3 py-1 rounded font-semibold transition-all ${
-                            getFeedbackColor(feedback.feedback?.rating || 'solid').replace('border', 'bg').replace('text', 'text')
-                          }`}
-                        >
-                          {feedback.feedback?.rating?.toUpperCase()}
-                        </button>
+              {reviewSession.feedback.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="mb-4">No interview responses to review yet.</p>
+                  <p className="text-sm">This may happen if the interview was ended before any questions were answered.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviewSession.feedback.map((feedback, idx) => (
+                    <div key={idx} className="space-y-4">
+                      {/* Interviewer Question - Left */}
+                      <div className="flex justify-start">
+                        <div className="flex items-end gap-2 max-w-[80%]">
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs shrink-0 font-semibold">
+                            AI
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                              <p className="text-sm">{feedback.llmQuestion || 'Question'}</p>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const audioBuffer = await window.electronAPI.interviewGetAudio(
+                                    reviewSession.metadata.sessionId,
+                                    feedback.turn - 1,
+                                    'question'
+                                  )
+                                  if (audioBuffer) {
+                                    const blob = new Blob([audioBuffer], { type: 'audio/wav' })
+                                    const url = URL.createObjectURL(blob)
+                                    if (audioRef.current) {
+                                      audioRef.current.src = url
+                                      audioRef.current.play()
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.error('Failed to play audio:', err)
+                                }
+                              }}
+                              className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors w-fit"
+                            >
+                              <Volume2 size={12} />
+                              Play
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Expanded Feedback */}
-                      {expandedFeedback.has(idx) && (
-                        <div className="mt-3 pt-3 border-t border-gray-600 space-y-2 text-xs">
-                          <p><span className="font-semibold">Comment:</span> {feedback.feedback?.comment}</p>
-                          {feedback.feedback?.context && (
-                            <>
-                              <p><span className="font-semibold">Job Requirement:</span> {feedback.feedback.context.jobRequirement}</p>
-                              <p><span className="font-semibold">Resume Skill:</span> {feedback.feedback.context.resumeSkill}</p>
-                            </>
+                      {/* User Response - Right */}
+                      <div className="flex justify-end">
+                        <div className="flex flex-col items-end gap-2 max-w-[80%]">
+                          <div className="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                            <p className="text-sm">{feedback.userResponseText || 'User response'}</p>
+                          </div>
+                          {feedback.feedback && (
+                            <div className="flex flex-col gap-2">
+                              <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(feedback.feedback.rating)}`}>
+                                <span className="font-semibold uppercase">{feedback.feedback.rating}</span>
+                              </div>
+                              {/* Icons row for feedback details */}
+                              <div className="flex items-center gap-2">
+                                {/* Rating indicator */}
+                                <div title={feedback.feedback.rating}>
+                                  <Circle
+                                    size={16}
+                                    className={`fill-current ${
+                                      feedback.feedback.rating === 'excellent' || feedback.feedback.rating === 'good'
+                                        ? 'text-green-400'
+                                        : feedback.feedback.rating === 'solid'
+                                        ? 'text-yellow-400'
+                                        : 'text-red-400'
+                                    }`}
+                                  />
+                                </div>
+                                {/* Thinking/Comment icon */}
+                                <div title={feedback.feedback.comment}>
+                                  <Lightbulb size={16} className="text-blue-400 hover:text-blue-300 cursor-help" />
+                                </div>
+                                {/* Context note icon */}
+                                {feedback.feedback.context?.conversationNote && (
+                                  <div title={feedback.feedback.context.conversationNote}>
+                                    <MessageCircle size={16} className="text-purple-400 hover:text-purple-300 cursor-help" />
+                                  </div>
+                                )}
+                                {/* Job requirement icon */}
+                                {feedback.feedback.context?.jobRequirement && (
+                                  <div title={feedback.feedback.context.jobRequirement}>
+                                    <Circle size={16} className="text-orange-400 hover:text-orange-300 cursor-help opacity-75" />
+                                  </div>
+                                )}
+                                {/* Resume skill icon */}
+                                {feedback.feedback.context?.resumeSkill && (
+                                  <div title={feedback.feedback.context.resumeSkill}>
+                                    <Circle size={16} className="text-cyan-400 hover:text-cyan-300 cursor-help opacity-75" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           )}
-
+                          {/* Audio playback button for user response */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                const audioBuffer = await window.electronAPI.interviewGetAudio(
+                                  reviewSession.metadata.sessionId,
+                                  feedback.turn - 1,
+                                  'response'
+                                )
+                                if (audioBuffer) {
+                                  const blob = new Blob([audioBuffer], { type: 'audio/wav' })
+                                  const url = URL.createObjectURL(blob)
+                                  if (audioRef.current) {
+                                    audioRef.current.src = url
+                                    audioRef.current.play()
+                                  }
+                                } else {
+                                  console.warn('No audio buffer for this response')
+                                }
+                              } catch (err) {
+                                console.error('Failed to play audio:', err)
+                              }
+                            }}
+                            className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors w-fit"
+                          >
+                            <Volume2 size={12} />
+                            Play Audio
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Back Button */}
-            <div className="flex justify-center mt-8">
+            <div className="border-t border-gray-700 p-3 flex justify-center">
               <button
                 onClick={() => {
                   setReviewSession(null)
@@ -840,8 +890,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 ← Back to Sessions
               </button>
             </div>
-              </>
-            )}
           </div>
         )}
       </div>
