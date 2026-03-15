@@ -244,6 +244,10 @@ async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
     const inputFile = join(tmpdir(), `audio-${randomUUID()}.webm`)
     const outputFile = join(tmpdir(), `audio-${randomUUID()}.pcm`)
 
+    console.log(`[FFmpeg] Input WebM size: ${audioBuffer.length} bytes`)
+    console.log(`[FFmpeg] Input file: ${inputFile}`)
+    console.log(`[FFmpeg] Output file: ${outputFile}`)
+
     try {
       // Write input buffer to temp file
       const writeStream = createWriteStream(inputFile)
@@ -251,26 +255,36 @@ async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
       writeStream.end()
 
       writeStream.on('finish', () => {
+        console.log('[FFmpeg] Input file written, starting conversion...')
         // Convert WebM to PCM using ffmpeg
         ffmpeg(inputFile)
           .audioCodec('pcm_s16le')
           .audioFrequency(16000)
           .audioChannels(1)
           .format('s16le')
+          .on('start', (cmd: string) => {
+            console.log('[FFmpeg] FFmpeg command:', cmd)
+          })
+          .on('progress', (progress: any) => {
+            console.log(`[FFmpeg] Progress: ${progress.percent?.toFixed(1) || 0}%`)
+          })
           .on('end', () => {
             try {
               const pcmBuffer = readFileSync(outputFile)
+              console.log(`[FFmpeg] ✓ Conversion complete: ${pcmBuffer.length} bytes PCM`)
               // Cleanup temp files
               try { unlinkSync(inputFile) } catch (e) {}
               try { unlinkSync(outputFile) } catch (e) {}
               resolve(pcmBuffer)
             } catch (error) {
+              console.error('[FFmpeg] Error reading output file:', error)
               try { unlinkSync(inputFile) } catch (e) {}
               try { unlinkSync(outputFile) } catch (e) {}
               reject(error)
             }
           })
           .on('error', (error: Error) => {
+            console.error('[FFmpeg] ✗ Conversion error:', error.message)
             try { unlinkSync(inputFile) } catch (e) {}
             try { unlinkSync(outputFile) } catch (e) {}
             reject(new Error(`Audio conversion failed: ${error.message}`))
@@ -278,8 +292,12 @@ async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
           .save(outputFile)
       })
 
-      writeStream.on('error', reject)
+      writeStream.on('error', (error: Error) => {
+        console.error('[FFmpeg] Error writing input file:', error.message)
+        reject(error)
+      })
     } catch (error) {
+      console.error('[FFmpeg] Unexpected error:', error)
       reject(error)
     }
   })
