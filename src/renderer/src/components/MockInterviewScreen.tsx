@@ -13,7 +13,7 @@ type ChatMessage =
   | { role: 'user'; text: string; feedback?: InterviewTurn['llmFeedback'] }
 
 // Import the proven working implementation
-import { LiveInterviewService } from '../services/liveInterview'
+import { LocalInterviewService } from '../services/localInterview'
 
 function PulsingDots() {
   return (
@@ -42,7 +42,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const liveServiceRef = useRef(new LiveInterviewService())
+  const localServiceRef = useRef(new LocalInterviewService())
 
   // Load sessions on mount
   useEffect(() => {
@@ -50,9 +50,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
     // Cleanup when component unmounts
     return () => {
-      console.log('[MockInterview] Component unmounting, cleaning up liveService')
-      liveServiceRef.current.stop()
-      liveServiceRef.current.stopSpeaking()
+      console.log('[MockInterview] Component unmounting, cleaning up localService')
+      localServiceRef.current.stop()
     }
   }, [])
 
@@ -182,7 +181,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         console.log('[MockInterview] No TTS buffer, using browser speech synthesis')
         setStatus('speaking')
         await new Promise(resolve => {
-          liveServiceRef.current.speak(questionToSpeak, () => resolve(null))
+          localServiceRef.current.speak(questionToSpeak, () => resolve(null))
         })
         setStatus('idle')
         setFinalTranscript('')
@@ -193,7 +192,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       console.error('[MockInterview] TTS failed:', err)
       setStatus('speaking')
       await new Promise(resolve => {
-        liveServiceRef.current.speak(text, () => resolve(null))
+        localServiceRef.current.speak(text, () => resolve(null))
       })
       setStatus('idle')
       setFinalTranscript('')
@@ -211,7 +210,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       // Fallback if no audio is stored
       console.warn('No stored audio, falling back to browser TTS')
       await new Promise(resolve => {
-        liveServiceRef.current.speak(lastQuestion.text, () => resolve(null))
+        localServiceRef.current.speak(lastQuestion.text, () => resolve(null))
       })
     }
   }
@@ -222,13 +221,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     setFinalTranscript('')
     setInterimTranscript('')
 
-    liveServiceRef.current.start(
+    localServiceRef.current.start(
       (text) => setInterimTranscript(text),
       (text) => {
         console.log('[MockInterview] Recording complete, text:', text)
         setFinalTranscript(text)
-        liveServiceRef.current.stop()
-      }
+        localServiceRef.current.stop()
+      },
+      { audioSource: 'microphone', mode: 'active' }
     )
   }
 
@@ -284,8 +284,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     if (!currentSession) return
 
     try {
-      liveServiceRef.current.stop()
-      liveServiceRef.current.stopSpeaking()
+      localServiceRef.current.stop()
+      localServiceRef.current.stopSpeaking()
       await window.electronAPI.interviewEndSession(currentSession.sessionId, complete)
 
       // Reload sessions
@@ -651,7 +651,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 {status === 'listening' ? (
                   <button
                     onClick={() => {
-                      liveServiceRef.current.stop()
+                      localServiceRef.current.stop()
                       if (finalTranscript.trim() || interimTranscript.trim()) {
                         handleUserAnswer(finalTranscript || interimTranscript)
                       }

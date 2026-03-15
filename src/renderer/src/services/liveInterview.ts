@@ -98,10 +98,12 @@ export class LiveInterviewService {
       return
     }
 
+    console.log('[LiveInterview] Creating SpeechRecognition instance')
     const recognition: SpeechRecognitionLike = new SpeechRec()
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-US'
+    console.log('[LiveInterview] SpeechRecognition configured, about to call start()')
 
     recognition.onresult = (event: any) => {
       let interim = ''
