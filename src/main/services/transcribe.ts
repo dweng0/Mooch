@@ -168,7 +168,7 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
             task_group: 'audio',
             task: 'asr',
             function: 'recognition',
-            model: 'paraformer-realtime-v2',
+            model: 'qwen3-asr-flash-realtime',
             parameters: {
               format: 'pcm',
               sample_rate: 16000
@@ -215,10 +215,12 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
             console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
             handleSuccess(fullText || 'No speech detected')
           } else if (message.header?.event === 'task-failed') {
-            // Task failed
-            const errorMsg = message.payload?.error_message || 'Unknown error'
+            // Task failed - error is in header, not payload
+            const errorMsg = message.header?.error_message || message.payload?.error_message || 'Unknown error'
             console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
-            console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
+            if (process.env.DEBUG) {
+              console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
+            }
             handleError(new Error(`Qwen task failed: ${errorMsg}`))
           }
         } catch (e) {
