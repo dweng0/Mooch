@@ -2,6 +2,7 @@ export type AIProvider = 'claude' | 'gemini' | 'openai' | 'qwen' | 'custom'
 export type AudioSource = 'microphone' | 'system'
 export type TextSize = 'small' | 'medium' | 'large' | 'extra-large'
 export type OAuthProvider = 'google' | 'github' | 'discord'
+export type TTSProvider = 'cosyvoice' | 'openai' | 'elevenlabs'
 
 export interface OAuthUser {
   loggedIn: boolean
@@ -32,6 +33,39 @@ export interface UserApiKeys {
   qwenModel?: string
   customProvider?: CustomProviderConfig
   preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom'
+}
+
+export interface InterviewFeedback {
+  turn: number
+  timestamp: string
+  audioFile: string
+  userResponseText: string
+  feedback: {
+    rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
+    comment: string
+    context?: {
+      jobRequirement?: string
+      resumeSkill?: string
+      conversationNote?: string
+    }
+  }
+}
+
+export interface InterviewSessionMetadata {
+  sessionId: string
+  createdAt: string
+  updatedAt: string
+  jobTitle: string
+  isComplete: boolean
+  totalTurns: number
+}
+
+export interface InterviewSession {
+  metadata: InterviewSessionMetadata
+  jobDescription: string
+  resume: string
+  transcript: string
+  feedback: InterviewFeedback[]
 }
 
 export interface WindowSource {

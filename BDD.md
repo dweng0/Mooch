@@ -22,12 +22,74 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the API key returns an error
             Then the error message should clearly indicate whether it is a token limit issue or another problem
 
-    Feature: mock interview
+    Feature: mock interview sessions
 
-        Scenario: start mock interview with job description
-            Given the user has an important interview
-            When the user pastes a job description
-            Then an option to start a microphone and synthetic voice interview should begin
+        Scenario: create new interview session with job description and resume
+            Given the user is on the mock interview page
+            When the user pastes a job description and uploads or pastes their resume
+            Then the app should save the session with a timestamp and display a "Start Interview" button
+
+        Scenario: list and view previous interview sessions
+            Given the user is on the mock interview page
+            When the app loads
+            Then it should display a list of all saved interview sessions with job title, date, and completion status (complete/incomplete)
+
+        Scenario: start real-time voice interview
+            Given the user has created an interview session with job description and resume
+            When the user clicks "Start Interview"
+            Then the app should verify required models are available (STT, LLM, TTS) and begin real-time voice interaction
+
+        Scenario: degrade gracefully when TTS provider is unavailable
+            Given the user has started an interview session
+            When the configured TTS provider fails or is unavailable
+            Then the app should warn the user and continue with text-only mode, storing the conversation
+
+        Scenario: save interview transcript as markdown
+            Given the user is in or has completed an interview session
+            When the interview is in progress or has ended
+            Then the app should maintain and save a markdown file containing the full conversation (user turns, LLM questions, timestamps) in the session directory
+
+        Scenario: record and store interview audio per turn
+            Given the user is in a real-time voice interview
+            When the user completes a response to an interview question
+            Then the app should save the audio file as user-turn-N.wav in the session's audio/ directory
+
+        Scenario: store real-time LLM feedback as JSON
+            Given the user has answered an interview question and the audio is saved
+            When the LLM generates feedback on the response
+            Then the app should save feedback as turn-N.json in the session's feedback/ directory, containing: rating, comment, context (job requirement matched, resume skill used, conversation flow notes)
+
+        Scenario: playback interview with synchronized feedback
+            Given the user is reviewing a completed interview session
+            When the user clicks "Review"
+            Then the app should load the session's metadata and feedback JSON files, play audio files in sequence, and display corresponding feedback alongside playback as each audio file plays
+
+        Scenario: mark interview as complete or incomplete
+            Given an interview session is in progress or has ended
+            When the LLM determines the interview is complete (or the user ends it)
+            Then the app should set a "complete" flag on the session so users can distinguish finished vs. unfinished interviews in the list
+
+        Scenario: resume incomplete interview session
+            Given the user has an incomplete interview session
+            When the user clicks "Resume" on that session
+            Then the app should load the previous conversation context and continue the interview from where it left off
+
+        Scenario: graceful failure recovery during interview
+            Given an interview is in progress
+            When a provider fails (STT, LLM, or TTS timeout/error)
+            Then the app should save all progress collected so far (transcript, audio, feedback) and display an error message allowing the user to resume later
+
+    Feature: TTS provider support
+
+        Scenario: configure Cosyvoice TTS provider
+            Given the user is in provider settings
+            When the user selects or configures Cosyvoice as the TTS provider
+            Then the app should be able to use Cosyvoice to synthesize speech for interview responses
+
+        Scenario: modular TTS architecture for future providers
+            Given the TTS system is implemented with Cosyvoice
+            When a new TTS provider needs to be added
+            Then the architecture should allow plugging in additional TTS providers (e.g., OpenAI TTS, ElevenLabs) without modifying core interview logic
 
     Feature: user journey test coverage
 
