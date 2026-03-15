@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2 } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle } from 'lucide-react'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -516,34 +516,73 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs shrink-0 font-semibold">
                         AI
                       </div>
-                      <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
-                        {message.status === 'loading' ? (
-                          <PulsingDots />
-                        ) : (
-                          <>
+                      <div className="flex flex-col gap-1">
+                        <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                          {message.status === 'loading' ? (
+                            <PulsingDots />
+                          ) : (
                             <p className="text-sm">{message.text}</p>
-                            {message.audioBuffer && (
-                              <button
-                                onClick={() => playAudioBuffer(message.audioBuffer!)}
-                                className="mt-2 flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors"
-                              >
-                                <Volume2 size={12} />
-                                Play
-                              </button>
-                            )}
-                          </>
+                          )}
+                        </div>
+                        {message.status === 'done' && message.audioBuffer && (
+                          <button
+                            onClick={() => playAudioBuffer(message.audioBuffer!)}
+                            className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors w-fit"
+                          >
+                            <Volume2 size={12} />
+                            Play
+                          </button>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-end gap-1 max-w-[80%]">
+                    <div className="flex flex-col items-end gap-2 max-w-[80%]">
                       <div className="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
                         <p className="text-sm">{message.text}</p>
                       </div>
                       {message.feedback && (
-                        <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(message.feedback.rating)}`}>
-                          <span className="font-semibold uppercase">{message.feedback.rating}</span>
-                          <p className="mt-1">{message.feedback.comment}</p>
+                        <div className="flex flex-col gap-2">
+                          <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(message.feedback.rating)}`}>
+                            <span className="font-semibold uppercase">{message.feedback.rating}</span>
+                          </div>
+                          {/* Icons row for feedback details */}
+                          <div className="flex items-center gap-2">
+                            {/* Rating indicator */}
+                            <div title={message.feedback.rating}>
+                              <Circle
+                                size={16}
+                                className={`fill-current ${
+                                  message.feedback.rating === 'excellent' || message.feedback.rating === 'good'
+                                    ? 'text-green-400'
+                                    : message.feedback.rating === 'solid'
+                                    ? 'text-yellow-400'
+                                    : 'text-red-400'
+                                }`}
+                              />
+                            </div>
+                            {/* Thinking/Comment icon */}
+                            <div title={message.feedback.comment}>
+                              <Lightbulb size={16} className="text-blue-400 hover:text-blue-300 cursor-help" />
+                            </div>
+                            {/* Context note icon */}
+                            {message.feedback.context?.conversationNote && (
+                              <div title={message.feedback.context.conversationNote}>
+                                <MessageCircle size={16} className="text-purple-400 hover:text-purple-300 cursor-help" />
+                              </div>
+                            )}
+                            {/* Job requirement icon */}
+                            {message.feedback.context?.jobRequirement && (
+                              <div title={message.feedback.context.jobRequirement}>
+                                <Circle size={16} className="text-orange-400 hover:text-orange-300 cursor-help opacity-75" />
+                              </div>
+                            )}
+                            {/* Resume skill icon */}
+                            {message.feedback.context?.resumeSkill && (
+                              <div title={message.feedback.context.resumeSkill}>
+                                <Circle size={16} className="text-cyan-400 hover:text-cyan-300 cursor-help opacity-75" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
