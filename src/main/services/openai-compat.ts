@@ -10,6 +10,7 @@ export async function getCustomAnswer(
   const client = new OpenAI({
     apiKey: config.apiKey || 'no-key',
     baseURL: config.baseUrl,
+    dangerouslyAllowBrowser: true,
   })
 
   const response = await client.chat.completions.create({
@@ -32,6 +33,7 @@ export async function analyzeCodeSnapshotCustom(
   const client = new OpenAI({
     apiKey: config.apiKey || 'no-key',
     baseURL: config.baseUrl,
+    dangerouslyAllowBrowser: true,
   })
 
   const response = await client.chat.completions.create({
@@ -63,6 +65,7 @@ export async function testCustomProvider(
   const client = new OpenAI({
     apiKey: config.apiKey || 'no-key',
     baseURL: config.baseUrl,
+    dangerouslyAllowBrowser: true,
   })
 
   let reasoning = false

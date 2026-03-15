@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 6 scenario(s) across 7 test file(s).
+Checked 9 scenario(s) across 7 test file(s).
 
 
 ## Feature: remove login
@@ -27,5 +27,16 @@ Checked 6 scenario(s) across 7 test file(s).
 
 - [x] Better context for coding challenges
 
+## Feature: configurable STT provider
+
+- [ ] UNCOVERED: custom provider supports STT
+- [ ] UNCOVERED: test custom provider connectivity
+- [ ] UNCOVERED: preferred STT provider with fallback
+
 ---
-**6/6 scenarios covered.**
+**6/9 scenarios covered.**
+
+3 scenario(s) need tests:
+- custom provider supports STT
+- test custom provider connectivity
+- preferred STT provider with fallback
