@@ -421,6 +421,16 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
               {/* Main Interview Area */}
               <div className="lg:col-span-2">
                 <div className="bg-gray-800 rounded-lg p-6 space-y-6">
+                  {/* Raw LLM Response (for debugging) */}
+                  {currentQuestion && (
+                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
+                      <p className="text-xs text-gray-500 mb-2 font-mono">Raw LLM Response:</p>
+                      <div className="bg-black/30 rounded p-2 max-h-24 overflow-y-auto">
+                        <p className="text-xs text-gray-300 font-mono whitespace-pre-wrap break-words">{currentQuestion}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Question Display */}
                   <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 min-h-24">
                     <p className="text-sm text-gray-400 mb-2">Current Question</p>

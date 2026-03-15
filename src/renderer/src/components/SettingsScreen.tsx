@@ -553,12 +553,6 @@ export default function SettingsScreen({
                 Save
               </button>
             </div>
-            <div className="px-3 pb-3 text-[10px] text-gray-500">
-              Get your free API key from <a href="#" onClick={(e) => {
-                e.preventDefault()
-                window.electronAPI.openExternalUrl('https://dashscope.aliyuncs.com')
-              }} className="text-blue-400 hover:text-blue-300 underline">DashScope</a>
-            </div>
           </div>
         </section>
 
