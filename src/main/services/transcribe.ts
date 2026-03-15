@@ -101,152 +101,65 @@ async function transcribeWithWhisper(audioBuffer: Buffer, apiKey: string): Promi
 }
 
 async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<string> {
-  // Convert WebM to PCM format expected by DashScope
-  let pcmBuffer: Buffer
+  // Use REST API via MultiModalConversation endpoint with qwen3-asr-flash
   try {
-    console.log('[Qwen] Converting WebM to PCM...')
-    pcmBuffer = await convertWebmToPcm(audioBuffer)
-    console.log(`[Qwen] Conversion complete: ${pcmBuffer.length} bytes PCM`)
-  } catch (error) {
-    const msg = `Failed to convert audio format: ${error instanceof Error ? error.message : String(error)}`
-    console.error('[Qwen]', msg)
-    throw new Error(msg)
-  }
+    console.log('[Qwen] Converting WebM to base64 for REST API...')
+    const audioBase64 = audioBuffer.toString('base64')
+    console.log(`[Qwen] Base64 encoded: ${audioBase64.length} chars`)
 
-  return new Promise((resolve, reject) => {
-    const taskId = randomUUID()
-    let fullText = ''
-    let ws: WebSocket | null = null
-    let resolved = false
-    let timeout: NodeJS.Timeout | null = null
+    const endpoint = 'https://dashscope-intl.aliyuncs.com/api/v1/services/multimodal-generation/generation'
 
-    const cleanup = () => {
-      if (timeout) clearTimeout(timeout)
-      if (ws) {
-        try {
-          ws.close()
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-
-    const handleError = (error: Error) => {
-      if (!resolved) {
-        resolved = true
-        cleanup()
-        reject(error)
-      }
-    }
-
-    const handleSuccess = (text: string) => {
-      if (!resolved) {
-        resolved = true
-        cleanup()
-        resolve(text)
-      }
-    }
-
-    try {
-      console.log('[Qwen] Connecting to DashScope WebSocket...')
-      ws = new WebSocket(DASHSCOPE_WSS_URL, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      })
-
-      ws.on('open', () => {
-        console.log('[Qwen] WebSocket connected, sending task...')
-        // Send run-task instruction
-        const runTask = {
-          header: {
-            action: 'run-task',
-            task_id: taskId,
-            streaming: 'duplex'
-          },
-          payload: {
-            task_group: 'audio',
-            task: 'asr',
-            function: 'recognition',
-            model: 'qwen3-asr-flash-realtime',
-            parameters: {
-              format: 'pcm',
-              sample_rate: 16000
+    const payload = {
+      model: 'qwen3-asr-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'audio',
+              audio: `data:audio/webm;base64,${audioBase64}`
             },
-            input: {}
-          }
-        }
-        ws!.send(JSON.stringify(runTask))
-
-        // Send PCM audio data
-        ws!.send(pcmBuffer)
-
-        // Send finish-task instruction
-        const finishTask = {
-          header: {
-            action: 'finish-task',
-            task_id: taskId,
-            streaming: 'duplex'
-          },
-          payload: {
-            input: {}
-          }
-        }
-        ws!.send(JSON.stringify(finishTask))
-      })
-
-      ws.on('message', (data: Buffer) => {
-        try {
-          // Try to parse as JSON (text message)
-          const message = JSON.parse(data.toString())
-          console.log(`[Qwen] Received event: ${message.header?.event}`)
-
-          if (message.header?.event === 'task-started') {
-            console.log('[Qwen] Task started successfully')
-          } else if (message.header?.event === 'result-generated') {
-            // Extract recognized text from result
-            const text = message.payload?.output?.sentence?.text
-            if (text) {
-              console.log(`[Qwen] Transcribed: "${text}"`)
-              fullText += text
+            {
+              type: 'text',
+              text: 'Please transcribe the audio and return only the transcribed text.'
             }
-          } else if (message.header?.event === 'task-finished') {
-            // Task finished, return collected text
-            console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
-            handleSuccess(fullText || 'No speech detected')
-          } else if (message.header?.event === 'task-failed') {
-            // Task failed - error is in header, not payload
-            const errorMsg = message.header?.error_message || message.payload?.error_message || 'Unknown error'
-            console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
-            if (process.env.DEBUG) {
-              console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
-            }
-            handleError(new Error(`Qwen task failed: ${errorMsg}`))
-          }
-        } catch (e) {
-          // Not JSON, ignore (could be binary data)
+          ]
         }
-      })
-
-      ws.on('error', (error: Error) => {
-        handleError(new Error(`Qwen WSS connection error: ${error.message}`))
-      })
-
-      ws.on('close', () => {
-        // If not already resolved, assume incomplete
-        if (!resolved) {
-          handleSuccess(fullText || 'No speech detected')
-        }
-      })
-
-      // Timeout after 30 seconds
-      timeout = setTimeout(() => {
-        handleError(new Error('Qwen transcription timeout'))
-      }, 30000)
-    } catch (error) {
-      handleError(error instanceof Error ? error : new Error(String(error)))
+      ]
     }
-  })
+
+    console.log('[Qwen] Sending to REST API endpoint...')
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'X-DashScope-OssResourceResolve': 'enable'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      console.error(`[Qwen] HTTP ${response.status}: ${errorData}`)
+      throw new Error(`Qwen API error: ${response.status} ${response.statusText}`)
+    }
+
+    const result = await response.json() as any
+    console.log('[Qwen] Response received:', JSON.stringify(result, null, 2))
+
+    // Extract transcription from response
+    const text = result.output?.choices?.[0]?.message?.content?.[0]?.text ||
+                 result.output?.text ||
+                 'No speech detected'
+
+    console.log(`[Qwen] ✓ Transcribed: "${text}"`)
+    return text
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[Qwen] ✗ REST API error:', msg)
+    throw new Error(`Qwen transcription failed: ${msg}`)
+  }
 }
 
 async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
