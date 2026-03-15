@@ -20,6 +20,8 @@ export interface CustomProviderConfig {
   apiKey: string
   model: string
   label?: string
+  sttEnabled?: boolean
+  sttModel?: string
 }
 
 export interface UserApiKeys {
@@ -29,6 +31,7 @@ export interface UserApiKeys {
   qwenApiKey?: string
   qwenModel?: string
   customProvider?: CustomProviderConfig
+  preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom'
 }
 
 export interface WindowSource {
@@ -94,6 +97,8 @@ export interface ElectronAPI {
   // Custom provider
   setCustomProvider: (config: CustomProviderConfig) => Promise<void>
   clearCustomProvider: () => Promise<void>
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => Promise<void>
+  testCustomProvider: (config: CustomProviderConfig) => Promise<{ reasoning: boolean; stt: boolean }>
   // Hotkeys
   onHotkeyRecordStart: (callback: () => void) => () => void
   onHotkeyRecordStop: (callback: () => void) => () => void

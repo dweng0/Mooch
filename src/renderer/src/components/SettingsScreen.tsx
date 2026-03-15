@@ -48,7 +48,7 @@ const QWEN_MODELS = [
   { value: 'qwen3-14b', label: 'Qwen3 14B' },
 ]
 
-const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '', label: '' }
+const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '', label: '', sttEnabled: false, sttModel: '' }
 
 export default function SettingsScreen({
   onBack,
@@ -85,6 +85,9 @@ export default function SettingsScreen({
   const [customInput, setCustomInput] = useState<CustomProviderConfig>(EMPTY_CUSTOM)
   const [customSaving, setCustomSaving] = useState(false)
   const [customVisible, setCustomVisible] = useState(false)
+  const [sttProvider, setSttProvider] = useState<'openai' | 'gemini' | 'qwen' | 'custom' | null>(null)
+  const [testResult, setTestResult] = useState<{ reasoning: boolean; stt: boolean } | null>(null)
+  const [testing, setTesting] = useState(false)
 
   // Load API keys on mount
   useEffect(() => {
@@ -100,6 +103,9 @@ export default function SettingsScreen({
       if (keys.qwenModel) setQwenModel(keys.qwenModel)
       if (keys.customProvider) {
         setCustomInput({ ...EMPTY_CUSTOM, ...keys.customProvider })
+      }
+      if (keys.preferredSttProvider) {
+        setSttProvider(keys.preferredSttProvider)
       }
       // Restore stored preference if that provider still has a key
       if (stored && keys[PROVIDER_KEY_MAP[stored]]) {
@@ -178,6 +184,8 @@ export default function SettingsScreen({
         apiKey: customInput.apiKey.trim(),
         model: customInput.model.trim(),
         label: customInput.label?.trim() || undefined,
+        sttEnabled: customInput.sttEnabled,
+        sttModel: customInput.sttModel,
       })
       setApiKeys(prev => ({ ...prev, customProvider: customInput }))
     } finally {
@@ -191,6 +199,11 @@ export default function SettingsScreen({
       await window.electronAPI.clearCustomProvider()
       setApiKeys(prev => { const u = { ...prev }; delete u.customProvider; return u })
       setCustomInput(EMPTY_CUSTOM)
+      // Clear STT provider if it was set to custom
+      if (sttProvider === 'custom') {
+        setSttProvider(null)
+        await window.electronAPI.setSttProvider(null)
+      }
     } finally {
       setCustomSaving(false)
     }
@@ -459,6 +472,24 @@ export default function SettingsScreen({
                 placeholder="Model (e.g. qwen/qwen3-70b, llama-3.3-70b-versatile)"
                 className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
               />
+              <label className="flex items-center gap-2 px-2.5 py-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customInput.sttEnabled || false}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, sttEnabled: e.target.checked }))}
+                  className="w-4 h-4 rounded border-white/10 cursor-pointer accent-blue-500"
+                />
+                <span className="text-xs text-gray-300">Supports transcription (STT)</span>
+              </label>
+              {customInput.sttEnabled && (
+                <input
+                  type="text"
+                  value={customInput.sttModel || ''}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, sttModel: e.target.value }))}
+                  placeholder="STT model (e.g. whisper-1)"
+                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                />
+              )}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -467,6 +498,29 @@ export default function SettingsScreen({
                   placeholder="Label (optional, e.g. Groq / Qwen)"
                   className="flex-1 bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
                 />
+                <button
+                  onClick={async () => {
+                    setTesting(true)
+                    try {
+                      const result = await window.electronAPI.testCustomProvider(customInput)
+                      setTestResult(result)
+                    } catch (error) {
+                      setTestResult({ reasoning: false, stt: false })
+                    } finally {
+                      setTesting(false)
+                    }
+                  }}
+                  disabled={!customInput.baseUrl.trim() || !customInput.model.trim() || testing}
+                  className="flex-shrink-0 px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  title="Test provider connectivity"
+                >
+                  {testing ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>🧪</>
+                  )}
+                  Test
+                </button>
                 <button
                   onClick={handleSaveCustom}
                   disabled={!customInput.baseUrl.trim() || !customInput.model.trim() || customSaving}
@@ -480,9 +534,59 @@ export default function SettingsScreen({
                   Save
                 </button>
               </div>
+              {testResult && (
+                <div className={`px-2.5 py-2 rounded-md text-xs ${
+                  testResult.reasoning && (customInput.sttEnabled ? testResult.stt : true)
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                }`}>
+                  Reasoning: {testResult.reasoning ? '✓ OK' : '✗ Failed'} {customInput.sttEnabled && (
+                    <>
+                      / STT: {testResult.stt ? '✓ OK' : '✗ Failed'}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
+
+        {/* STT Provider Preference */}
+        {(() => {
+          const sttProviders = [
+            { key: 'openai' as const, label: 'OpenAI', enabled: !!apiKeys.openaiApiKey },
+            { key: 'gemini' as const, label: 'Gemini', enabled: !!apiKeys.geminiApiKey },
+            { key: 'qwen' as const, label: 'Qwen', enabled: !!apiKeys.qwenApiKey },
+            { key: 'custom' as const, label: customInput.label || 'Custom', enabled: customInput.sttEnabled && !!customInput.baseUrl }
+          ].filter(p => p.enabled)
+
+          return sttProviders.length > 1 ? (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Preferred STT Provider</h3>
+              <div className="rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {sttProviders.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={async () => {
+                        setSttProvider(p.key)
+                        await window.electronAPI.setSttProvider(p.key)
+                      }}
+                      className={`px-3 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
+                        sttProvider === p.key
+                          ? 'bg-blue-500/15 border-blue-500/50 text-blue-300'
+                          : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-600">Falls back automatically if unavailable.</p>
+              </div>
+            </section>
+          ) : null
+        })()}
       </div>
     </div>
   )

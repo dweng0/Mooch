@@ -96,6 +96,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearCustomProvider: (): Promise<void> => {
     return ipcRenderer.invoke('clear-custom-provider')
   },
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null): Promise<void> => {
+    return ipcRenderer.invoke('set-stt-provider', provider)
+  },
+  testCustomProvider: (config: CustomProviderConfig): Promise<{ reasoning: boolean; stt: boolean }> => {
+    return ipcRenderer.invoke('test-custom-provider', config)
+  },
 
   // ── Hotkey events ─────────────────────────────────────────────────────────
   onHotkeyRecordStart: (callback: () => void) => {

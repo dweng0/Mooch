@@ -56,3 +56,58 @@ export async function analyzeCodeSnapshotCustom(
 
   return response.choices[0]?.message?.content ?? ''
 }
+
+export async function testCustomProvider(
+  config: CustomProviderConfig
+): Promise<{ reasoning: boolean; stt: boolean }> {
+  const client = new OpenAI({
+    apiKey: config.apiKey || 'no-key',
+    baseURL: config.baseUrl,
+  })
+
+  let reasoning = false
+  let stt = false
+
+  // Test reasoning capability
+  try {
+    try {
+      // Try to list models first
+      await client.models.list()
+      reasoning = true
+    } catch {
+      // Fall back to minimal chat.completions
+      await client.chat.completions.create({
+        model: config.model,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }]
+      })
+      reasoning = true
+    }
+  } catch {
+    reasoning = false
+  }
+
+  // Test STT capability (if enabled)
+  if (config.sttEnabled) {
+    try {
+      // Send empty buffer to test audio.transcriptions endpoint
+      const emptyFile = new File([new ArrayBuffer(0)], 'test.webm', { type: 'audio/webm' })
+      await client.audio.transcriptions.create({
+        model: config.sttModel || 'whisper-1',
+        file: emptyFile,
+        response_format: 'text'
+      })
+      stt = true
+    } catch (error: any) {
+      // Treat HTTP 400/415/422 as endpoint reachability pass (bad audio is acceptable)
+      const status = error?.status
+      if (status && [400, 415, 422].includes(status)) {
+        stt = true
+      } else {
+        stt = false
+      }
+    }
+  }
+
+  return { reasoning, stt }
+}

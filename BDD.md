@@ -50,3 +50,20 @@ System: a tool we call mooch, that helps users during interview by listening and
             When When the site opens and they are on the page with the code
             Then Then the llm should be able to identify the code, and provide hints and tips
 
+    Feature: configurable STT provider
+
+        Scenario: custom provider supports STT
+            Given the user has configured a custom OpenAI-compatible provider
+            When the user enables the STT capability and optionally sets a STT model name
+            Then the custom provider should be usable for audio transcription
+
+        Scenario: test custom provider connectivity
+            Given the user has entered a custom provider URL and settings in the form
+            When the user clicks the Test button
+            Then the app should report whether the reasoning and STT endpoints are reachable
+
+        Scenario: preferred STT provider with fallback
+            Given the user has multiple STT-capable providers configured
+            When the user selects a preferred STT provider in settings
+            Then that provider should be used first for transcription and fall back to others if it fails
+

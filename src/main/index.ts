@@ -7,7 +7,7 @@ import { transcribeAudio } from './services/transcribe'
 import { getAnswer, getAvailableProviders } from './services/ai-provider'
 import { analyzeCodeSnapshot } from './services/claude'
 import { analyzeCodeSnapshotQwen } from './services/qwen'
-import { analyzeCodeSnapshotCustom } from './services/openai-compat'
+import { analyzeCodeSnapshotCustom, testCustomProvider } from './services/openai-compat'
 import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
@@ -111,6 +111,16 @@ ipcMain.handle('clear-custom-provider', async () => {
   const keys = loadApiKeys()
   delete keys.customProvider
   saveApiKeys(keys)
+})
+
+ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => {
+  const keys = loadApiKeys()
+  keys.preferredSttProvider = provider ?? undefined
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('test-custom-provider', async (_event, config: CustomProviderConfig) => {
+  return testCustomProvider(config)
 })
 
 ipcMain.handle('get-auth-status', async () => {
