@@ -478,15 +478,19 @@ export default function App() {
     }
   }, [])
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (sourceOverride?: AudioSource) => {
     if (statusRef.current !== 'idle') return
     setError('')
     try {
       setTranscript('')
       setAnswer('')
-      await recorderRef.current.start(audioSourceRef.current)
+      const source = sourceOverride ?? audioSourceRef.current
+      console.log('[startRecording] Starting with audioSource:', source)
+      await recorderRef.current.start(source)
+      console.log('[startRecording] Recording started successfully')
       setStatus('recording')
     } catch (err) {
+      console.error('[startRecording] Error:', err)
       setError(err instanceof Error ? err.message : 'Microphone access denied')
     }
   }, [])
@@ -992,12 +996,15 @@ export default function App() {
 
               <button
                 onClick={() => {
+                  console.log('[Mic Button] Clicked - current status:', status, 'audioSource:', audioSource)
                   if (status === 'recording' && audioSource === 'microphone') {
+                    console.log('[Mic Button] Already recording with microphone, stopping')
                     stopRecording()
                   } else if (status === 'idle') {
+                    console.log('[Mic Button] Setting audioSource to microphone and starting recording')
                     setAudioSource('microphone')
                     setError('')
-                    startRecording()
+                    startRecording('microphone')
                   }
                 }}
                 disabled={
@@ -1033,7 +1040,7 @@ export default function App() {
                   } else if (status === 'idle') {
                     setAudioSource('system')
                     setError('')
-                    startRecording()
+                    startRecording('system')
                   }
                 }}
                 disabled={

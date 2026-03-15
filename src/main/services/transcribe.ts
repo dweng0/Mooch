@@ -205,10 +205,13 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
             console.log('[Qwen] Task started successfully')
           } else if (message.header?.event === 'result-generated') {
             // Extract recognized text from result
+            console.log('[Qwen] Result payload:', JSON.stringify(message.payload, null, 2))
             const text = message.payload?.output?.sentence?.text
             if (text) {
               console.log(`[Qwen] Transcribed: "${text}"`)
               fullText += text
+            } else {
+              console.log('[Qwen] No text in result-generated event')
             }
           } else if (message.header?.event === 'task-finished') {
             // Task finished, return collected text

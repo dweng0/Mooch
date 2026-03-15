@@ -6,6 +6,7 @@ export class AudioRecorder {
 
   async start(source: AudioSource): Promise<void> {
     console.log(`[AudioRecorder] start() called with source: "${source}"`)
+    console.log(`[AudioRecorder] About to call ${source === 'microphone' ? 'getMicStream' : 'getSystemAudioStream'}`)
     const stream =
       source === 'microphone' ? await this.getMicStream() : await this.getSystemAudioStream()
 
@@ -80,7 +81,7 @@ export class AudioRecorder {
   }
 
   private async getMicStream(): Promise<MediaStream> {
-    console.log('[AudioRecorder] getMicStream() - Requesting microphone access via getUserMedia')
+    console.log('[AudioRecorder] getMicStream() - Requesting microphone access via getUserMedia (no screen access needed)')
     console.log('[AudioRecorder] Checking navigator.mediaDevices availability:', {
       mediaDevices: !!navigator.mediaDevices,
       getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
@@ -115,8 +116,10 @@ export class AudioRecorder {
   }
 
   private async getSystemAudioStream(): Promise<MediaStream> {
+    console.log('[AudioRecorder] getSystemAudioStream() called - this will request screen access!')
     try {
       const sourceId = await window.electronAPI.getDesktopSourceId()
+      console.log('[AudioRecorder] Got desktop source ID for system audio')
       if (!sourceId) {
         throw new Error('No screen source available for system audio capture')
       }
