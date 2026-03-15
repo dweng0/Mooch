@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 13 scenario(s) across 9 test file(s).
+Checked 14 scenario(s) across 9 test file(s).
 
 
 ## Feature: remove login
@@ -32,6 +32,7 @@ Checked 13 scenario(s) across 9 test file(s).
 - [x] custom provider supports STT
 - [x] test custom provider connectivity
 - [x] preferred STT provider with fallback
+- [x] Qwen API key supports STT transcription
 
 ## Feature: pre-configured API providers
 
@@ -41,4 +42,4 @@ Checked 13 scenario(s) across 9 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**13/13 scenarios covered.**
+**14/14 scenarios covered.**

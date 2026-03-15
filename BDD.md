@@ -67,6 +67,11 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the user selects a preferred STT provider in settings
             Then that provider should be used first for transcription and fall back to others if it fails
 
+        Scenario: Qwen API key supports STT transcription
+            Given the user has configured a Qwen API key
+            When the user performs audio transcription
+            Then the app should be able to transcribe audio using the Qwen STT service
+
     Feature: pre-configured API providers
 
         Scenario: select pre-configured provider from dropdown
