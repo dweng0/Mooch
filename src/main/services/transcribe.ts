@@ -218,6 +218,7 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
             // Task failed
             const errorMsg = message.payload?.error_message || 'Unknown error'
             console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
+            console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
             handleError(new Error(`Qwen task failed: ${errorMsg}`))
           }
         } catch (e) {
