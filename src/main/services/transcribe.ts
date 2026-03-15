@@ -201,7 +201,9 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
           const message = JSON.parse(data.toString())
           console.log(`[Qwen] Received event: ${message.header?.event}`)
 
-          if (message.header?.event === 'result-generated') {
+          if (message.header?.event === 'task-started') {
+            console.log('[Qwen] Task started successfully')
+          } else if (message.header?.event === 'result-generated') {
             // Extract recognized text from result
             const text = message.payload?.output?.sentence?.text
             if (text) {
@@ -212,6 +214,11 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
             // Task finished, return collected text
             console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
             handleSuccess(fullText || 'No speech detected')
+          } else if (message.header?.event === 'task-failed') {
+            // Task failed
+            const errorMsg = message.payload?.error_message || 'Unknown error'
+            console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
+            handleError(new Error(`Qwen task failed: ${errorMsg}`))
           }
         } catch (e) {
           // Not JSON, ignore (could be binary data)
