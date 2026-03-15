@@ -48,6 +48,12 @@ const QWEN_MODELS = [
   { value: 'qwen3-14b', label: 'Qwen3 14B' },
 ]
 
+const PRECONFIGURED_PROVIDERS: Record<string, { label: string; baseUrl: string }> = {
+  ollama: { label: 'Ollama', baseUrl: 'http://localhost:11434/v1' },
+  lmstudio: { label: 'LM Studio', baseUrl: 'http://localhost:1234/v1' },
+  custom: { label: 'Custom', baseUrl: '' },
+}
+
 const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '', label: '', sttEnabled: false, sttModel: '' }
 
 export default function SettingsScreen({
@@ -85,9 +91,11 @@ export default function SettingsScreen({
   const [customInput, setCustomInput] = useState<CustomProviderConfig>(EMPTY_CUSTOM)
   const [customSaving, setCustomSaving] = useState(false)
   const [customVisible, setCustomVisible] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<string>('custom')
   const [sttProvider, setSttProvider] = useState<'openai' | 'gemini' | 'qwen' | 'custom' | null>(null)
   const [testResult, setTestResult] = useState<{ reasoning: boolean; stt: boolean } | null>(null)
   const [testing, setTesting] = useState(false)
+  const [unreachableWarning, setUnreachableWarning] = useState(false)
 
   // Load API keys on mount
   useEffect(() => {
@@ -206,6 +214,26 @@ export default function SettingsScreen({
       }
     } finally {
       setCustomSaving(false)
+    }
+  }
+
+  const handleProviderChange = (providerKey: string) => {
+    setSelectedProvider(providerKey)
+    setUnreachableWarning(false)
+
+    if (providerKey === 'custom') {
+      setCustomInput(EMPTY_CUSTOM)
+    } else {
+      const config = PRECONFIGURED_PROVIDERS[providerKey]
+      if (config) {
+        setCustomInput(prev => ({
+          ...prev,
+          baseUrl: config.baseUrl,
+          label: config.label,
+          apiKey: '',
+          model: '',
+        }))
+      }
     }
   }
 
@@ -428,6 +456,19 @@ export default function SettingsScreen({
           <p className="text-[10px] text-gray-500 mb-3">
             Any OpenAI-compatible API — Groq, OpenRouter, Ollama, Together AI, etc.
           </p>
+          {/* Provider selector dropdown */}
+          <div className="mb-3 rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
+            <label className="text-xs text-gray-400 mb-2 block font-medium">Select Provider</label>
+            <select
+              value={selectedProvider}
+              onChange={(e) => handleProviderChange(e.target.value)}
+              className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+            >
+              {Object.entries(PRECONFIGURED_PROVIDERS).map(([key, config]) => (
+                <option key={key} value={key}>{config.label}</option>
+              ))}
+            </select>
+          </div>
           <div className={`rounded-lg border overflow-hidden ${hasCustomSet ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-gray-800/60 border-white/10'}`}>
             <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -501,11 +542,16 @@ export default function SettingsScreen({
                 <button
                   onClick={async () => {
                     setTesting(true)
+                    setUnreachableWarning(false)
                     try {
                       const result = await window.electronAPI.testCustomProvider(customInput)
                       setTestResult(result)
+                      if (!result.reasoning) {
+                        setUnreachableWarning(true)
+                      }
                     } catch (error) {
                       setTestResult({ reasoning: false, stt: false })
+                      setUnreachableWarning(true)
                     } finally {
                       setTesting(false)
                     }
@@ -545,6 +591,11 @@ export default function SettingsScreen({
                       / STT: {testResult.stt ? '✓ OK' : '✗ Failed'}
                     </>
                   )}
+                </div>
+              )}
+              {!testResult && unreachableWarning && (
+                <div className="px-2.5 py-2 rounded-md text-xs bg-red-500/10 text-red-400 border border-red-500/30">
+                  ⚠ Provider is unreachable. Please check the URL and try again.
                 </div>
               )}
             </div>

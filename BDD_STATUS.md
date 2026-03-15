@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 9 scenario(s) across 8 test file(s).
+Checked 13 scenario(s) across 9 test file(s).
 
 
 ## Feature: remove login
@@ -33,5 +33,12 @@ Checked 9 scenario(s) across 8 test file(s).
 - [x] test custom provider connectivity
 - [x] preferred STT provider with fallback
 
+## Feature: pre-configured API providers
+
+- [x] select pre-configured provider from dropdown
+- [x] pre-configured provider auto-populates settings
+- [x] warn when pre-configured provider is unreachable
+- [x] custom provider requires manual entry
+
 ---
-**9/9 scenarios covered.**
+**13/13 scenarios covered.**

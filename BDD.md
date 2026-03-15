@@ -67,3 +67,25 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the user selects a preferred STT provider in settings
             Then that provider should be used first for transcription and fall back to others if it fails
 
+    Feature: pre-configured API providers
+
+        Scenario: select pre-configured provider from dropdown
+            Given the user is in the provider settings
+            When the user clicks the provider dropdown
+            Then they should see a list of pre-configured providers (Ollama, LM Studio, etc.) plus a "Custom" option
+
+        Scenario: pre-configured provider auto-populates settings
+            Given the user has selected a pre-configured provider from the dropdown
+            When the provider URL is reachable
+            Then the URL field should be pre-filled and available models should be fetched and displayed in a dropdown
+
+        Scenario: warn when pre-configured provider is unreachable
+            Given the user has selected a pre-configured provider
+            When the provider URL cannot be reached
+            Then the app should display a warning that the provider is unreachable
+
+        Scenario: custom provider requires manual entry
+            Given the user is in the provider settings
+            When the user selects "Custom" from the provider dropdown
+            Then they should be able to manually enter the provider URL as before
+
