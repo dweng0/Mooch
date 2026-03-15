@@ -130,6 +130,7 @@ export class InterviewOrchestrator {
       throw new Error('Interview not configured')
     }
 
+    const systemPrompt = buildInterviewerSystemPrompt(this.config.jobDescription, this.config.resume)
     const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
     const client = this.createLLMClient()
 
@@ -138,6 +139,7 @@ export class InterviewOrchestrator {
         model: this.getModelName(),
         max_tokens: 500,
         messages: [
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ]
       })
