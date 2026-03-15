@@ -51,32 +51,49 @@ export class TTSProviderManager {
       throw new Error('Cosyvoice API key is required')
     }
 
+    const model = this.config.model || 'cosyvoice-v3-flash'
+    const url = 'https://dashscope.aliyuncs.com/api/v1/services/tts/text-to-speech'
+
+    console.log('[TTS] Cosyvoice synthesis request:', {
+      url,
+      model,
+      apiKeyPrefix: this.config.apiKey.substring(0, 20),
+      textLength: text.length,
+      voice: this.config.voice || 'longxiao',
+    })
+
     // Cosyvoice via Dashscope (Alibaba)
-    // Model: cosyvoice-v3-flash
     try {
-      const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/tts/text-to-speech', {
+      const requestBody = {
+        model,
+        input: {
+          text,
+        },
+        parameters: {
+          voice: this.config.voice || 'longxiao',
+          rate: this.config.speed ? Math.round(this.config.speed * 100) : 100,
+          pitch: this.config.pitch ? Math.round(this.config.pitch * 100) : 100,
+          format: 'wav',
+        },
+      }
+
+      console.log('[TTS] Request body:', JSON.stringify(requestBody, null, 2))
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-DashScope-Async': 'false',
           'Authorization': `Bearer ${this.config.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this.config.model || 'cosyvoice-v3-flash',
-          input: {
-            text,
-          },
-          parameters: {
-            voice: this.config.voice || 'longxiao',
-            rate: this.config.speed ? Math.round(this.config.speed * 100) : 100,
-            pitch: this.config.pitch ? Math.round(this.config.pitch * 100) : 100,
-            format: 'wav',
-          },
-        }),
+        body: JSON.stringify(requestBody),
       })
+
+      console.log('[TTS] Response status:', response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('[TTS] API error response:', errorData)
         throw new Error(`Cosyvoice API error: ${errorData.message || response.statusText}`)
       }
 
