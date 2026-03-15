@@ -183,11 +183,27 @@ export class PassiveListenService {
     try {
       const allChunks = this.initChunk ? [this.initChunk, ...chunks] : chunks
       const blob = new Blob(allChunks, { type: 'audio/webm;codecs=opus' })
+
+      console.log(`[PassiveListen] Processing ${chunks.length} chunks`)
+      console.log(`[PassiveListen] Init chunk: ${this.initChunk?.size || 0} bytes`)
+      console.log(`[PassiveListen] Total blob size: ${blob.size} bytes`)
+      chunks.forEach((c, i) => {
+        console.log(`[PassiveListen] Chunk ${i}: ${c.size} bytes`)
+      })
+
       if (blob.size < 2000) {
         // Too small to be meaningful speech
+        console.log(`[PassiveListen] Blob too small (${blob.size} < 2000), skipping`)
         return
       }
+
       const buffer = await blob.arrayBuffer()
+      console.log(`[PassiveListen] Converted to ArrayBuffer: ${buffer.byteLength} bytes`)
+
+      // Log first 16 bytes to verify WebM header
+      const headerView = new Uint8Array(buffer, 0, 16)
+      console.log(`[PassiveListen] First 16 bytes: ${Array.from(headerView).map(b => b.toString(16).padStart(2, '0')).join(' ')}`)
+
       const text = await window.electronAPI.transcribeAudio(buffer)
       if (text.trim() && this.isActive) {
         this.onTranscriptCb?.(text)
