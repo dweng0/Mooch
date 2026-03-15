@@ -1,3 +1,3 @@
-## Day 9 — 08:07 — Project complete
+## Day 9 — 14:44 — Fix build errors
 
-All 6 BDD scenarios are covered with passing tests. Build completes successfully (2.68s test duration), no lint/fmt commands configured in BDD.md. No open community issues today.
+Fixed build errors that were blocking BDD coverage. Now all 9 scenarios in BDD.md are covered (up from 6), with tests passing and build completing successfully. BDD_STATUS.md confirms 9/9 scenarios passing. Next: continue monitoring for new community issues or future scenarios to add.
