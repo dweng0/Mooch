@@ -544,4 +544,62 @@ describe('Interview Session Manager', () => {
       expect(session?.jobDescription).toContain('Senior Role')
     })
   })
+
+  describe('Feedback JSON storage', () => {
+    it('store real-time LLM feedback as JSON with turn-N.json format', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+
+      const feedback = {
+        turn: 1,
+        timestamp: new Date().toISOString(),
+        audioFile: 'user-turn-1.wav',
+        userResponseText: 'User answer',
+        feedback: {
+          rating: 'excellent' as const,
+          comment: 'Great response',
+          context: {
+            jobRequirement: 'Problem solving',
+            resumeSkill: 'Analytical thinking',
+            conversationNote: 'Answered concisely',
+          },
+        },
+      }
+
+      await manager.saveFeedback(metadata.sessionId, feedback)
+
+      const session = await manager.getSession(metadata.sessionId)
+      const savedFeedback = session?.feedback[0]
+
+      expect(savedFeedback?.feedback.rating).toBe('excellent')
+      expect(savedFeedback?.feedback.comment).toBe('Great response')
+      expect(savedFeedback?.feedback.context?.jobRequirement).toBe('Problem solving')
+    })
+
+    it('graceful failure recovery during interview - saves progress on error', async () => {
+      const metadata = await manager.createSession('Role', 'Resume')
+
+      // Save transcript and feedback even on error
+      const transcript = '# Interview Progress\n\nPartial interview data'
+      await manager.saveTranscript(metadata.sessionId, transcript)
+
+      const feedback = {
+        turn: 1,
+        timestamp: new Date().toISOString(),
+        audioFile: 'user-turn-1.wav',
+        userResponseText: 'Response',
+        feedback: {
+          rating: 'good' as const,
+          comment: 'Feedback saved before error',
+        },
+      }
+
+      await manager.saveFeedback(metadata.sessionId, feedback)
+
+      // Session should still be accessible with partial data
+      const session = await manager.getSession(metadata.sessionId)
+      expect(session?.transcript).toContain('Interview Progress')
+      expect(session?.feedback).toHaveLength(1)
+      expect(session?.metadata.isComplete).toBe(false)
+    })
+  })
 })
