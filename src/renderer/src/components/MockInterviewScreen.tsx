@@ -9,7 +9,7 @@ interface MockInterviewScreenProps {
 type MockScreenView = 'setup' | 'sessions' | 'interview' | 'review'
 
 type ChatMessage =
-  | { role: 'interviewer'; text: string; audioBuffer?: ArrayBuffer | null; status: 'loading' | 'done' }
+  | { role: 'interviewer'; text: string; audioBuffer?: ArrayBuffer | null; status: 'loading' | 'done'; feedback?: InterviewTurn['llmFeedback'] }
   | { role: 'user'; text: string; feedback?: InterviewTurn['llmFeedback'] }
 
 // Import the proven working implementation
@@ -262,7 +262,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       // Speak the next question
       const audioBuffer = await speakQuestion(turn.llmQuestion)
 
-      // Update the loading message with the question and audio
+      // Update the loading message with the question, audio, and feedback (AI's thinking)
       setMessages(prev => {
         const newMessages = [...prev]
         const lastMsg = newMessages[newMessages.length - 1]
@@ -270,6 +270,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           lastMsg.text = turn.llmQuestion
           lastMsg.status = 'done'
           lastMsg.audioBuffer = audioBuffer ?? undefined
+          lastMsg.feedback = turn.llmFeedback // Show feedback as AI's thinking
         }
         return newMessages
       })
@@ -524,14 +525,46 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                             <p className="text-sm">{message.text}</p>
                           )}
                         </div>
-                        {message.status === 'done' && message.audioBuffer && (
-                          <button
-                            onClick={() => playAudioBuffer(message.audioBuffer!)}
-                            className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors w-fit"
-                          >
-                            <Volume2 size={12} />
-                            Play
-                          </button>
+                        {message.status === 'done' && (
+                          <div className="flex items-center gap-2">
+                            {message.audioBuffer && (
+                              <button
+                                onClick={() => playAudioBuffer(message.audioBuffer!)}
+                                className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors"
+                              >
+                                <Volume2 size={12} />
+                                Play
+                              </button>
+                            )}
+                            {/* AI Thinking Icons */}
+                            {message.feedback && (
+                              <div className="flex items-center gap-1">
+                                {/* Rating indicator */}
+                                <div title={`Thinking: ${message.feedback.rating}`}>
+                                  <Circle
+                                    size={14}
+                                    className={`fill-current ${
+                                      message.feedback.rating === 'excellent' || message.feedback.rating === 'good'
+                                        ? 'text-green-400'
+                                        : message.feedback.rating === 'solid'
+                                        ? 'text-yellow-400'
+                                        : 'text-red-400'
+                                    }`}
+                                  />
+                                </div>
+                                {/* Thinking/Comment icon */}
+                                <div title={message.feedback.comment}>
+                                  <Lightbulb size={14} className="text-blue-400 hover:text-blue-300 cursor-help" />
+                                </div>
+                                {/* Context note icon */}
+                                {message.feedback.context?.conversationNote && (
+                                  <div title={message.feedback.context.conversationNote}>
+                                    <MessageCircle size={14} className="text-purple-400 hover:text-purple-300 cursor-help" />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
