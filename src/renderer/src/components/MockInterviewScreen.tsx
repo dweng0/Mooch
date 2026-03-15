@@ -13,27 +13,46 @@ class LiveService {
   private recognition: any = null
   private isListening = false
   private transcript = ''
+  private available: boolean = false
 
   constructor() {
     const SpeechRecognition = window.webkitSpeechRecognition || (window as any).SpeechRecognition
     if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition()
-      this.recognition.continuous = true
-      this.recognition.interimResults = true
-      this.recognition.lang = 'en-US'
+      try {
+        this.recognition = new SpeechRecognition()
+        this.recognition.continuous = true
+        this.recognition.interimResults = true
+        this.recognition.lang = 'en-US'
+        this.available = true
+        console.log('[Speech API] Initialized successfully')
+      } catch (error) {
+        console.error('[Speech API] Failed to initialize:', error)
+        this.available = false
+      }
+    } else {
+      console.warn('[Speech API] Web Speech API not available on this browser/OS')
+      this.available = false
     }
   }
 
+  isAvailable(): boolean {
+    return this.available && !!this.recognition
+  }
+
   start(onInterim: (text: string) => void, onFinal: (text: string) => void) {
-    if (!this.recognition) return
+    if (!this.recognition) {
+      console.error('[Speech API] Recognition not available')
+      return
+    }
     this.isListening = true
     this.transcript = ''
 
     this.recognition.onstart = () => {
-      console.log('Listening started')
+      console.log('[Speech API] Listening started - microphone should be active')
     }
 
     this.recognition.onresult = (event: any) => {
+      console.log('[Speech API] Got speech result, isFinal:', event.results[event.results.length - 1]?.isFinal)
       let interimTranscript = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript
@@ -49,17 +68,24 @@ class LiveService {
     }
 
     this.recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error)
+      console.error('[Speech API] Recognition error:', event.error)
+      this.isListening = false
     }
 
     this.recognition.onend = () => {
-      console.log('Listening ended')
+      console.log('[Speech API] Listening ended')
       if (this.isListening && this.transcript) {
         onFinal(this.transcript.trim())
       }
     }
 
-    this.recognition.start()
+    try {
+      console.log('[Speech API] Calling start()')
+      this.recognition.start()
+    } catch (error) {
+      console.error('[Speech API] Failed to start:', error)
+      this.isListening = false
+    }
   }
 
   stop() {
