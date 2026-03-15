@@ -43,6 +43,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const localServiceRef = useRef(new LocalInterviewService())
+  const recordingMessageAddedRef = useRef(false)
 
   // Load sessions on mount
   useEffect(() => {
@@ -220,13 +221,43 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     setStatus('listening')
     setFinalTranscript('')
     setInterimTranscript('')
+    recordingMessageAddedRef.current = true
+
+    // Add a placeholder user message with pulsing dots
+    setMessages(prev => [...prev, { role: 'user', text: '' }])
 
     localServiceRef.current.start(
-      (text) => setInterimTranscript(text),
+      (text) => {
+        setInterimTranscript(text)
+        // Only update message if we have actual meaningful transcript (not "(recording...)" or similar)
+        if (text && !text.toLowerCase().includes('recording')) {
+          setMessages(prev => {
+            const newMessages = [...prev]
+            const lastMsg = newMessages[newMessages.length - 1]
+            if (lastMsg && lastMsg.role === 'user') {
+              lastMsg.text = text
+            }
+            return newMessages
+          })
+        }
+      },
       (text) => {
         console.log('[MockInterview] Recording complete, text:', text)
         setFinalTranscript(text)
+        setInterimTranscript(text)
+        // Update the last message with final transcript
+        setMessages(prev => {
+          const newMessages = [...prev]
+          const lastMsg = newMessages[newMessages.length - 1]
+          if (lastMsg && lastMsg.role === 'user') {
+            lastMsg.text = text
+          }
+          return newMessages
+        })
         localServiceRef.current.stop()
+
+        // Auto-submit the recorded answer
+        handleUserAnswer(text)
       },
       { audioSource: 'microphone', mode: 'active' }
     )
@@ -238,8 +269,11 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     setStatus('processing')
 
     try {
-      // Add user message immediately
-      setMessages(prev => [...prev, { role: 'user', text }])
+      // Add user message only if it wasn't added during recording
+      if (!recordingMessageAddedRef.current) {
+        setMessages(prev => [...prev, { role: 'user', text }])
+      }
+      recordingMessageAddedRef.current = false
       setFinalTranscript('')
       setInterimTranscript('')
 
@@ -571,7 +605,11 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   ) : (
                     <div className="flex flex-col items-end gap-2 max-w-[80%]">
                       <div className="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
-                        <p className="text-sm">{message.text}</p>
+                        {message.text === '' ? (
+                          <PulsingDots />
+                        ) : (
+                          <p className="text-sm">{message.text}</p>
+                        )}
                       </div>
                       {message.feedback && (
                         <div className="flex flex-col gap-2">
@@ -627,11 +665,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
             {/* Bottom Input Bar */}
             <div className="border-t border-gray-700 p-3 space-y-2">
-              {/* Interim transcript display */}
-              {status === 'listening' && interimTranscript && (
-                <div className="text-sm text-gray-400 italic px-3">{interimTranscript}</div>
-              )}
-
               <div className="flex items-end gap-2">
                 <textarea
                   value={finalTranscript}
@@ -652,9 +685,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   <button
                     onClick={() => {
                       localServiceRef.current.stop()
-                      if (finalTranscript.trim() || interimTranscript.trim()) {
-                        handleUserAnswer(finalTranscript || interimTranscript)
-                      }
                     }}
                     className="p-3 bg-red-600 hover:bg-red-700 rounded-full transition-colors flex-shrink-0 animate-pulse"
                     title="Stop recording"
@@ -663,11 +693,13 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   </button>
                 ) : (
                   <button
-                    onClick={
-                      finalTranscript.trim()
-                        ? () => handleUserAnswer(finalTranscript)
-                        : startRecording
-                    }
+                    onClick={() => {
+                      if (finalTranscript.trim()) {
+                        handleUserAnswer(finalTranscript)
+                      } else {
+                        startRecording()
+                      }
+                    }}
                     disabled={status !== 'idle'}
                     className="p-3 bg-blue-600 hover:bg-blue-700 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
                     title={finalTranscript.trim() ? 'Send message' : 'Record answer'}
