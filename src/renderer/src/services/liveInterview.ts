@@ -63,10 +63,17 @@ export class LiveInterviewService {
   }
 
   stop(): void {
+    console.log('[LiveInterview] Stopping service')
     this.isActive = false
     this.pauseListening()
     this.onInterimCb = null
     this.onQuestionCb = null
+
+    // Add a small delay to ensure Web Speech API fully releases
+    // This prevents conflicts with other audio services that might start immediately after
+    setTimeout(() => {
+      console.log('[LiveInterview] Stop complete, microphone should be released')
+    }, 100)
   }
 
   speak(text: string, onEnd?: () => void): void {

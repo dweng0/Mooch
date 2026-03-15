@@ -69,6 +69,11 @@ export class InterviewOrchestrator {
     this.currentTurn++
 
     try {
+      // Get the question that was asked (the last assistant message in history)
+      const questionAsked = this.conversationHistory.length > 0
+        ? this.conversationHistory[this.conversationHistory.length - 1].content
+        : 'Opening Question'
+
       // Add user response to history
       this.conversationHistory.push({
         role: 'user',
@@ -83,6 +88,7 @@ export class InterviewOrchestrator {
         turn: this.currentTurn,
         timestamp: new Date().toISOString(),
         audioFile: audioPath || `user-turn-${this.currentTurn}.wav`,
+        llmQuestion: questionAsked,
         userResponseText: userText,
         feedback,
       })
@@ -92,13 +98,6 @@ export class InterviewOrchestrator {
         role: 'assistant',
         content: nextQuestion,
       })
-
-      // Try to synthesize LLM response with TTS (degrade gracefully if fails)
-      try {
-        await this.ttsManager.synthesize(nextQuestion)
-      } catch (error) {
-        console.warn(`TTS synthesis failed, continuing without audio: ${error}`)
-      }
 
       // Update transcript
       const transcript = await this.buildTranscript()
@@ -122,6 +121,26 @@ export class InterviewOrchestrator {
       throw error
     }
   }
+
+  getSessionId(): string | null {
+    return this.currentSessionId
+  }
+
+  async saveQuestionAudio(audioBuffer: Buffer): Promise<void> {
+    if (!this.currentSessionId) {
+      console.warn('[Interview] No active session, cannot save question audio')
+      return
+    }
+
+    try {
+      await this.sessionManager.saveQuestionAudio(this.currentSessionId, this.currentTurn, audioBuffer)
+      console.log(`[Interview] Saved question audio for turn ${this.currentTurn}`)
+    } catch (error) {
+      console.error('[Interview] Failed to save question audio:', error)
+      throw error
+    }
+  }
+
 
   async endInterview(isComplete: boolean = true): Promise<void> {
     if (!this.currentSessionId) {
@@ -164,8 +183,20 @@ export class InterviewOrchestrator {
         ]
       })
 
-      const question = response.choices[0]?.message?.content ?? ''
+      let question = response.choices[0]?.message?.content ?? ''
       console.log('[Interview] Generated opener:', question.substring(0, 150))
+
+      // Try to parse as JSON if needed (in case the LLM returns JSON format)
+      if (question.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(question)
+          question = parsed.next_question || question
+          console.log('[Interview] Extracted question from JSON opener')
+        } catch {
+          // Keep original if parsing fails
+          console.log('[Interview] Failed to parse JSON opener, keeping original')
+        }
+      }
 
       this.conversationHistory.push({
         role: 'assistant',
@@ -198,14 +229,35 @@ export class InterviewOrchestrator {
       })
 
       const content = response.choices[0]?.message?.content ?? ''
+      console.log('[Interview] Raw LLM response (turn', this.currentTurn, '):', content.substring(0, 200))
 
       // Try to parse as JSON (for turns > 0)
       if (this.currentTurn > 0) {
         try {
           const parsed = JSON.parse(content)
+          console.log('[Interview] Successfully parsed JSON response')
           if (parsed.next_question && parsed.feedback) {
+            // Extract the question text, handling case where it might be nested JSON
+            let questionText = parsed.next_question
+            console.log('[Interview] next_question type:', typeof questionText, 'length:', questionText?.length)
+
+            // If next_question is a JSON string, parse it
+            if (typeof questionText === 'string' && questionText.trim().startsWith('{')) {
+              console.log('[Interview] next_question appears to be JSON, attempting nested parse')
+              try {
+                const nestedParsed = JSON.parse(questionText)
+                questionText = nestedParsed.next_question || questionText
+                console.log('[Interview] Successfully extracted nested question')
+              } catch {
+                // Keep original if parsing fails
+                console.log('[Interview] Failed to parse nested JSON, keeping original')
+              }
+            }
+
+            console.log('[Interview] Final extracted question:', questionText.substring(0, 100))
+
             return {
-              nextQuestion: parsed.next_question,
+              nextQuestion: questionText,
               feedback: {
                 rating: parsed.feedback.rating || 'solid',
                 comment: parsed.feedback.comment || '',
@@ -219,6 +271,7 @@ export class InterviewOrchestrator {
       }
 
       // Fallback: treat entire response as the question with default feedback
+      console.log('[Interview] Using fallback - returning raw content as question')
       return {
         nextQuestion: content,
         feedback: {

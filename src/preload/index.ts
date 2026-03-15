@@ -144,6 +144,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   interviewEndSession: (sessionId: string, isComplete: boolean): Promise<void> => {
     return ipcRenderer.invoke('interview-end-session', sessionId, isComplete)
   },
+  interviewDeleteSession: (sessionId: string): Promise<void> => {
+    return ipcRenderer.invoke('interview-delete-session', sessionId)
+  },
   interviewSynthesize: (text: string): Promise<ArrayBuffer | null> => {
     return ipcRenderer.invoke('interview-synthesize', text)
   }

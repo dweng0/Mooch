@@ -40,6 +40,8 @@ export interface InterviewFeedback {
   turn: number
   timestamp: string
   audioFile: string
+  questionAudioFile?: string
+  llmQuestion: string
   userResponseText: string
   feedback: {
     rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
@@ -157,7 +159,9 @@ export interface ElectronAPI {
   interviewGenerateOpener: (sessionId: string) => Promise<string>
   interviewProcessTurn: (sessionId: string, userText: string) => Promise<InterviewTurn>
   interviewEndSession: (sessionId: string, isComplete: boolean) => Promise<void>
+  interviewDeleteSession: (sessionId: string) => Promise<void>
   interviewSynthesize: (text: string) => Promise<ArrayBuffer | null>
+  interviewGetAudio: (sessionId: string, turn: number, type: 'question' | 'response') => Promise<ArrayBuffer | null>
 }
 
 declare global {

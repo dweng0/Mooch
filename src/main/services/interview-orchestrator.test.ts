@@ -142,10 +142,22 @@ describe('Interview Orchestrator', () => {
       )
     })
 
-    it('should synthesize LLM response with TTS', async () => {
+    it('should save feedback with the question being responded to', async () => {
+      // First, generate an opener to add a question to history
+      await orchestrator.generateOpener()
+
+      // Now process a response
       await orchestrator.processUserResponse('Test response')
 
-      expect(mockTtsManager.synthesize).toHaveBeenCalled()
+      // Verify feedback was saved with the question being responded to
+      expect(mockSessionManager.saveFeedback).toHaveBeenCalledWith(
+        'session-123',
+        expect.objectContaining({
+          turn: 1,
+          llmQuestion: 'What is your experience?', // This is the question from the mock opener
+          userResponseText: 'Test response',
+        })
+      )
     })
 
     it('should update transcript with each turn', async () => {

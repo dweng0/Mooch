@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Square, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Square, RotateCcw, X, Trash2 } from 'lucide-react'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -25,12 +25,23 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [finalTranscript, setFinalTranscript] = useState('')
   const [feedbackHistory, setFeedbackHistory] = useState<InterviewTurn['llmFeedback'][]>([])
   const [currentTurn, setCurrentTurn] = useState(0)
+  const [currentQuestionAudio, setCurrentQuestionAudio] = useState<ArrayBuffer | null>(null)
+  const [reviewSession, setReviewSession] = useState<InterviewSession | null>(null)
+  const [expandedFeedback, setExpandedFeedback] = useState<Set<number>>(new Set())
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const liveServiceRef = useRef(new LiveInterviewService())
 
   // Load sessions on mount
   useEffect(() => {
     loadSessions()
+
+    // Cleanup when component unmounts
+    return () => {
+      console.log('[MockInterview] Component unmounting, cleaning up liveService')
+      liveServiceRef.current.stop()
+      liveServiceRef.current.stopSpeaking()
+    }
   }, [])
 
   const loadSessions = async () => {
@@ -40,6 +51,22 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     } catch (err) {
       console.error('Failed to load sessions:', err)
       setError('Failed to load sessions')
+    }
+  }
+
+  const loadSessionForReview = async (session: InterviewSessionMetadata) => {
+    try {
+      setIsLoading(true)
+      const fullSession = await window.electronAPI.interviewGetSession(session.sessionId)
+      if (fullSession) {
+        setReviewSession(fullSession)
+        setView('review')
+      }
+    } catch (err) {
+      console.error('Failed to load session for review:', err)
+      setError('Failed to load session for review')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -81,43 +108,102 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     }
   }
 
-  const speakQuestion = async (text: string) => {
-    setStatus('responding')
-    liveServiceRef.current.pauseListening()
-
+  const playAudioBuffer = async (buffer: ArrayBuffer) => {
     try {
-      const buffer = await window.electronAPI.interviewSynthesize(text)
-      if (buffer) {
-        // Play via HTML audio element
-        const blob = new Blob([buffer], { type: 'audio/wav' })
-        const url = URL.createObjectURL(blob)
-        if (audioRef.current) {
-          audioRef.current.src = url
-          audioRef.current.play()
-          await new Promise(resolve => {
-            if (audioRef.current) audioRef.current.onended = resolve
-          })
-        }
-      } else {
-        // Fallback to browser TTS
+      const blob = new Blob([buffer], { type: 'audio/wav' })
+      const url = URL.createObjectURL(blob)
+      if (audioRef.current) {
+        audioRef.current.src = url
+        audioRef.current.play()
         await new Promise(resolve => {
-          liveServiceRef.current.speak(text, () => resolve(null))
+          if (audioRef.current) audioRef.current.onended = resolve
         })
       }
     } catch (err) {
-      console.warn('TTS failed, using browser fallback:', err)
+      console.error('Error playing audio:', err)
+    }
+  }
+
+  const speakQuestion = async (text: string) => {
+    setStatus('thinking')
+    console.log('[MockInterview] Starting to speak question')
+
+    try {
+      // Extract just the question text (in case it's still JSON)
+      let questionToSpeak = text
+      if (typeof questionToSpeak === 'string' && questionToSpeak.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(questionToSpeak)
+          questionToSpeak = parsed.next_question || questionToSpeak
+          console.log('[MockInterview] Extracted question from JSON')
+        } catch {
+          console.warn('[MockInterview] Failed to parse question JSON, using original')
+        }
+      }
+
+      // Request TTS synthesis
+      setStatus('formulating')
+      console.log('[MockInterview] Requesting TTS synthesis')
+      const buffer = await window.electronAPI.interviewSynthesize(questionToSpeak)
+
+      if (buffer) {
+        // Store the buffer for later replay
+        setCurrentQuestionAudio(buffer)
+        console.log('[MockInterview] TTS synthesis complete, playing audio')
+
+        // Play the audio
+        setStatus('speaking')
+        await playAudioBuffer(buffer)
+      } else {
+        // Fallback to browser TTS
+        console.log('[MockInterview] No TTS buffer, using browser speech synthesis')
+        setCurrentQuestionAudio(null)
+        setStatus('speaking')
+        await new Promise(resolve => {
+          liveServiceRef.current.speak(questionToSpeak, () => resolve(null))
+        })
+      }
+    } catch (err) {
+      console.error('[MockInterview] TTS failed:', err)
+      setCurrentQuestionAudio(null)
+      setStatus('speaking')
       await new Promise(resolve => {
         liveServiceRef.current.speak(text, () => resolve(null))
       })
     }
 
-    // Start listening after speaking
+    // Ready for user to click record
+    setStatus('idle')
+    setFinalTranscript('')
+    setInterimTranscript('')
+  }
+
+  const replayQuestion = async () => {
+    if (currentQuestionAudio) {
+      // Replay the stored audio without making a new TTS request
+      await playAudioBuffer(currentQuestionAudio)
+    } else {
+      // Fallback if no audio is stored
+      console.warn('No stored audio, falling back to browser TTS')
+      await new Promise(resolve => {
+        liveServiceRef.current.speak(currentQuestion, () => resolve(null))
+      })
+    }
+  }
+
+  const startRecording = () => {
+    console.log('[MockInterview] Starting recording')
     setStatus('listening')
     setFinalTranscript('')
     setInterimTranscript('')
+
     liveServiceRef.current.start(
-      (interim) => setInterimTranscript(interim),
-      (final) => handleUserAnswer(final)
+      (text) => setInterimTranscript(text),
+      (text) => {
+        console.log('[MockInterview] Recording complete, text:', text)
+        setFinalTranscript(text)
+        liveServiceRef.current.stop()
+      }
     )
   }
 
@@ -125,8 +211,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     if (!currentSession) return
 
     setStatus('processing')
-    liveServiceRef.current.pauseListening()
     setFinalTranscript(text)
+    setCurrentQuestionAudio(null) // Clear old audio buffer for new question
 
     try {
       const turn = await window.electronAPI.interviewProcessTurn(currentSession.sessionId, text)
@@ -157,16 +243,15 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     }
   }
 
-  const reviewSession = async (session: InterviewSessionMetadata) => {
+  const deleteSession = async (sessionId: string) => {
     try {
-      const fullSession = await window.electronAPI.interviewGetSession(session.sessionId)
-      if (fullSession) {
-        setCurrentSession(session)
-        setFeedbackHistory(fullSession.feedback.map((f: any) => f.feedback))
-        setView('review')
-      }
+      await window.electronAPI.interviewDeleteSession(sessionId)
+      setDeleteConfirmId(null)
+      // Reload sessions
+      await loadSessions()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load session')
+      setError(err instanceof Error ? err.message : 'Failed to delete session')
+      setDeleteConfirmId(null)
     }
   }
 
@@ -192,14 +277,23 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   return (
     <div className="h-full flex flex-col bg-gray-900 text-white">
       {/* Header */}
-      <div className="border-b border-gray-700 p-4 flex items-center gap-3">
+      <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold">Mock Interview</h1>
+        </div>
         <button
           onClick={onBack}
           className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+          title="Close interview"
         >
-          <ArrowLeft size={20} />
+          <X size={20} />
         </button>
-        <h1 className="text-xl font-bold">Mock Interview</h1>
       </div>
 
       {/* Status Bar */}
@@ -314,12 +408,38 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => reviewSession(session)}
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
-                      >
-                        Review
-                      </button>
+                      {deleteConfirmId === session.sessionId ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => deleteSession(session.sessionId)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors text-white font-medium"
+                          >
+                            Confirm Delete
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => loadSessionForReview(session)}
+                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
+                          >
+                            Review
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(session.sessionId)}
+                            className="px-2 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded text-sm transition-colors flex items-center gap-1"
+                            title="Delete this session and all associated audio files"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -330,27 +450,17 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
         {/* Interview View */}
         {view === 'interview' && currentSession && (
-          <div className="p-6 max-w-4xl mx-auto">
+          <div className="p-6 w-full h-full">
             <h2 className="text-lg font-semibold mb-4">{currentSession.jobTitle}</h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Interview Area */}
               <div className="lg:col-span-2">
                 <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-                  {/* Raw LLM Response (for debugging) */}
-                  {currentQuestion && (
-                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                      <p className="text-xs text-gray-500 mb-2 font-mono">Raw LLM Response:</p>
-                      <div className="bg-black/30 rounded p-2 max-h-24 overflow-y-auto">
-                        <p className="text-xs text-gray-300 font-mono whitespace-pre-wrap break-words">{currentQuestion}</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Question Display */}
                   <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 min-h-24">
-                    <p className="text-sm text-gray-400 mb-2">Current Question</p>
-                    <p className="text-base leading-relaxed">{currentQuestion}</p>
+                    <p className="text-sm text-gray-400 mb-2">Question</p>
+                    <p className="text-lg leading-relaxed font-medium">{currentQuestion}</p>
                   </div>
 
                   {/* Transcript Display */}
@@ -372,25 +482,51 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   {/* Controls */}
                   <div className="flex gap-3">
                     {status === 'listening' ? (
-                      <button
-                        onClick={() => {
-                          liveServiceRef.current.stop()
-                          setStatus('idle')
-                        }}
-                        className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        <MicOff size={16} />
-                        Stop Listening
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            liveServiceRef.current.stop()
+                            setStatus('processing')
+                            handleUserAnswer(finalTranscript || interimTranscript)
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          disabled={!finalTranscript && !interimTranscript}
+                        >
+                          <Mic size={16} />
+                          Submit Answer
+                        </button>
+                        <button
+                          onClick={() => {
+                            liveServiceRef.current.stop()
+                            setStatus('idle')
+                            setFinalTranscript('')
+                            setInterimTranscript('')
+                          }}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <MicOff size={16} />
+                          Clear
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        onClick={() => speakQuestion(currentQuestion)}
-                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                        disabled={status !== 'idle'}
-                      >
-                        <Mic size={16} />
-                        Speak Question Again
-                      </button>
+                      <>
+                        <button
+                          onClick={startRecording}
+                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          disabled={status !== 'idle'}
+                        >
+                          <Mic size={16} />
+                          Record Answer
+                        </button>
+                        <button
+                          onClick={() => replayQuestion()}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                          disabled={!currentQuestionAudio && status === 'responding'}
+                        >
+                          <Volume2 size={16} />
+                          Replay
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => endInterview(true)}
@@ -436,50 +572,103 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </div>
         )}
 
-        {/* Review View */}
-        {view === 'review' && currentSession && (
-          <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-lg font-semibold mb-4">Review: {currentSession.jobTitle}</h2>
+        {/* Review View - Chat Thread Interface */}
+        {view === 'review' && reviewSession && (
+          <div className="p-6 w-full h-full overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
 
-            <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4 border-b border-gray-700 pb-4">
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Date</p>
-                  <p className="font-semibold">{new Date(currentSession.createdAt).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Status</p>
-                  <p className="font-semibold">{currentSession.isComplete ? '✓ Completed' : 'In Progress'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Total Turns</p>
-                  <p className="font-semibold">{currentSession.totalTurns}</p>
-                </div>
-              </div>
-
-              {/* Feedback Summary */}
-              <div>
-                <p className="text-sm font-semibold text-gray-300 mb-3">Feedback Summary</p>
-                <div className="space-y-2">
-                  {feedbackHistory.map((feedback, idx) => (
-                    <div key={idx} className={`rounded-lg p-3 border ${getFeedbackColor(feedback.rating)}`}>
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-semibold uppercase">Turn {idx + 1}: {feedback.rating}</span>
-                      </div>
-                      <p className="text-sm mt-1">{feedback.comment}</p>
+            {/* Chat Thread */}
+            <div className="space-y-6 max-w-3xl mx-auto">
+              {reviewSession.feedback.map((feedback, idx) => (
+                <div key={idx} className="space-y-4">
+                  {/* Interviewer Question - Left */}
+                  <div className="flex justify-start">
+                    <div className="bg-blue-600 text-white rounded-lg p-4 max-w-sm">
+                      <p className="text-sm font-semibold text-blue-100 mb-2">Question {idx + 1}</p>
+                      <p className="text-sm leading-relaxed mb-3">{feedback.llmQuestion || 'Question'}</p>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const audioBuffer = await window.electronAPI.interviewGetAudio(
+                              reviewSession.metadata.sessionId,
+                              feedback.turn - 1,
+                              'question'
+                            )
+                            if (audioBuffer) {
+                              const blob = new Blob([audioBuffer], { type: 'audio/wav' })
+                              const url = URL.createObjectURL(blob)
+                              if (audioRef.current) {
+                                audioRef.current.src = url
+                                audioRef.current.play()
+                              }
+                            }
+                          } catch (err) {
+                            console.error('Failed to play audio:', err)
+                          }
+                        }}
+                        className="flex items-center gap-2 text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded transition-colors"
+                      >
+                        <Volume2 size={14} />
+                        Play Audio
+                      </button>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setView('sessions')}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                >
-                  Back to Sessions
-                </button>
-              </div>
+                  {/* User Response - Right */}
+                  <div className="flex justify-end">
+                    <div className="bg-gray-700 text-white rounded-lg p-4 max-w-sm space-y-3">
+                      <p className="text-sm">{feedback.userResponseText || 'User response'}</p>
+
+                      {/* Expandable Feedback Badges */}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedFeedback)
+                            if (newExpanded.has(idx)) {
+                              newExpanded.delete(idx)
+                            } else {
+                              newExpanded.add(idx)
+                            }
+                            setExpandedFeedback(newExpanded)
+                          }}
+                          className={`text-xs px-3 py-1 rounded font-semibold transition-all ${
+                            getFeedbackColor(feedback.feedback?.rating || 'solid').replace('border', 'bg').replace('text', 'text')
+                          }`}
+                        >
+                          {feedback.feedback?.rating?.toUpperCase()}
+                        </button>
+                      </div>
+
+                      {/* Expanded Feedback */}
+                      {expandedFeedback.has(idx) && (
+                        <div className="mt-3 pt-3 border-t border-gray-600 space-y-2 text-xs">
+                          <p><span className="font-semibold">Comment:</span> {feedback.feedback?.comment}</p>
+                          {feedback.feedback?.context && (
+                            <>
+                              <p><span className="font-semibold">Job Requirement:</span> {feedback.feedback.context.jobRequirement}</p>
+                              <p><span className="font-semibold">Resume Skill:</span> {feedback.feedback.context.resumeSkill}</p>
+                            </>
+                          )}
+
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Back Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => {
+                  setReviewSession(null)
+                  setView('sessions')
+                }}
+                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                ← Back to Sessions
+              </button>
             </div>
           </div>
         )}

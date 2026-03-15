@@ -224,14 +224,65 @@ ipcMain.handle('interview-end-session', async (_event, sessionId: string, isComp
   return interviewOrchestrator.endInterview(isComplete)
 })
 
+ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => {
+  return sessionManager.deleteSession(sessionId)
+})
+
 ipcMain.handle('interview-synthesize', async (_event, text: string) => {
-  if (!ttsManager.getConfig()) return null
+  if (!ttsManager.getConfig()) {
+    console.warn('[TTS IPC] No TTS config set')
+    return null
+  }
   try {
+    console.log('[TTS IPC] Synthesizing text:', text.substring(0, 50) + '...')
     const response = await ttsManager.synthesize(text)
-    if (!response.audioBuffer) return null
+    if (!response.audioBuffer) {
+      console.warn('[TTS IPC] No audio buffer in response')
+      return null
+    }
+    console.log('[TTS IPC] Synthesis successful, returning buffer:', response.audioBuffer.length, 'bytes')
+
+    // Save the question audio to the current session for later playback during review
+    if (interviewOrchestrator.getSessionId()) {
+      try {
+        await interviewOrchestrator.saveQuestionAudio(response.audioBuffer)
+        console.log('[TTS IPC] Saved question audio to session')
+      } catch (saveError) {
+        console.warn('[TTS IPC] Failed to save question audio:', saveError)
+        // Don't fail the entire synthesis if saving fails
+      }
+    }
+
     return response.audioBuffer.buffer.slice(response.audioBuffer.byteOffset, response.audioBuffer.byteOffset + response.audioBuffer.byteLength)
   } catch (error) {
-    console.warn('TTS synthesis failed:', error)
+    console.error('[TTS IPC] Synthesis failed:', error instanceof Error ? error.message : error)
+    if (error instanceof Error) {
+      console.error('[TTS IPC] Stack:', error.stack)
+    }
+    return null
+  }
+})
+
+ipcMain.handle('interview-get-audio', async (_event, sessionId: string, turn: number, type: 'question' | 'response') => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const os = require('os')
+
+    const SESSIONS_DIR = path.join(os.homedir(), '.mooch', 'interview-sessions')
+    const sessionPath = path.join(SESSIONS_DIR, `interview-${sessionId}`)
+    const filename = type === 'question' ? `question-turn-${turn}.wav` : `user-turn-${turn}.wav`
+    const audioPath = path.join(sessionPath, 'audio', filename)
+
+    if (!fs.existsSync(audioPath)) {
+      console.warn('[Interview Audio] File not found:', audioPath)
+      return null
+    }
+
+    const audioBuffer = fs.readFileSync(audioPath)
+    return audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength)
+  } catch (error) {
+    console.error('[Interview Audio] Failed to read audio:', error)
     return null
   }
 })

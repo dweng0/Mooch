@@ -110,15 +110,63 @@ export class TTSProviderManager {
       if (result.output?.audio) {
         const audioData = result.output.audio
 
+        console.log('[TTS] Audio data type:', typeof audioData)
+        console.log('[TTS] Audio data keys:', audioData && typeof audioData === 'object' ? Object.keys(audioData) : 'N/A')
+        console.log('[TTS] Full audio response:', JSON.stringify(audioData).substring(0, 500))
+
         // Handle case where audio might be an object with encoded data
         let audioBuffer
         if (typeof audioData === 'string') {
+          // Base64 string
+          console.log('[TTS] Handling as base64 string')
           audioBuffer = Buffer.from(audioData, 'base64')
         } else if (Buffer.isBuffer(audioData)) {
+          console.log('[TTS] Already a Buffer')
           audioBuffer = audioData
         } else if (audioData.type === 'Buffer' && Array.isArray(audioData.data)) {
           // Handle Buffer serialization
+          console.log('[TTS] Handling as Buffer object with data array')
           audioBuffer = Buffer.from(audioData.data)
+        } else if (typeof audioData === 'object' && audioData.data) {
+          // Object with data property (could be base64 string or array)
+          console.log('[TTS] Handling as object with data property')
+          if (typeof audioData.data === 'string') {
+            audioBuffer = Buffer.from(audioData.data, 'base64')
+          } else if (Array.isArray(audioData.data)) {
+            audioBuffer = Buffer.from(audioData.data)
+          } else {
+            throw new Error(`Unexpected data property type: ${typeof audioData.data}`)
+          }
+        } else if (typeof audioData === 'object' && audioData.audio) {
+          // Nested audio object
+          console.log('[TTS] Handling as nested audio object')
+          const nestedAudio = audioData.audio
+          if (typeof nestedAudio === 'string') {
+            audioBuffer = Buffer.from(nestedAudio, 'base64')
+          } else if (Array.isArray(nestedAudio)) {
+            audioBuffer = Buffer.from(nestedAudio)
+          } else {
+            throw new Error(`Cannot handle nested audio type: ${typeof nestedAudio}`)
+          }
+        } else if (typeof audioData === 'object' && audioData.url) {
+          // Audio as URL
+          console.log('[TTS] Audio is a URL, attempting to fetch')
+          const response = await fetch(audioData.url)
+          const buffer = await response.arrayBuffer()
+          audioBuffer = Buffer.from(buffer)
+        } else if (typeof audioData === 'object' && audioData.content) {
+          // Audio as content field
+          console.log('[TTS] Handling as content object')
+          if (typeof audioData.content === 'string') {
+            audioBuffer = Buffer.from(audioData.content, 'base64')
+          } else {
+            audioBuffer = Buffer.from(audioData.content)
+          }
+        } else if (typeof audioData === 'object') {
+          // Try to stringify and parse as it might be the raw response
+          const audioStr = JSON.stringify(audioData)
+          console.log('[TTS] Unhandled object structure (first 500 chars):', audioStr.substring(0, 500))
+          throw new Error(`Unhandled audio response structure. Keys: ${Object.keys(audioData).join(', ')}`)
         } else {
           throw new Error(`Unexpected audio data type: ${typeof audioData}`)
         }
@@ -130,7 +178,7 @@ export class TTSProviderManager {
         }
       }
 
-      throw new Error(`No audio data in response. Got: ${JSON.stringify(result).substring(0, 200)}`)
+      throw new Error(`No audio data in response. Response keys: ${Object.keys(result).join(', ')}. Output keys: ${result.output ? Object.keys(result.output).join(', ') : 'N/A'}`)
     } catch (error) {
       throw new Error(`Failed to synthesize with Cosyvoice: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

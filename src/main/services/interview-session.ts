@@ -160,6 +160,15 @@ export class InterviewSessionManager {
     return audioPath
   }
 
+  async saveQuestionAudio(sessionId: string, turn: number, audioBuffer: Buffer): Promise<string> {
+    const sessionPath = this.getSessionPath(sessionId)
+    const audioPath = path.join(sessionPath, 'audio', `question-turn-${turn}.wav`)
+
+    fs.writeFileSync(audioPath, audioBuffer)
+
+    return audioPath
+  }
+
   async markComplete(sessionId: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     const metadataPath = path.join(sessionPath, 'session.json')
@@ -169,6 +178,15 @@ export class InterviewSessionManager {
     metadata.updatedAt = new Date().toISOString()
 
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    const sessionPath = this.getSessionPath(sessionId)
+
+    if (fs.existsSync(sessionPath)) {
+      // Recursively delete the entire session directory and all files
+      fs.rmSync(sessionPath, { recursive: true, force: true })
+    }
   }
 
   private extractJobTitle(jobDescription: string): string {

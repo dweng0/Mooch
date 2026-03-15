@@ -335,6 +335,7 @@ describe('Interview Session Manager', () => {
         turn: 1,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-1.wav',
+        llmQuestion: 'Tell me about your backend experience',
         userResponseText: 'I have 5 years of backend experience',
         feedback: {
           rating: 'solid' as const,
@@ -360,6 +361,7 @@ describe('Interview Session Manager', () => {
         turn: 1,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-1.wav',
+        llmQuestion: 'Tell me about yourself',
         userResponseText: 'My response',
         feedback: {
           rating: 'excellent' as const,
@@ -380,6 +382,7 @@ describe('Interview Session Manager', () => {
         turn: 3,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-3.wav',
+        llmQuestion: 'What is your experience with databases?',
         userResponseText: 'Response',
         feedback: {
           rating: 'good' as const,
@@ -528,6 +531,7 @@ describe('Interview Session Manager', () => {
         turn: 2,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-2.wav',
+        llmQuestion: 'What are your strengths?',
         userResponseText: 'Previous response',
         feedback: {
           rating: 'good' as const,
@@ -553,6 +557,7 @@ describe('Interview Session Manager', () => {
         turn: 1,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-1.wav',
+        llmQuestion: 'How do you approach problem solving?',
         userResponseText: 'User answer',
         feedback: {
           rating: 'excellent' as const,
@@ -586,6 +591,7 @@ describe('Interview Session Manager', () => {
         turn: 1,
         timestamp: new Date().toISOString(),
         audioFile: 'user-turn-1.wav',
+        llmQuestion: 'Tell me about your experience',
         userResponseText: 'Response',
         feedback: {
           rating: 'good' as const,
