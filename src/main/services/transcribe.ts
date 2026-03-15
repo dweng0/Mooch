@@ -4,6 +4,16 @@ import { loadApiKeys } from './api-keys'
 import type { CustomProviderConfig } from '../../shared/types'
 import WebSocket from 'ws'
 import { randomUUID } from 'crypto'
+import ffmpeg from 'fluent-ffmpeg'
+import ffmpegStatic from 'ffmpeg-static'
+import { createWriteStream, unlinkSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
+
+// Set ffmpeg path
+if (ffmpegStatic) {
+  ffmpeg.setFfmpegPath(ffmpegStatic)
+}
 
 const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 const DASHSCOPE_WSS_URL = 'wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference'
@@ -73,13 +83,23 @@ async function transcribeWithWhisper(audioBuffer: Buffer, apiKey: string): Promi
 }
 
 async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<string> {
+  // Convert WebM to PCM format expected by DashScope
+  let pcmBuffer: Buffer
+  try {
+    pcmBuffer = await convertWebmToPcm(audioBuffer)
+  } catch (error) {
+    throw new Error(`Failed to convert audio format: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
   return new Promise((resolve, reject) => {
     const taskId = randomUUID()
     let fullText = ''
     let ws: WebSocket | null = null
     let resolved = false
+    let timeout: NodeJS.Timeout | null = null
 
     const cleanup = () => {
+      if (timeout) clearTimeout(timeout)
       if (ws) {
         try {
           ws.close()
@@ -134,10 +154,8 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
         }
         ws!.send(JSON.stringify(runTask))
 
-        // Send audio data (convert webm to PCM or send as-is)
-        // Note: The audio format from recorder is webm, but DashScope expects PCM
-        // For now, send the buffer directly - DashScope may auto-detect
-        ws!.send(audioBuffer)
+        // Send PCM audio data
+        ws!.send(pcmBuffer)
 
         // Send finish-task instruction
         const finishTask = {
@@ -185,15 +203,57 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
       })
 
       // Timeout after 30 seconds
-      const timeout = setTimeout(() => {
+      timeout = setTimeout(() => {
         handleError(new Error('Qwen transcription timeout'))
       }, 30000)
-
-      // Clear timeout if resolved early
-      const originalResolve = resolve
-      const originalReject = reject
     } catch (error) {
       handleError(error instanceof Error ? error : new Error(String(error)))
+    }
+  })
+}
+
+async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const inputFile = join(tmpdir(), `audio-${randomUUID()}.webm`)
+    const outputFile = join(tmpdir(), `audio-${randomUUID()}.pcm`)
+
+    try {
+      // Write input buffer to temp file
+      const writeStream = createWriteStream(inputFile)
+      writeStream.write(audioBuffer)
+      writeStream.end()
+
+      writeStream.on('finish', () => {
+        // Convert WebM to PCM using ffmpeg
+        ffmpeg(inputFile)
+          .audioCodec('pcm_s16le')
+          .audioFrequency(16000)
+          .audioChannels(1)
+          .format('s16le')
+          .on('end', () => {
+            try {
+              const pcmBuffer = readFileSync(outputFile)
+              // Cleanup temp files
+              try { unlinkSync(inputFile) } catch (e) {}
+              try { unlinkSync(outputFile) } catch (e) {}
+              resolve(pcmBuffer)
+            } catch (error) {
+              try { unlinkSync(inputFile) } catch (e) {}
+              try { unlinkSync(outputFile) } catch (e) {}
+              reject(error)
+            }
+          })
+          .on('error', (error: Error) => {
+            try { unlinkSync(inputFile) } catch (e) {}
+            try { unlinkSync(outputFile) } catch (e) {}
+            reject(new Error(`Audio conversion failed: ${error.message}`))
+          })
+          .save(outputFile)
+      })
+
+      writeStream.on('error', reject)
+    } catch (error) {
+      reject(error)
     }
   })
 }
