@@ -25,6 +25,7 @@ export class LocalInterviewService {
   private mode: ListeningMode = 'active'
   private onInterimCb: OnInterimCallback | null = null
   private onFinalCb: OnFinalCallback | null = null
+  private lastAudioBuffer: ArrayBuffer | null = null
 
   start(
     onInterim: OnInterimCallback,
@@ -115,6 +116,9 @@ export class LocalInterviewService {
       const audioBuffer = await this.recorder.stop()
       console.log('[LocalInterview] Audio buffer obtained, size:', audioBuffer.byteLength, 'bytes')
 
+      // Store the audio buffer for later use (e.g., saving to session)
+      this.lastAudioBuffer = audioBuffer
+
       // Transcribe using the electronAPI (same as General Interview)
       console.log('[LocalInterview] Sending to transcription via electronAPI')
       const transcript = await window.electronAPI.transcribeAudio(audioBuffer)
@@ -151,5 +155,13 @@ export class LocalInterviewService {
 
   stopSpeaking(): void {
     window.speechSynthesis.cancel()
+  }
+
+  getLastAudioBuffer(): ArrayBuffer | null {
+    return this.lastAudioBuffer
+  }
+
+  clearLastAudioBuffer(): void {
+    this.lastAudioBuffer = null
   }
 }

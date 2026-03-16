@@ -138,8 +138,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   interviewGenerateOpener: (sessionId: string): Promise<string> => {
     return ipcRenderer.invoke('interview-generate-opener', sessionId)
   },
-  interviewProcessTurn: (sessionId: string, userText: string): Promise<InterviewTurn> => {
-    return ipcRenderer.invoke('interview-process-turn', sessionId, userText)
+  interviewProcessTurn: (sessionId: string, userText: string, audioBuffer?: ArrayBuffer): Promise<InterviewTurn> => {
+    return ipcRenderer.invoke('interview-process-turn', sessionId, userText, audioBuffer)
   },
   interviewEndSession: (sessionId: string, isComplete: boolean): Promise<void> => {
     return ipcRenderer.invoke('interview-end-session', sessionId, isComplete)

@@ -216,7 +216,17 @@ ipcMain.handle('interview-generate-opener', async (_event, sessionId: string) =>
   return interviewOrchestrator.generateOpener()
 })
 
-ipcMain.handle('interview-process-turn', async (_event, sessionId: string, userText: string) => {
+ipcMain.handle('interview-process-turn', async (_event, sessionId: string, userText: string, audioBuffer?: ArrayBuffer) => {
+  // Save user audio if provided
+  if (audioBuffer) {
+    try {
+      await interviewOrchestrator.saveUserAudio(Buffer.from(audioBuffer))
+      console.log('[Interview] Saved user audio for turn')
+    } catch (err) {
+      console.warn('[Interview] Failed to save user audio:', err)
+      // Continue processing even if audio save fails
+    }
+  }
   return interviewOrchestrator.processUserResponse(userText)
 })
 

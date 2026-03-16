@@ -279,8 +279,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       setFinalTranscript('')
       setInterimTranscript('')
 
-      // Process the turn
-      const turn = await window.electronAPI.interviewProcessTurn(currentSession.sessionId, text)
+      // Get the audio buffer from the recording (if available)
+      const userAudioBuffer = localServiceRef.current.getLastAudioBuffer()
+
+      // Process the turn and save audio
+      const turn = await window.electronAPI.interviewProcessTurn(currentSession.sessionId, text, userAudioBuffer || undefined)
+
+      // Clear the audio buffer after processing
+      localServiceRef.current.clearLastAudioBuffer()
 
       // Update the user message with feedback
       setMessages(prev => {

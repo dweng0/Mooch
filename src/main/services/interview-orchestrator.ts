@@ -141,6 +141,21 @@ export class InterviewOrchestrator {
     }
   }
 
+  async saveUserAudio(audioBuffer: Buffer): Promise<void> {
+    if (!this.currentSessionId) {
+      console.warn('[Interview] No active session, cannot save user audio')
+      return
+    }
+
+    try {
+      await this.sessionManager.saveAudio(this.currentSessionId, this.currentTurn, audioBuffer)
+      console.log(`[Interview] Saved user audio for turn ${this.currentTurn}`)
+    } catch (error) {
+      console.error('[Interview] Failed to save user audio:', error)
+      throw error
+    }
+  }
+
 
   async endInterview(isComplete: boolean = true): Promise<void> {
     if (!this.currentSessionId) {
