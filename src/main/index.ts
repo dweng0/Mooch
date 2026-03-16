@@ -1,6 +1,8 @@
 import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, screen } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
+import * as fs from 'fs/promises'
+import pdfParse from 'pdf-parse'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
 import { transcribeAudio } from './services/transcribe'
@@ -602,8 +604,22 @@ ipcMain.handle('load-text-file', async () => {
   })
   if (result.canceled || result.filePaths.length === 0) return null
   const filePath = result.filePaths[0]
-  const content = readFileSync(filePath, 'utf-8')
   const name = filePath.split(/[\\/]/).pop() ?? ''
+
+  // Handle PDF files separately
+  if (filePath.toLowerCase().endsWith('.pdf')) {
+    try {
+      const pdfBuffer = await fs.readFile(filePath)
+      const data = await pdfParse(pdfBuffer)
+      return { name, content: data.text }
+    } catch (err) {
+      console.error('Failed to parse PDF:', err)
+      throw new Error('Failed to extract text from PDF')
+    }
+  }
+
+  // For text files, read as UTF-8
+  const content = readFileSync(filePath, 'utf-8')
   return { name, content }
 })
 

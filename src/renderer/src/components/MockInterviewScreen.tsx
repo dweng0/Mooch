@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2, FileText } from 'lucide-react'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -42,6 +42,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
+  const [cvName, setCvName] = useState('')
+  const [jobDescName, setJobDescName] = useState('')
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const localServiceRef = useRef(new LocalInterviewService())
@@ -70,6 +72,22 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     } catch (err) {
       console.error('Failed to load sessions:', err)
       setError('Failed to load sessions')
+    }
+  }
+
+  const handleLoadCV = async () => {
+    const result = await window.electronAPI.loadTextFile()
+    if (result) {
+      setResume(result.content)
+      setCvName(result.name)
+    }
+  }
+
+  const handleLoadJobDesc = async () => {
+    const result = await window.electronAPI.loadTextFile()
+    if (result) {
+      setJobDescription(result.content)
+      setJobDescName(result.name)
     }
   }
 
@@ -433,46 +451,92 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         {/* Setup View */}
         {view === 'setup' && (
           <div className="p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold mb-4">Prepare for Your Interview</h2>
+            <h2 className="text-lg font-semibold mb-6">Prepare for Your Interview</h2>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Job Description</label>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Resume / CV</label>
+                {resume ? (
+                  <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
+                    <div className="flex items-center gap-2 text-xs text-emerald-400">
+                      <FileText size={14} />
+                      <span className="truncate max-w-[200px]">{cvName || 'resume'}</span>
+                    </div>
+                    <button
+                      onClick={() => { setResume(''); setCvName('') }}
+                      className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
+                      title="Clear resume"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleLoadCV}
+                    className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer mb-3"
+                  >
+                    <FileText size={14} />
+                    Load resume file (.txt, .pdf, .docx)
+                  </button>
+                )}
                 <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                  placeholder="Paste the job description..."
+                  value={resume}
+                  onChange={(e) => setResume(e.target.value)}
+                  className="w-full h-28 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                  placeholder="Or paste your resume..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Your Resume</label>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Job Description</label>
+                {jobDescription ? (
+                  <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
+                    <div className="flex items-center gap-2 text-xs text-emerald-400">
+                      <FileText size={14} />
+                      <span className="truncate max-w-[200px]">{jobDescName || 'job description'}</span>
+                    </div>
+                    <button
+                      onClick={() => { setJobDescription(''); setJobDescName('') }}
+                      className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
+                      title="Clear job description"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleLoadJobDesc}
+                    className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer mb-3"
+                  >
+                    <FileText size={14} />
+                    Load job description file
+                  </button>
+                )}
                 <textarea
-                  value={resume}
-                  onChange={(e) => setResume(e.target.value)}
-                  className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
-                  placeholder="Paste your resume..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  className="w-full h-28 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                  placeholder="Or paste the job description..."
                 />
               </div>
 
               {error && (
-                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200">
+                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
                   {error}
                 </div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setView('sessions')}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
                 >
                   Back
                 </button>
                 <button
                   onClick={createSession}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 text-sm font-medium"
                 >
                   {isLoading ? 'Creating...' : 'Start Interview'}
                 </button>
@@ -500,6 +564,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                   onClick={() => {
                     setJobDescription('')
                     setResume('')
+                    setJobDescName('')
+                    setCvName('')
                     setError('')
                     setView('setup')
                   }}
