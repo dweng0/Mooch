@@ -353,11 +353,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
   const deleteAllSessions = async () => {
     try {
+      console.log('[MockInterview] Starting delete all sessions')
       await window.electronAPI.interviewDeleteAllSessions()
+      console.log('[MockInterview] Delete all sessions completed')
       setDeleteAllConfirm(false)
       // Reload sessions
       await loadSessions()
     } catch (err) {
+      console.error('[MockInterview] Delete all sessions failed:', err)
       setError(err instanceof Error ? err.message : 'Failed to delete all sessions')
       setDeleteAllConfirm(false)
     }

@@ -239,7 +239,14 @@ ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => 
 })
 
 ipcMain.handle('interview-delete-all-sessions', async () => {
-  return sessionManager.deleteAllSessions()
+  console.log('[Interview] Starting delete all sessions')
+  try {
+    await sessionManager.deleteAllSessions()
+    console.log('[Interview] Delete all sessions completed')
+  } catch (err) {
+    console.error('[Interview] Delete all sessions failed:', err)
+    throw err
+  }
 })
 
 ipcMain.handle('interview-synthesize', async (_event, text: string) => {

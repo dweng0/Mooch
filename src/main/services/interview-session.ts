@@ -190,10 +190,14 @@ export class InterviewSessionManager {
   }
 
   async deleteAllSessions(): Promise<void> {
+    console.log('[SessionManager] Starting delete all sessions')
     const sessions = this.listSessions()
+    console.log('[SessionManager] Found', sessions.length, 'sessions to delete')
     for (const session of sessions) {
+      console.log('[SessionManager] Deleting session:', session.sessionId)
       await this.deleteSession(session.sessionId)
     }
+    console.log('[SessionManager] Delete all sessions completed')
   }
 
   private extractJobTitle(jobDescription: string): string {
