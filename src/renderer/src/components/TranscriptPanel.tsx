@@ -1,3 +1,5 @@
+import handWritingIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Writting.webm'
+
 interface TranscriptPanelProps {
   transcript: string
   status: string
@@ -6,9 +8,12 @@ interface TranscriptPanelProps {
 export default function TranscriptPanel({ transcript, status }: TranscriptPanelProps) {
   return (
     <div className="flex-none px-4 py-3 border-b border-white/10">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        Transcript
-      </h2>
+      <div className="flex items-center gap-2 mb-2">
+        <video src={handWritingIcon} autoPlay loop muted playsInline className="h-8 w-8 flex-shrink-0" />
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Transcript
+        </h2>
+      </div>
       {status === 'transcribing' ? (
         <p className="text-sm text-yellow-400 animate-pulse">Transcribing...</p>
       ) : transcript ? (

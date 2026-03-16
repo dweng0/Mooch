@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Technulsoft';
+  src: url('./assets/403Technul-Soft.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -15,4 +22,15 @@ html, body, #root {
 
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

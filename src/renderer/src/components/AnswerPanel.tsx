@@ -1,4 +1,5 @@
 import type { TextSize } from '../../../shared/types'
+import handLampIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Lamp.webm'
 
 const SIZE_CLASSES: Record<TextSize, string> = {
   small: 'text-base',
@@ -21,6 +22,7 @@ export default function AnswerPanel({ answer, answerHistory, status, textSize, p
   return (
     <div className="flex-1 min-h-0 px-4 py-3 overflow-y-auto">
       <div className="flex items-center gap-2 mb-2">
+        <video src={handLampIcon} autoPlay loop muted playsInline className="h-8 w-8 flex-shrink-0" />
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
           Suggested Answer
         </h2>

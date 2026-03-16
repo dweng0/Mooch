@@ -422,18 +422,18 @@ export default function SettingsScreen({
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-900/85 rounded-2xl backdrop-blur-sm border border-white/10 overflow-hidden shadow-2xl">
+    <div className="h-full flex flex-col bg-white/90 rounded-2xl backdrop-blur-sm border border-gray-200 overflow-hidden shadow-2xl">
       {/* Header */}
-      <div className="drag-region px-4 py-3 border-b border-white/10">
+      <div className="drag-region px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="no-drag p-1.5 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="no-drag p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
             title="Back"
           >
             <ArrowLeft size={16} />
           </button>
-          <span className="text-sm font-semibold text-white">Settings</span>
+          <span className="text-sm font-semibold text-gray-900">Settings</span>
         </div>
       </div>
 
@@ -441,7 +441,7 @@ export default function SettingsScreen({
       <div className="flex-1 px-4 py-4 flex flex-col gap-5 overflow-y-auto">
         {/* Resume / CV */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Resume / CV</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Resume / CV</h3>
           {cvName ? (
             <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
               <div className="flex items-center gap-2 text-xs text-emerald-400">
@@ -459,7 +459,7 @@ export default function SettingsScreen({
           ) : (
             <button
               onClick={onLoadCV}
-              className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
             >
               <FileText size={14} />
               Load resume file (.txt, .pdf, .docx)
@@ -469,7 +469,7 @@ export default function SettingsScreen({
 
         {/* Job Description */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Job Description</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Description</h3>
           {jobDescName ? (
             <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
               <div className="flex items-center gap-2 text-xs text-emerald-400">
@@ -487,7 +487,7 @@ export default function SettingsScreen({
           ) : (
             <button
               onClick={onLoadJobDesc}
-              className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
             >
               <FileText size={14} />
               Load job description file
@@ -497,23 +497,23 @@ export default function SettingsScreen({
 
         {/* Additional Context */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Additional Context</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Additional Context</h3>
           <textarea
             value={manualContext}
             onChange={(e) => onManualContextChange(e.target.value)}
             placeholder="Add context (e.g., 'Senior TypeScript role, 5 years experience')"
             rows={4}
-            className="w-full bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2.5 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-500 resize-none"
+            className="w-full bg-gray-100 text-gray-700 text-xs rounded-lg px-3 py-2.5 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400 resize-none"
           />
         </section>
 
-        <p className="text-[10px] text-gray-600 text-center">
+        <p className="text-[10px] text-gray-500 text-center">
           Context is sent with every AI request to personalize answers.
         </p>
 
         {/* API Keys */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">API Keys</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">API Keys</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Add your own API keys to use your own accounts. Your keys are stored securely on your device.
           </p>
@@ -529,7 +529,7 @@ export default function SettingsScreen({
                 className={`rounded-lg border overflow-hidden ${
                   hasKeySet(provider.key)
                     ? 'bg-emerald-500/5 border-emerald-500/30'
-                    : 'bg-gray-800/60 border-white/10'
+                    : 'bg-gray-100 border-gray-200'
                 }`}
               >
                 <div className="px-3 py-2.5 flex items-center justify-between gap-2">
@@ -562,11 +562,11 @@ export default function SettingsScreen({
                       value={inputValues[provider.key]}
                       onChange={(e) => handleInputChange(provider.key, e.target.value)}
                       placeholder={hasKeySet(provider.key) ? '••••••••••••••••••••' : provider.placeholder}
-                      className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                      className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
                     />
                     <button
                       onClick={() => toggleVisibility(provider.key)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                       title={visibleKeys[provider.key] ? 'Hide' : 'Show'}
                     >
                       {visibleKeys[provider.key] ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -575,7 +575,7 @@ export default function SettingsScreen({
                   <button
                     onClick={() => handleSave(provider.key)}
                     disabled={!inputValues[provider.key].trim() || saving[provider.key] || inputValues[provider.key] === apiKeys[`${provider.key}ApiKey`]}
-                    className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                    className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                   >
                     {saving[provider.key] ? (
                       <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -593,7 +593,7 @@ export default function SettingsScreen({
                         setQwenModel(e.target.value)
                         await window.electronAPI.setQwenModel(e.target.value)
                       }}
-                      className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {QWEN_MODELS.map(m => (
                         <option key={m.value} value={m.value}>{m.label}</option>
@@ -604,21 +604,21 @@ export default function SettingsScreen({
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-gray-600 mt-2">
+          <p className="text-[10px] text-gray-500 mt-2">
             Your API keys are encrypted and stored locally.
           </p>
         </section>
 
         {/* Cosyvoice TTS */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Text-to-Speech (TTS)</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Text-to-Speech (TTS)</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Add your Cosyvoice (Alibaba DashScope) API key for high-quality interview audio.
           </p>
           <div className={`rounded-lg border overflow-hidden ${
             hasCosyvoiceSet
               ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-gray-800/60 border-white/10'
+              : 'bg-gray-100 border-gray-200'
           }`}>
             <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -650,11 +650,11 @@ export default function SettingsScreen({
                   value={cosyvoiceInput}
                   onChange={(e) => setCosyvoiceInput(e.target.value)}
                   placeholder={hasCosyvoiceSet ? '••••••••••••••••••••' : 'sk-...'}
-                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                  className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
                 />
                 <button
                   onClick={() => setCosyvoiceVisible(!cosyvoiceVisible)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   title={cosyvoiceVisible ? 'Hide' : 'Show'}
                 >
                   {cosyvoiceVisible ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -663,7 +663,7 @@ export default function SettingsScreen({
               <button
                 onClick={handleSaveCosyvoice}
                 disabled={!cosyvoiceInput.trim() || cosyvoiceSaving || cosyvoiceInput === apiKeys.cosyvoiceApiKey}
-                className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
               >
                 {cosyvoiceSaving ? (
                   <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -678,7 +678,7 @@ export default function SettingsScreen({
           <div className={`mt-3 rounded-lg border overflow-hidden ${
             hasLocalTtsSet
               ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-gray-800/60 border-white/10'
+              : 'bg-gray-100 border-gray-200'
           }`}>
             <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -709,7 +709,7 @@ export default function SettingsScreen({
                 value={localTtsUrl}
                 onChange={(e) => setLocalTtsUrl(e.target.value)}
                 placeholder="http://localhost:8880/v1"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
               />
               {isLocalHttpsUrl(localTtsUrl) && (
                 <p className="text-[10px] text-yellow-500">⚠ Local servers typically use http://, not https://</p>
@@ -719,13 +719,13 @@ export default function SettingsScreen({
                 value={localTtsModel}
                 onChange={(e) => setLocalTtsModel(e.target.value)}
                 placeholder="Model (optional, e.g. kokoro)"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
               />
               <div className="flex gap-2 self-end">
                 <button
                   onClick={handleTestLocalTts}
                   disabled={!localTtsUrl.trim() || localTtsTesting}
-                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                   title="Send a test phrase and play back the audio"
                 >
                   {localTtsTesting ? (
@@ -736,7 +736,7 @@ export default function SettingsScreen({
                 <button
                   onClick={handleSaveLocalTts}
                   disabled={!localTtsUrl.trim() || localTtsSaving || (localTtsUrl === apiKeys.localTtsUrl && localTtsModel === (apiKeys.localTtsModel || ''))}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                 >
                   {localTtsSaving ? (
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -757,31 +757,31 @@ export default function SettingsScreen({
               )}
             </div>
           </div>
-          <p className="text-[10px] text-gray-600 mt-2">
-            Local TTS takes priority over Cosyvoice when set. Try <span className="text-gray-500">Kokoro-FastAPI</span> on port 8880. Include <code className="text-gray-400">/v1</code> in the URL.
+          <p className="text-[10px] text-gray-500 mt-2">
+            Local TTS takes priority over Cosyvoice when set. Try <span className="text-gray-500">Kokoro-FastAPI</span> on port 8880. Include <code className="text-gray-500">/v1</code> in the URL.
           </p>
         </section>
 
         {/* Custom / OpenAI-compatible provider */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Custom Provider</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Custom Provider</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Any OpenAI-compatible API — Groq, OpenRouter, Ollama, Together AI, etc.
           </p>
           {/* Provider selector dropdown */}
-          <div className="mb-3 rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
-            <label className="text-xs text-gray-400 mb-2 block font-medium">Select Provider</label>
+          <div className="mb-3 rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5">
+            <label className="text-xs text-gray-500 mb-2 block font-medium">Select Provider</label>
             <select
               value={selectedProvider}
               onChange={(e) => handleProviderChange(e.target.value)}
-              className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
             >
               {Object.entries(PRECONFIGURED_PROVIDERS).map(([key, config]) => (
                 <option key={key} value={key}>{config.label}</option>
               ))}
             </select>
           </div>
-          <div className={`rounded-lg border overflow-hidden ${hasCustomSet ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-gray-800/60 border-white/10'}`}>
+          <div className={`rounded-lg border overflow-hidden ${hasCustomSet ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-gray-100 border-gray-200'}`}>
             <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <KeyRound size={13} className={hasCustomSet ? 'text-emerald-400' : 'text-gray-500'} />
@@ -804,7 +804,7 @@ export default function SettingsScreen({
                 value={customInput.baseUrl}
                 onChange={(e) => setCustomInput(prev => ({ ...prev, baseUrl: e.target.value }))}
                 placeholder="Base URL (e.g. https://api.groq.com/openai/v1)"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
               />
               <div className="relative">
                 <input
@@ -812,9 +812,9 @@ export default function SettingsScreen({
                   value={customInput.apiKey}
                   onChange={(e) => setCustomInput(prev => ({ ...prev, apiKey: e.target.value }))}
                   placeholder="API key (leave empty for Ollama)"
-                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                  className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
                 />
-                <button onClick={() => setCustomVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer">
+                <button onClick={() => setCustomVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
                   {customVisible ? <EyeOff size={12} /> : <Eye size={12} />}
                 </button>
               </div>
@@ -822,7 +822,7 @@ export default function SettingsScreen({
                 <select
                   value={customInput.model}
                   onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
-                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+                  className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="">Select a model…</option>
                   {availableModels.map(id => (
@@ -836,7 +836,7 @@ export default function SettingsScreen({
                   onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
                   placeholder={fetchingModels ? 'Fetching models…' : 'Model (e.g. qwen/qwen3-70b, llama-3.3-70b-versatile)'}
                   disabled={fetchingModels}
-                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600 disabled:opacity-50"
+                  className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400 disabled:opacity-50"
                 />
               )}
               <label className="flex items-center gap-2 px-2.5 py-2 cursor-pointer">
@@ -844,9 +844,9 @@ export default function SettingsScreen({
                   type="checkbox"
                   checked={customInput.sttEnabled || false}
                   onChange={(e) => setCustomInput(prev => ({ ...prev, sttEnabled: e.target.checked }))}
-                  className="w-4 h-4 rounded border-white/10 cursor-pointer accent-blue-500"
+                  className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-blue-500"
                 />
-                <span className="text-xs text-gray-300">Supports transcription (STT)</span>
+                <span className="text-xs text-gray-700">Supports transcription (STT)</span>
               </label>
               {customInput.sttEnabled && (
                 <input
@@ -854,7 +854,7 @@ export default function SettingsScreen({
                   value={customInput.sttModel || ''}
                   onChange={(e) => setCustomInput(prev => ({ ...prev, sttModel: e.target.value }))}
                   placeholder="STT model (e.g. whisper-1)"
-                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                  className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
                 />
               )}
               <div className="flex items-center gap-2">
@@ -863,7 +863,7 @@ export default function SettingsScreen({
                   value={customInput.label || ''}
                   onChange={(e) => setCustomInput(prev => ({ ...prev, label: e.target.value }))}
                   placeholder="Label (optional, e.g. Groq / Qwen)"
-                  className="flex-1 bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                  className="flex-1 bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
                 />
                 <button
                   onClick={async () => {
@@ -883,7 +883,7 @@ export default function SettingsScreen({
                     }
                   }}
                   disabled={!customInput.baseUrl.trim() || !customInput.model.trim() || testing}
-                  className="flex-shrink-0 px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="flex-shrink-0 px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                   title="Test provider connectivity"
                 >
                   {testing ? (
@@ -896,7 +896,7 @@ export default function SettingsScreen({
                 <button
                   onClick={handleSaveCustom}
                   disabled={!customInput.baseUrl.trim() || !customInput.model.trim() || customSaving}
-                  className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="flex-shrink-0 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                 >
                   {customSaving ? (
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -929,10 +929,10 @@ export default function SettingsScreen({
 
           {/* Preferred provider selector — shown when any standard key or custom provider is set */}
           {(PROVIDERS.filter((p) => hasKeySet(p.key)).length > 0 || hasCustomSet) && (
-            <div className="mt-3 rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
+            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5">
               <div className="flex items-center gap-2 mb-2">
                 <Star size={13} className="text-yellow-400" />
-                <span className="text-xs text-gray-300 font-medium">Preferred provider</span>
+                <span className="text-xs text-gray-700 font-medium">Preferred provider</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {PROVIDERS.filter((p) => hasKeySet(p.key)).map((p) => (
@@ -941,8 +941,8 @@ export default function SettingsScreen({
                     onClick={() => handlePreferredProviderChange(p.key)}
                     className={`flex-1 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
                       preferredProvider === p.key
-                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
-                        : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-600'
+                        : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300'
                     }`}
                   >
                     {p.label.split(' ')[0]}
@@ -953,29 +953,29 @@ export default function SettingsScreen({
                     onClick={() => handlePreferredProviderChange('custom')}
                     className={`flex-1 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
                       preferredProvider === 'custom'
-                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
-                        : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-600'
+                        : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300'
                     }`}
                   >
                     {customInput.label?.trim() || 'Custom'}
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-gray-600 mt-1.5">This provider will be used for AI responses.</p>
+              <p className="text-[10px] text-gray-500 mt-1.5">This provider will be used for AI responses.</p>
             </div>
           )}
         </section>
 
         {/* Local STT */}
         <section>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Local STT</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Local STT</h3>
           <p className="text-[10px] text-gray-500 mb-3">
-            Point to a local Whisper server (OpenAI-compatible <code className="text-gray-400">/v1/audio/transcriptions</code>).
+            Point to a local Whisper server (OpenAI-compatible <code className="text-gray-500">/v1/audio/transcriptions</code>).
           </p>
           <div className={`rounded-lg border overflow-hidden ${
             hasLocalSttSet
               ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-gray-800/60 border-white/10'
+              : 'bg-gray-100 border-gray-200'
           }`}>
             <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -1006,7 +1006,7 @@ export default function SettingsScreen({
                 value={localSttUrl}
                 onChange={(e) => setLocalSttUrl(e.target.value)}
                 placeholder="http://localhost:8000/v1"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
               />
               {isLocalHttpsUrl(localSttUrl) && (
                 <p className="text-[10px] text-yellow-500">⚠ Local servers typically use http://, not https://</p>
@@ -1016,13 +1016,13 @@ export default function SettingsScreen({
                 value={localSttModel}
                 onChange={(e) => setLocalSttModel(e.target.value)}
                 placeholder="Model (optional, e.g. Systran/faster-whisper-small)"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+                className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400"
               />
               <div className="flex gap-2 self-end">
                 <button
                   onClick={handleTestLocalStt}
                   disabled={!localSttUrl.trim() || localSttTesting}
-                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                   title="Send a silent audio clip and check for a response"
                 >
                   {localSttTesting ? (
@@ -1033,7 +1033,7 @@ export default function SettingsScreen({
                 <button
                   onClick={handleSaveLocalStt}
                   disabled={!localSttUrl.trim() || localSttSaving || (localSttUrl === apiKeys.localSttUrl && localSttModel === (apiKeys.localSttModel || ''))}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
                 >
                   {localSttSaving ? (
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1068,8 +1068,8 @@ export default function SettingsScreen({
 
           return sttProviders.length > 0 ? (
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Preferred STT Provider</h3>
-              <div className="rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Preferred STT Provider</h3>
+              <div className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {sttProviders.map((p) => (
                     <button
@@ -1080,15 +1080,15 @@ export default function SettingsScreen({
                       }}
                       className={`px-3 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
                         sttProvider === p.key
-                          ? 'bg-blue-500/15 border-blue-500/50 text-blue-300'
-                          : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                          ? 'bg-blue-500/15 border-blue-500/50 text-blue-600'
+                          : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300'
                       }`}
                     >
                       {p.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-600">Falls back automatically if unavailable.</p>
+                <p className="text-[10px] text-gray-500">Falls back automatically if unavailable.</p>
               </div>
             </section>
           ) : null

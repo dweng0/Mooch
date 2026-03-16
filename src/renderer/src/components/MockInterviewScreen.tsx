@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2, FileText } from 'lucide-react'
+import handTargetIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Target.webm'
+import handTimeIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Time.webm'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -401,36 +403,36 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   }
 
   const getFeedbackColor = (rating: string): string => {
-    if (rating === 'excellent' || rating === 'good') return 'bg-green-900/50 text-green-200'
-    if (rating === 'solid') return 'bg-yellow-900/50 text-yellow-200'
-    return 'bg-orange-900/50 text-orange-200'
+    if (rating === 'excellent' || rating === 'good') return 'bg-green-100 text-green-700'
+    if (rating === 'solid') return 'bg-yellow-100 text-yellow-700'
+    return 'bg-orange-100 text-orange-700'
   }
 
   return (
     <div className="relative h-full">
-      <div className={`h-full flex flex-col bg-gray-900 text-white ${isMaximized ? 'absolute inset-0' : ''}`}>
+      <div className={`h-full flex flex-col bg-white/95 text-gray-900 ${isMaximized ? 'absolute inset-0' : ''}`}>
         {/* Header */}
-      <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold">Mock Interview</h1>
+          <h1 className="text-xl font-bold text-gray-900">Mock Interview</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsMaximized(!isMaximized)}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             title={isMaximized ? 'Restore window' : 'Maximize window'}
           >
             {isMaximized ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
           </button>
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             title="Close interview"
           >
             <X size={20} />
@@ -440,8 +442,12 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
       {/* Status Bar */}
       {status !== 'idle' && (
-        <div className="bg-blue-900/30 border-b border-blue-700 px-4 py-2 text-sm text-blue-200">
-          {status === 'listening' && <span className="inline-block animate-pulse">● </span>}
+        <div className="bg-blue-900/30 border-b border-blue-700 px-4 py-2 text-sm text-blue-200 flex items-center gap-2">
+          {status === 'listening' ? (
+            <span className="inline-block animate-pulse">● </span>
+          ) : (
+            <video src={handTimeIcon} autoPlay loop muted playsInline className="h-8 w-8 flex-shrink-0" />
+          )}
           {getStatusMessage()}
         </div>
       )}
@@ -455,7 +461,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
             <div className="space-y-6">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Resume / CV</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resume / CV</label>
                 {resume ? (
                   <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
                     <div className="flex items-center gap-2 text-xs text-emerald-400">
@@ -473,7 +479,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 ) : (
                   <button
                     onClick={handleLoadCV}
-                    className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer mb-3"
+                    className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer mb-3"
                   >
                     <FileText size={14} />
                     Load resume file (.txt, .pdf, .docx)
@@ -482,13 +488,13 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 <textarea
                   value={resume}
                   onChange={(e) => setResume(e.target.value)}
-                  className="w-full h-28 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                  className="w-full h-28 bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-400"
                   placeholder="Or paste your resume..."
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Job Description</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Job Description</label>
                 {jobDescription ? (
                   <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
                     <div className="flex items-center gap-2 text-xs text-emerald-400">
@@ -506,7 +512,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 ) : (
                   <button
                     onClick={handleLoadJobDesc}
-                    className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-lg px-3 py-2.5 text-xs text-gray-400 hover:text-gray-200 transition-colors cursor-pointer mb-3"
+                    className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer mb-3"
                   >
                     <FileText size={14} />
                     Load job description file
@@ -515,7 +521,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  className="w-full h-28 bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                  className="w-full h-28 bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-400"
                   placeholder="Or paste the job description..."
                 />
               </div>
@@ -529,7 +535,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setView('sessions')}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-sm text-gray-700"
                 >
                   Back
                 </button>
@@ -577,18 +583,18 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
             </div>
 
             {deleteAllConfirm && (
-              <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
-                <p className="text-red-200 mb-4">Are you sure you want to delete all sessions? This action cannot be undone.</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-700 mb-4">Are you sure you want to delete all sessions? This action cannot be undone.</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => deleteAllSessions()}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm font-medium text-white"
                   >
                     Confirm Delete All
                   </button>
                   <button
                     onClick={() => setDeleteAllConfirm(false)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-sm text-gray-700"
                   >
                     Cancel
                   </button>
@@ -597,8 +603,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
             )}
 
             {sessions.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-400 mb-4">No interview sessions yet</p>
+              <div className="text-center py-12 flex flex-col items-center gap-4">
+                <video src={handTargetIcon} autoPlay loop muted playsInline className="h-24 w-24" />
+                <p className="text-gray-500">No interview sessions yet</p>
                 <button
                   onClick={() => setView('setup')}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
@@ -611,18 +618,18 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 {sessions.map((session) => (
                   <div
                     key={session.sessionId}
-                    className="bg-gray-800 rounded-lg p-4 flex justify-between items-center hover:bg-gray-750 transition-colors"
+                    className="bg-gray-100 rounded-lg p-4 flex justify-between items-center hover:bg-gray-200 transition-colors"
                   >
                     <div className="flex-1">
-                      <h3 className="font-semibold">{session.jobTitle}</h3>
-                      <p className="text-sm text-gray-400">
+                      <h3 className="font-semibold text-gray-900">{session.jobTitle}</h3>
+                      <p className="text-sm text-gray-500">
                         {new Date(session.createdAt).toLocaleDateString()} • {session.totalTurns} turns
                       </p>
                       <span
                         className={`inline-block mt-2 px-2 py-1 text-xs rounded ${
                           session.isComplete
-                            ? 'bg-green-900/50 text-green-200'
-                            : 'bg-yellow-900/50 text-yellow-200'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
                         }`}
                       >
                         {session.isComplete ? 'Completed' : 'In Progress'}
@@ -639,7 +646,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm transition-colors text-gray-700"
                           >
                             Cancel
                           </button>
@@ -682,7 +689,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                         AI
                       </div>
                       <div className="flex flex-col gap-1">
-                        <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                        <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 text-gray-900">
                           {message.status === 'loading' ? (
                             <PulsingDots />
                           ) : (
@@ -694,7 +701,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                             {message.audioBuffer && (
                               <button
                                 onClick={() => playAudioBuffer(message.audioBuffer!)}
-                                className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition-colors"
                               >
                                 <Volume2 size={12} />
                                 Play
@@ -794,14 +801,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
             </div>
 
             {/* Bottom Input Bar */}
-            <div className="border-t border-gray-700 p-3 space-y-2">
+            <div className="border-t border-gray-200 p-3 space-y-2">
               <div className="flex items-end gap-2">
                 <textarea
                   value={finalTranscript}
                   onChange={(e) => setFinalTranscript(e.target.value)}
                   placeholder="Type a message..."
                   disabled={status !== 'idle' && status !== 'listening'}
-                  className="flex-1 bg-gray-800 rounded-2xl px-4 py-3 text-sm resize-none max-h-28 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="flex-1 bg-gray-100 text-gray-900 rounded-2xl px-4 py-3 text-sm resize-none max-h-28 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 placeholder-gray-400"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -843,7 +850,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
               <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => replayQuestion()}
-                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors flex items-center gap-1"
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm transition-colors flex items-center gap-1"
                 >
                   <Volume2 size={14} />
                   Replay
@@ -856,7 +863,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 </button>
                 <button
                   onClick={() => endInterview(false)}
-                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm transition-colors"
                 >
                   End
                 </button>
@@ -870,10 +877,10 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           <div className="flex flex-col h-full">
             {/* Chat Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <h2 className="text-lg font-semibold mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
 
               {reviewSession.feedback.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-gray-500">
                   <p className="mb-4">No interview responses to review yet.</p>
                   <p className="text-sm">This may happen if the interview was ended before any questions were answered.</p>
                 </div>
@@ -888,7 +895,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                             AI
                           </div>
                           <div className="flex flex-col gap-1">
-                            <div className="bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 text-gray-900">
                               <p className="text-sm">{feedback.llmQuestion || 'Question'}</p>
                             </div>
                             <button
@@ -908,7 +915,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                                   console.error('Failed to play audio:', err)
                                 }
                               }}
-                              className="flex items-center gap-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded transition-colors w-fit"
+                              className="flex items-center gap-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition-colors w-fit"
                             >
                               <Volume2 size={12} />
                               Play
@@ -1001,13 +1008,13 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
             </div>
 
             {/* Back Button */}
-            <div className="border-t border-gray-700 p-3 flex justify-center">
+            <div className="border-t border-gray-200 p-3 flex justify-center">
               <button
                 onClick={() => {
                   setReviewSession(null)
                   setView('sessions')
                 }}
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
               >
                 ← Back to Sessions
               </button>

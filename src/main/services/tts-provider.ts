@@ -18,12 +18,14 @@ export interface TTSResponse {
 
 export class TTSProviderManager {
   private config: TTSConfig | null = null
+  private cachedLocalVoice: string | null = null
 
   setConfig(config: TTSConfig): void {
     if (!config.provider) {
       throw new Error('TTS provider is required')
     }
     this.config = config
+    this.cachedLocalVoice = null
   }
 
   getConfig(): TTSConfig | null {
@@ -279,7 +281,10 @@ export class TTSProviderManager {
 
     const base = this.config.baseUrl.replace(/\/$/, '')
     const url = `${base}/v1/audio/speech`
-    const voice = this.config.voice || await this.fetchRandomLocalVoice(base)
+    if (!this.cachedLocalVoice) {
+      this.cachedLocalVoice = this.config.voice || await this.fetchRandomLocalVoice(base)
+    }
+    const voice = this.cachedLocalVoice
 
     const body: Record<string, unknown> = {
       input: text,
