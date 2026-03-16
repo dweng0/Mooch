@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 27 scenario(s) across 14 test file(s).
+Checked 28 scenario(s) across 15 test file(s).
 
 
 ## Feature: remove login
@@ -25,6 +25,7 @@ Checked 27 scenario(s) across 14 test file(s).
 - [x] mark interview as complete or incomplete
 - [x] resume incomplete interview session
 - [x] graceful failure recovery during interview
+- [x] delete all interview sessions
 
 ## Feature: TTS provider support
 
@@ -58,7 +59,7 @@ Checked 27 scenario(s) across 14 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**26/27 scenarios covered.**
+**27/28 scenarios covered.**
 
 1 scenario(s) need tests:
 - store real-time LLM feedback as JSON

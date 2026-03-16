@@ -229,10 +229,7 @@ ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => 
 })
 
 ipcMain.handle('interview-delete-all-sessions', async () => {
-  const sessions = await sessionManager.listSessions()
-  for (const session of sessions) {
-    await sessionManager.deleteSession(session.sessionId)
-  }
+  return sessionManager.deleteAllSessions()
 })
 
 ipcMain.handle('interview-synthesize', async (_event, text: string) => {
