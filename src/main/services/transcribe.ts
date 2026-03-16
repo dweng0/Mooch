@@ -45,6 +45,10 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
     console.log('[STT] Adding custom provider (preferred)')
     available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, keys.customProvider!) })
   }
+  if (preferred === 'local' && keys.localSttUrl) {
+    console.log('[STT] Adding local STT (preferred):', keys.localSttUrl)
+    available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, { baseUrl: keys.localSttUrl!, apiKey: '', model: '', sttEnabled: true, sttModel: keys.localSttModel }) })
+  }
 
   // Add remaining providers in default order (if not already added)
   if (!preferred?.startsWith('openai') && keys.openaiApiKey) {
@@ -62,6 +66,10 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
   if (!preferred?.startsWith('custom') && keys.customProvider?.sttEnabled && keys.customProvider?.baseUrl) {
     console.log('[STT] Adding custom provider (fallback)')
     available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, keys.customProvider!) })
+  }
+  if (preferred !== 'local' && keys.localSttUrl) {
+    console.log('[STT] Adding local STT (fallback):', keys.localSttUrl)
+    available.push({ type: 'custom', test: () => transcribeWithCustom(audioBuffer, { baseUrl: keys.localSttUrl!, apiKey: '', model: '', sttEnabled: true, sttModel: keys.localSttModel }) })
   }
 
   console.log('[STT] Available providers:', available.map(p => p.type))

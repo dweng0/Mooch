@@ -96,11 +96,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearCustomProvider: (): Promise<void> => {
     return ipcRenderer.invoke('clear-custom-provider')
   },
-  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null): Promise<void> => {
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null): Promise<void> => {
     return ipcRenderer.invoke('set-stt-provider', provider)
+  },
+  setLocalTts: (url: string, model?: string): Promise<void> => {
+    return ipcRenderer.invoke('set-local-tts', url, model)
+  },
+  clearLocalTts: (): Promise<void> => {
+    return ipcRenderer.invoke('clear-local-tts')
+  },
+  testLocalTts: (url: string, model?: string): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('test-local-tts', url, model)
+  },
+  setLocalStt: (url: string, model?: string): Promise<void> => {
+    return ipcRenderer.invoke('set-local-stt', url, model)
+  },
+  clearLocalStt: (): Promise<void> => {
+    return ipcRenderer.invoke('clear-local-stt')
+  },
+  testLocalStt: (url: string, model?: string): Promise<{ ok: boolean; message: string }> => {
+    return ipcRenderer.invoke('test-local-stt', url, model)
   },
   testCustomProvider: (config: CustomProviderConfig): Promise<{ reasoning: boolean; stt: boolean }> => {
     return ipcRenderer.invoke('test-custom-provider', config)
+  },
+  listCustomProviderModels: (baseUrl: string): Promise<string[]> => {
+    return ipcRenderer.invoke('list-custom-provider-models', baseUrl)
   },
 
   // ── Hotkey events ─────────────────────────────────────────────────────────

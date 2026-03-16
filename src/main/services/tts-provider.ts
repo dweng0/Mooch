@@ -3,6 +3,7 @@ import type { TTSProvider } from '../../shared/types'
 export interface TTSConfig {
   provider: TTSProvider
   apiKey?: string
+  baseUrl?: string
   model?: string
   voice?: string
   speed?: number
@@ -41,6 +42,8 @@ export class TTSProviderManager {
         return this.synthesizeWithOpenAI(text)
       case 'elevenlabs':
         return this.synthesizeWithElevenLabs(text)
+      case 'local':
+        return this.synthesizeWithLocal(text)
       default:
         throw new Error(`Unknown TTS provider: ${this.config.provider}`)
     }
@@ -254,6 +257,51 @@ export class TTSProviderManager {
     } catch (error) {
       throw new Error(`Failed to synthesize with ElevenLabs: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
+  }
+
+  private async fetchRandomLocalVoice(baseUrl: string): Promise<string> {
+    try {
+      const res = await fetch(`${baseUrl}/v1/voices`)
+      if (!res.ok) return 'alloy'
+      const data = await res.json() as { voices?: { id: string }[] }
+      const voices = data.voices?.map(v => v.id) ?? []
+      if (voices.length === 0) return 'alloy'
+      return voices[Math.floor(Math.random() * voices.length)]
+    } catch {
+      return 'alloy'
+    }
+  }
+
+  private async synthesizeWithLocal(text: string): Promise<TTSResponse> {
+    if (!this.config?.baseUrl) {
+      throw new Error('Local TTS URL is required')
+    }
+
+    const base = this.config.baseUrl.replace(/\/$/, '')
+    const url = `${base}/v1/audio/speech`
+    const voice = this.config.voice || await this.fetchRandomLocalVoice(base)
+
+    const body: Record<string, unknown> = {
+      input: text,
+      model: this.config.model || 'kokoro',
+      voice,
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      throw new Error(`Local TTS error ${response.status}: ${errText}`)
+    }
+
+    const audioBuffer = Buffer.from(await response.arrayBuffer())
+    const contentType = response.headers.get('content-type') || 'audio/mpeg'
+
+    return { audioBuffer, mimeType: contentType }
   }
 
   async testConnection(): Promise<boolean> {

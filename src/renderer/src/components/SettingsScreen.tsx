@@ -68,7 +68,7 @@ export default function SettingsScreen({
   onManualContextChange
 }: Props) {
   const [apiKeys, setApiKeys] = useState<UserApiKeys>({})
-  const [preferredProvider, setPreferredProvider] = useState<Provider | null>(null)
+  const [preferredProvider, setPreferredProvider] = useState<Provider | 'custom' | null>(null)
   const [visibleKeys, setVisibleKeys] = useState<Record<Provider, boolean>>({
     anthropic: false,
     gemini: false,
@@ -92,17 +92,29 @@ export default function SettingsScreen({
   const [customSaving, setCustomSaving] = useState(false)
   const [customVisible, setCustomVisible] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<string>('custom')
-  const [sttProvider, setSttProvider] = useState<'openai' | 'gemini' | 'qwen' | 'custom' | null>(null)
+  const [sttProvider, setSttProvider] = useState<'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null>(null)
   const [testResult, setTestResult] = useState<{ reasoning: boolean; stt: boolean } | null>(null)
   const [testing, setTesting] = useState(false)
   const [unreachableWarning, setUnreachableWarning] = useState(false)
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [fetchingModels, setFetchingModels] = useState(false)
   const [cosyvoiceInput, setCosyvoiceInput] = useState('')
   const [cosyvoiceVisible, setCosyvoiceVisible] = useState(false)
   const [cosyvoiceSaving, setCosyvoiceSaving] = useState(false)
+  const [localTtsUrl, setLocalTtsUrl] = useState('')
+  const [localTtsModel, setLocalTtsModel] = useState('')
+  const [localTtsSaving, setLocalTtsSaving] = useState(false)
+  const [localSttUrl, setLocalSttUrl] = useState('')
+  const [localSttModel, setLocalSttModel] = useState('')
+  const [localSttSaving, setLocalSttSaving] = useState(false)
+  const [localTtsTesting, setLocalTtsTesting] = useState(false)
+  const [localTtsTestResult, setLocalTtsTestResult] = useState<'ok' | 'fail' | null>(null)
+  const [localSttTesting, setLocalSttTesting] = useState(false)
+  const [localSttTestResult, setLocalSttTestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   // Load API keys on mount
   useEffect(() => {
-    const stored = localStorage.getItem(BYOK_STORAGE_KEY) as Provider | null
+    const stored = localStorage.getItem(BYOK_STORAGE_KEY) as Provider | 'custom' | null
     window.electronAPI.getApiKeys().then((keys) => {
       setApiKeys(keys)
       setInputValues({
@@ -112,6 +124,10 @@ export default function SettingsScreen({
         qwen: keys.qwenApiKey || '',
       })
       if (keys.cosyvoiceApiKey) setCosyvoiceInput(keys.cosyvoiceApiKey)
+      if (keys.localTtsUrl) setLocalTtsUrl(keys.localTtsUrl)
+      if (keys.localTtsModel) setLocalTtsModel(keys.localTtsModel)
+      if (keys.localSttUrl) setLocalSttUrl(keys.localSttUrl)
+      if (keys.localSttModel) setLocalSttModel(keys.localSttModel)
       if (keys.qwenModel) setQwenModel(keys.qwenModel)
       if (keys.customProvider) {
         setCustomInput({ ...EMPTY_CUSTOM, ...keys.customProvider })
@@ -120,7 +136,9 @@ export default function SettingsScreen({
         setSttProvider(keys.preferredSttProvider)
       }
       // Restore stored preference if that provider still has a key
-      if (stored && keys[PROVIDER_KEY_MAP[stored]]) {
+      if (stored === 'custom' && keys.customProvider?.baseUrl && keys.customProvider?.model) {
+        setPreferredProvider('custom')
+      } else if (stored && stored !== 'custom' && keys[PROVIDER_KEY_MAP[stored]]) {
         setPreferredProvider(stored)
       } else {
         // Default to first available
@@ -132,7 +150,7 @@ export default function SettingsScreen({
     })
   }, [])
 
-  const handlePreferredProviderChange = (provider: Provider) => {
+  const handlePreferredProviderChange = (provider: Provider | 'custom') => {
     setPreferredProvider(provider)
     localStorage.setItem(BYOK_STORAGE_KEY, provider)
   }
@@ -211,6 +229,11 @@ export default function SettingsScreen({
       await window.electronAPI.clearCustomProvider()
       setApiKeys(prev => { const u = { ...prev }; delete u.customProvider; return u })
       setCustomInput(EMPTY_CUSTOM)
+      // Clear preferred provider if it was set to custom
+      if (preferredProvider === 'custom') {
+        setPreferredProvider(null)
+        localStorage.removeItem(BYOK_STORAGE_KEY)
+      }
       // Clear STT provider if it was set to custom
       if (sttProvider === 'custom') {
         setSttProvider(null)
@@ -256,9 +279,130 @@ export default function SettingsScreen({
 
   const hasCosyvoiceSet = !!apiKeys.cosyvoiceApiKey
 
+  const handleSaveLocalTts = async () => {
+    const url = localTtsUrl.trim()
+    if (!url) return
+    setLocalTtsSaving(true)
+    try {
+      await window.electronAPI.setLocalTts(url, localTtsModel.trim() || undefined)
+      setApiKeys(prev => ({ ...prev, localTtsUrl: url, localTtsModel: localTtsModel.trim() || undefined }))
+    } catch (error) {
+      console.error('Failed to save local TTS:', error)
+    } finally {
+      setLocalTtsSaving(false)
+    }
+  }
+
+  const handleClearLocalTts = async () => {
+    setLocalTtsSaving(true)
+    try {
+      await window.electronAPI.clearLocalTts()
+      setApiKeys(prev => { const u = { ...prev }; delete u.localTtsUrl; delete u.localTtsModel; return u })
+      setLocalTtsUrl('')
+      setLocalTtsModel('')
+    } catch (error) {
+      console.error('Failed to clear local TTS:', error)
+    } finally {
+      setLocalTtsSaving(false)
+    }
+  }
+
+  const handleSaveLocalStt = async () => {
+    const url = localSttUrl.trim()
+    if (!url) return
+    setLocalSttSaving(true)
+    try {
+      const model = localSttModel.trim() || undefined
+      await window.electronAPI.setLocalStt(url, model)
+      setApiKeys(prev => ({ ...prev, localSttUrl: url, localSttModel: model }))
+    } catch (error) {
+      console.error('Failed to save local STT:', error)
+    } finally {
+      setLocalSttSaving(false)
+    }
+  }
+
+  const handleClearLocalStt = async () => {
+    setLocalSttSaving(true)
+    try {
+      await window.electronAPI.clearLocalStt()
+      setApiKeys(prev => { const u = { ...prev }; delete u.localSttUrl; delete u.localSttModel; return u })
+      setLocalSttUrl('')
+      setLocalSttModel('')
+      if (sttProvider === 'local') {
+        setSttProvider(null)
+        await window.electronAPI.setSttProvider(null)
+      }
+    } catch (error) {
+      console.error('Failed to clear local STT:', error)
+    } finally {
+      setLocalSttSaving(false)
+    }
+  }
+
+  const handleTestLocalTts = async () => {
+    const url = localTtsUrl.trim()
+    if (!url) return
+    setLocalTtsTesting(true)
+    setLocalTtsTestResult(null)
+    try {
+      const buffer = await window.electronAPI.testLocalTts(url, localTtsModel.trim() || undefined)
+      if (buffer) {
+        setLocalTtsTestResult('ok')
+        // Play the returned audio so the user can hear it
+        const blob = new Blob([buffer], { type: 'audio/mpeg' })
+        const audioUrl = URL.createObjectURL(blob)
+        const audio = new Audio(audioUrl)
+        audio.onended = () => URL.revokeObjectURL(audioUrl)
+        await audio.play()
+      } else {
+        setLocalTtsTestResult('fail')
+      }
+    } catch {
+      setLocalTtsTestResult('fail')
+    } finally {
+      setLocalTtsTesting(false)
+    }
+  }
+
+  const handleTestLocalStt = async () => {
+    const url = localSttUrl.trim()
+    if (!url) return
+    setLocalSttTesting(true)
+    setLocalSttTestResult(null)
+    try {
+      const result = await window.electronAPI.testLocalStt(url, localSttModel.trim() || undefined)
+      setLocalSttTestResult(result)
+    } catch (error) {
+      setLocalSttTestResult({ ok: false, message: error instanceof Error ? error.message : 'Unknown error' })
+    } finally {
+      setLocalSttTesting(false)
+    }
+  }
+
+  const isLocalHttpsUrl = (url: string) =>
+    /^https:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(url.trim())
+
+  const hasLocalTtsSet = !!apiKeys.localTtsUrl
+  const hasLocalSttSet = !!apiKeys.localSttUrl
+
+  const fetchModels = async (baseUrl: string) => {
+    setFetchingModels(true)
+    setAvailableModels([])
+    try {
+      const ids = await window.electronAPI.listCustomProviderModels(baseUrl)
+      setAvailableModels(ids)
+    } catch {
+      // silently ignore — user can still type manually
+    } finally {
+      setFetchingModels(false)
+    }
+  }
+
   const handleProviderChange = (providerKey: string) => {
     setSelectedProvider(providerKey)
     setUnreachableWarning(false)
+    setAvailableModels([])
 
     if (providerKey === 'custom') {
       setCustomInput(EMPTY_CUSTOM)
@@ -272,6 +416,7 @@ export default function SettingsScreen({
           apiKey: '',
           model: '',
         }))
+        if (config.baseUrl) fetchModels(config.baseUrl)
       }
     }
   }
@@ -374,7 +519,7 @@ export default function SettingsScreen({
           </p>
           <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
             <span className="text-amber-400 text-[10px] leading-relaxed">
-              Tested and works best with a Gemini API key — more provider support coming soon.
+              Tested and working with Gemini and Alibaba (Qwen + TTS) API keys — more provider support coming soon.
             </span>
           </div>
           <div className="flex flex-col gap-2">
@@ -459,31 +604,6 @@ export default function SettingsScreen({
               </div>
             ))}
           </div>
-          {/* Preferred provider selector — shown when any key is set */}
-          {PROVIDERS.filter((p) => hasKeySet(p.key)).length > 0 && (
-            <div className="mt-3 rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
-              <div className="flex items-center gap-2 mb-2">
-                <Star size={13} className="text-yellow-400" />
-                <span className="text-xs text-gray-300 font-medium">Preferred provider</span>
-              </div>
-              <div className="flex gap-2">
-                {PROVIDERS.filter((p) => hasKeySet(p.key)).map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => handlePreferredProviderChange(p.key)}
-                    className={`flex-1 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
-                      preferredProvider === p.key
-                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
-                        : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
-                    }`}
-                  >
-                    {p.label.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-gray-600 mt-1.5">This provider will be used for AI responses.</p>
-            </div>
-          )}
           <p className="text-[10px] text-gray-600 mt-2">
             Your API keys are encrypted and stored locally.
           </p>
@@ -554,6 +674,92 @@ export default function SettingsScreen({
               </button>
             </div>
           </div>
+          {/* Local TTS */}
+          <div className={`mt-3 rounded-lg border overflow-hidden ${
+            hasLocalTtsSet
+              ? 'bg-emerald-500/5 border-emerald-500/30'
+              : 'bg-gray-800/60 border-white/10'
+          }`}>
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <KeyRound size={13} className={hasLocalTtsSet ? 'text-emerald-400' : 'text-gray-500'} />
+                <span className={`text-xs truncate ${hasLocalTtsSet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  Local TTS (OpenAI-compatible)
+                </span>
+                {hasLocalTtsSet && (
+                  <span className="flex-shrink-0 text-[10px] text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                    Set
+                  </span>
+                )}
+              </div>
+              {hasLocalTtsSet && (
+                <button
+                  onClick={handleClearLocalTts}
+                  disabled={localTtsSaving}
+                  className="flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                  title="Remove local TTS"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-3 flex flex-col gap-2">
+              <input
+                type="text"
+                value={localTtsUrl}
+                onChange={(e) => setLocalTtsUrl(e.target.value)}
+                placeholder="http://localhost:8880/v1"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              {isLocalHttpsUrl(localTtsUrl) && (
+                <p className="text-[10px] text-yellow-500">⚠ Local servers typically use http://, not https://</p>
+              )}
+              <input
+                type="text"
+                value={localTtsModel}
+                onChange={(e) => setLocalTtsModel(e.target.value)}
+                placeholder="Model (optional, e.g. kokoro)"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              <div className="flex gap-2 self-end">
+                <button
+                  onClick={handleTestLocalTts}
+                  disabled={!localTtsUrl.trim() || localTtsTesting}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  title="Send a test phrase and play back the audio"
+                >
+                  {localTtsTesting ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : <>🔊</>}
+                  Test
+                </button>
+                <button
+                  onClick={handleSaveLocalTts}
+                  disabled={!localTtsUrl.trim() || localTtsSaving || (localTtsUrl === apiKeys.localTtsUrl && localTtsModel === (apiKeys.localTtsModel || ''))}
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  {localTtsSaving ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  Save
+                </button>
+              </div>
+              {localTtsTestResult && (
+                <div className={`px-2.5 py-2 rounded-md text-xs ${
+                  localTtsTestResult === 'ok'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                }`}>
+                  {localTtsTestResult === 'ok' ? '✓ Audio received — listen for playback' : '✗ No response from TTS server'}
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-600 mt-2">
+            Local TTS takes priority over Cosyvoice when set. Try <span className="text-gray-500">Kokoro-FastAPI</span> on port 8880. Include <code className="text-gray-400">/v1</code> in the URL.
+          </p>
         </section>
 
         {/* Custom / OpenAI-compatible provider */}
@@ -612,13 +818,27 @@ export default function SettingsScreen({
                   {customVisible ? <EyeOff size={12} /> : <Eye size={12} />}
                 </button>
               </div>
-              <input
-                type="text"
-                value={customInput.model}
-                onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
-                placeholder="Model (e.g. qwen/qwen3-70b, llama-3.3-70b-versatile)"
-                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
-              />
+              {availableModels.length > 0 ? (
+                <select
+                  value={customInput.model}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
+                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="">Select a model…</option>
+                  {availableModels.map(id => (
+                    <option key={id} value={id}>{id}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={customInput.model}
+                  onChange={(e) => setCustomInput(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder={fetchingModels ? 'Fetching models…' : 'Model (e.g. qwen/qwen3-70b, llama-3.3-70b-versatile)'}
+                  disabled={fetchingModels}
+                  className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600 disabled:opacity-50"
+                />
+              )}
               <label className="flex items-center gap-2 px-2.5 py-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -706,6 +926,134 @@ export default function SettingsScreen({
               )}
             </div>
           </div>
+
+          {/* Preferred provider selector — shown when any standard key or custom provider is set */}
+          {(PROVIDERS.filter((p) => hasKeySet(p.key)).length > 0 || hasCustomSet) && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-gray-800/60 px-3 py-2.5">
+              <div className="flex items-center gap-2 mb-2">
+                <Star size={13} className="text-yellow-400" />
+                <span className="text-xs text-gray-300 font-medium">Preferred provider</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {PROVIDERS.filter((p) => hasKeySet(p.key)).map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => handlePreferredProviderChange(p.key)}
+                    className={`flex-1 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
+                      preferredProvider === p.key
+                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
+                        : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                    }`}
+                  >
+                    {p.label.split(' ')[0]}
+                  </button>
+                ))}
+                {hasCustomSet && (
+                  <button
+                    onClick={() => handlePreferredProviderChange('custom')}
+                    className={`flex-1 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
+                      preferredProvider === 'custom'
+                        ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
+                        : 'bg-gray-900/60 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                    }`}
+                  >
+                    {customInput.label?.trim() || 'Custom'}
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-gray-600 mt-1.5">This provider will be used for AI responses.</p>
+            </div>
+          )}
+        </section>
+
+        {/* Local STT */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Local STT</h3>
+          <p className="text-[10px] text-gray-500 mb-3">
+            Point to a local Whisper server (OpenAI-compatible <code className="text-gray-400">/v1/audio/transcriptions</code>).
+          </p>
+          <div className={`rounded-lg border overflow-hidden ${
+            hasLocalSttSet
+              ? 'bg-emerald-500/5 border-emerald-500/30'
+              : 'bg-gray-800/60 border-white/10'
+          }`}>
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <KeyRound size={13} className={hasLocalSttSet ? 'text-emerald-400' : 'text-gray-500'} />
+                <span className={`text-xs truncate ${hasLocalSttSet ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  Local Whisper / STT
+                </span>
+                {hasLocalSttSet && (
+                  <span className="flex-shrink-0 text-[10px] text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                    Set
+                  </span>
+                )}
+              </div>
+              {hasLocalSttSet && (
+                <button
+                  onClick={handleClearLocalStt}
+                  disabled={localSttSaving}
+                  className="flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                  title="Remove local STT"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-3 flex flex-col gap-2">
+              <input
+                type="text"
+                value={localSttUrl}
+                onChange={(e) => setLocalSttUrl(e.target.value)}
+                placeholder="http://localhost:8000/v1"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              {isLocalHttpsUrl(localSttUrl) && (
+                <p className="text-[10px] text-yellow-500">⚠ Local servers typically use http://, not https://</p>
+              )}
+              <input
+                type="text"
+                value={localSttModel}
+                onChange={(e) => setLocalSttModel(e.target.value)}
+                placeholder="Model (optional, e.g. Systran/faster-whisper-small)"
+                className="w-full bg-gray-900/60 text-gray-300 text-xs rounded-md px-2.5 py-2 border border-white/10 outline-none focus:border-blue-500 placeholder-gray-600"
+              />
+              <div className="flex gap-2 self-end">
+                <button
+                  onClick={handleTestLocalStt}
+                  disabled={!localSttUrl.trim() || localSttTesting}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                  title="Send a silent audio clip and check for a response"
+                >
+                  {localSttTesting ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : <>🧪</>}
+                  Test
+                </button>
+                <button
+                  onClick={handleSaveLocalStt}
+                  disabled={!localSttUrl.trim() || localSttSaving || (localSttUrl === apiKeys.localSttUrl && localSttModel === (apiKeys.localSttModel || ''))}
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  {localSttSaving ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  Save
+                </button>
+              </div>
+              {localSttTestResult && (
+                <div className={`px-2.5 py-2 rounded-md text-xs ${
+                  localSttTestResult.ok
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                }`}>
+                  {localSttTestResult.ok ? '✓ STT server responded successfully' : `✗ ${localSttTestResult.message}`}
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* STT Provider Preference */}
@@ -714,7 +1062,8 @@ export default function SettingsScreen({
             { key: 'openai' as const, label: 'OpenAI', enabled: !!apiKeys.openaiApiKey },
             { key: 'gemini' as const, label: 'Gemini', enabled: !!apiKeys.geminiApiKey },
             { key: 'qwen' as const, label: 'Qwen', enabled: !!apiKeys.qwenApiKey },
-            { key: 'custom' as const, label: customInput.label || 'Custom', enabled: customInput.sttEnabled && !!customInput.baseUrl }
+            { key: 'custom' as const, label: customInput.label || 'Custom', enabled: customInput.sttEnabled && !!customInput.baseUrl },
+            { key: 'local' as const, label: 'Local', enabled: !!apiKeys.localSttUrl }
           ].filter(p => p.enabled)
 
           return sttProviders.length > 0 ? (

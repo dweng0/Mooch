@@ -2,7 +2,7 @@ export type AIProvider = 'claude' | 'gemini' | 'openai' | 'qwen' | 'custom'
 export type AudioSource = 'microphone' | 'system'
 export type TextSize = 'small' | 'medium' | 'large' | 'extra-large'
 export type OAuthProvider = 'google' | 'github' | 'discord'
-export type TTSProvider = 'cosyvoice' | 'openai' | 'elevenlabs'
+export type TTSProvider = 'cosyvoice' | 'openai' | 'elevenlabs' | 'local'
 
 export interface OAuthUser {
   loggedIn: boolean
@@ -32,8 +32,12 @@ export interface UserApiKeys {
   qwenApiKey?: string
   qwenModel?: string
   customProvider?: CustomProviderConfig
-  preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom'
+  preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local'
   cosyvoiceApiKey?: string
+  localTtsUrl?: string
+  localTtsModel?: string
+  localSttUrl?: string
+  localSttModel?: string
 }
 
 export interface InterviewFeedback {
@@ -143,11 +147,17 @@ export interface ElectronAPI {
   getApiKeys: () => Promise<UserApiKeys>
   setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => Promise<void>
   clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice') => Promise<void>
+  setLocalTts: (url: string, model?: string) => Promise<void>
+  clearLocalTts: () => Promise<void>
+  testLocalTts: (url: string, model?: string) => Promise<ArrayBuffer | null>
+  setLocalStt: (url: string, model?: string) => Promise<void>
+  clearLocalStt: () => Promise<void>
+  testLocalStt: (url: string, model?: string) => Promise<{ ok: boolean; message: string }>
   setQwenModel: (model: string) => Promise<void>
   // Custom provider
   setCustomProvider: (config: CustomProviderConfig) => Promise<void>
   clearCustomProvider: () => Promise<void>
-  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => Promise<void>
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null) => Promise<void>
   testCustomProvider: (config: CustomProviderConfig) => Promise<{ reasoning: boolean; stt: boolean }>
   // Hotkeys
   onHotkeyRecordStart: (callback: () => void) => () => void

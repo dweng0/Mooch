@@ -131,7 +131,82 @@ ipcMain.handle('clear-custom-provider', async () => {
   saveApiKeys(keys)
 })
 
-ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => {
+ipcMain.handle('set-local-tts', async (_event, url: string, model?: string) => {
+  const keys = loadApiKeys()
+  keys.localTtsUrl = url
+  keys.localTtsModel = model || undefined
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('clear-local-tts', async () => {
+  const keys = loadApiKeys()
+  delete keys.localTtsUrl
+  delete keys.localTtsModel
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('set-local-stt', async (_event, url: string, model?: string) => {
+  const keys = loadApiKeys()
+  keys.localSttUrl = url
+  keys.localSttModel = model || undefined
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('clear-local-stt', async () => {
+  const keys = loadApiKeys()
+  delete keys.localSttUrl
+  delete keys.localSttModel
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('test-local-tts', async (_event, url: string, model?: string): Promise<ArrayBuffer | null> => {
+  const testManager = new TTSProviderManager()
+  testManager.setConfig({ provider: 'local', baseUrl: url, model: model || undefined })
+  try {
+    const response = await testManager.synthesize('Hello, this is a test.')
+    if (!response.audioBuffer) return null
+    return response.audioBuffer.buffer.slice(response.audioBuffer.byteOffset, response.audioBuffer.byteOffset + response.audioBuffer.byteLength)
+  } catch (error) {
+    console.error('[TTS Test]', error instanceof Error ? error.message : error)
+    return null
+  }
+})
+
+ipcMain.handle('test-local-stt', async (_event, url: string, model?: string): Promise<{ ok: boolean; message: string }> => {
+  // Build a minimal 0.1s silence WAV (16kHz mono 16-bit PCM)
+  const sampleRate = 16000
+  const numSamples = Math.floor(sampleRate * 0.1)
+  const dataBytes = numSamples * 2 // 16-bit = 2 bytes per sample
+  const wavBuffer = Buffer.alloc(44 + dataBytes)
+  wavBuffer.write('RIFF', 0)
+  wavBuffer.writeUInt32LE(36 + dataBytes, 4)
+  wavBuffer.write('WAVE', 8)
+  wavBuffer.write('fmt ', 12)
+  wavBuffer.writeUInt32LE(16, 16)       // PCM chunk size
+  wavBuffer.writeUInt16LE(1, 20)        // PCM format
+  wavBuffer.writeUInt16LE(1, 22)        // mono
+  wavBuffer.writeUInt32LE(sampleRate, 24)
+  wavBuffer.writeUInt32LE(sampleRate * 2, 28) // byte rate
+  wavBuffer.writeUInt16LE(2, 32)        // block align
+  wavBuffer.writeUInt16LE(16, 34)       // bits per sample
+  wavBuffer.write('data', 36)
+  wavBuffer.writeUInt32LE(dataBytes, 40)
+  // samples remain zero (silence)
+
+  try {
+    const OpenAI = (await import('openai')).default
+    const client = new OpenAI({ apiKey: 'no-key', baseURL: url, timeout: 30000 })
+    const file = new File([wavBuffer], 'test.wav', { type: 'audio/wav' })
+    await client.audio.transcriptions.create({ model: model || 'whisper-1', file, response_format: 'text' })
+    return { ok: true, message: 'STT server responded successfully' }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const isTimeout = msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')
+    return { ok: false, message: isTimeout ? 'Timed out after 30s — model may still be loading, try again' : msg }
+  }
+})
+
+ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null) => {
   const keys = loadApiKeys()
   keys.preferredSttProvider = provider ?? undefined
   saveApiKeys(keys)
@@ -139,6 +214,17 @@ ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' 
 
 ipcMain.handle('test-custom-provider', async (_event, config: CustomProviderConfig) => {
   return testCustomProvider(config)
+})
+
+ipcMain.handle('list-custom-provider-models', async (_event, baseUrl: string) => {
+  try {
+    const res = await fetch(`${baseUrl}/models`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.data ?? []).map((m: { id: string }) => m.id).filter(Boolean)
+  } catch {
+    return []
+  }
 })
 
 ipcMain.handle('get-auth-status', async () => {
@@ -178,18 +264,18 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
   const voices = ['Cherry', 'Ethan', 'Kai', 'Ryan', 'Aiden', 'Jennifer']
   const randomVoice = voices[Math.floor(Math.random() * voices.length)]
 
-  // Configure TTS if cosyvoice key exists
-  if (keys.cosyvoiceApiKey) {
+  // Configure TTS — prefer local > cosyvoice
+  let ttsConfig: Parameters<typeof ttsManager.setConfig>[0] | undefined
+  if (keys.localTtsUrl) {
+    console.log('[IPC] Configuring TTS with local provider:', keys.localTtsUrl)
+    ttsConfig = { provider: 'local', baseUrl: keys.localTtsUrl, model: keys.localTtsModel }
+  } else if (keys.cosyvoiceApiKey) {
     console.log('[IPC] Configuring TTS with Qwen3 TTS, voice:', randomVoice)
-    ttsManager.setConfig({
-      provider: 'cosyvoice',
-      apiKey: keys.cosyvoiceApiKey,
-      model: 'qwen3-tts-flash',
-      voice: randomVoice
-    })
+    ttsConfig = { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-flash', voice: randomVoice }
   } else {
-    console.log('[IPC] No Cosyvoice key found, TTS will be optional')
+    console.log('[IPC] No TTS configured, falling back to browser speech synthesis')
   }
+  if (ttsConfig) ttsManager.setConfig(ttsConfig)
 
   // Create session (this will throw if no LLM provider is configured)
   const metadata = await sessionManager.createSession(jobDescription, resume)
@@ -201,7 +287,7 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
     llmProvider: getFirstProvider(keys),
     jobDescription,
     resume,
-    ttsConfig: keys.cosyvoiceApiKey ? { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-flash', voice: randomVoice } : undefined
+    ttsConfig
   })
   return metadata
 })
