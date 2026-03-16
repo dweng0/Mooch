@@ -19,7 +19,7 @@ Checked 26 scenario(s) across 12 test file(s).
 - [x] degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
 - [x] record and store interview audio per turn
-- [ ] UNCOVERED: store real-time LLM feedback as JSON
+- [x] store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
 - [x] mark interview as complete or incomplete
 - [x] resume incomplete interview session
@@ -57,7 +57,4 @@ Checked 26 scenario(s) across 12 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**25/26 scenarios covered.**
-
-1 scenario(s) need tests:
-- store real-time LLM feedback as JSON
+**26/26 scenarios covered.**

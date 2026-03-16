@@ -109,18 +109,32 @@ def find_test_files():
     return sorted(test_files)
 
 
+def normalize_content(content):
+    """Normalize test content for comparison - remove special chars like hyphens."""
+    content = content.lower()
+    content = re.sub(r"[^a-z0-9\s]", "", content)
+    content = re.sub(r"\s+", " ", content)
+    return content.strip()
+
+
 def check_coverage(scenario_name, test_files, test_contents):
     """Return True if any test file references this scenario."""
     full = normalize(scenario_name)
     partial = normalize_partial(scenario_name)
+    normalized_scenario = normalize_content(scenario_name.lower())
 
     for path, content in test_contents.items():
         content_lower = content.lower()
+        normalized_content = normalize_content(content_lower)
+        
         # Try full snake_case match
         if full in content_lower:
             return True
         # Try partial match (first 6 words)
         if partial and partial in content_lower:
+            return True
+        # Try normalized content (handles hyphens, etc.)
+        if normalized_scenario and normalized_scenario in normalized_content:
             return True
         # Try each word of the scenario (all significant words present)
         words = [w for w in re.sub(r"[^a-z0-9\s]", "", scenario_name.lower()).split() if len(w) > 3]
