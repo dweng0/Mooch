@@ -84,6 +84,13 @@ System: a tool we call mooch, that helps users during interview by listening and
             When a provider fails (STT, LLM, or TTS timeout/error)
             Then the app should save all progress collected so far (transcript, audio, feedback) and display an error message allowing the user to resume later
 
+        Scenario: delete all interview sessions
+            Given the user is on the mock interview sessions page
+            When the user clicks "Delete All Sessions"
+            Then the app should display a confirmation dialog
+            And when the user confirms the deletion
+            Then all interview sessions should be deleted and the sessions list should be empty
+
     Feature: TTS provider support
 
         Scenario: configure Cosyvoice TTS provider

@@ -228,6 +228,13 @@ ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => 
   return sessionManager.deleteSession(sessionId)
 })
 
+ipcMain.handle('interview-delete-all-sessions', async () => {
+  const sessions = await sessionManager.listSessions()
+  for (const session of sessions) {
+    await sessionManager.deleteSession(session.sessionId)
+  }
+})
+
 ipcMain.handle('interview-synthesize', async (_event, text: string) => {
   if (!ttsManager.getConfig()) {
     console.warn('[TTS IPC] No TTS config set')

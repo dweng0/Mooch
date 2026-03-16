@@ -189,6 +189,13 @@ export class InterviewSessionManager {
     }
   }
 
+  async deleteAllSessions(): Promise<void> {
+    const sessions = this.listSessions()
+    for (const session of sessions) {
+      await this.deleteSession(session.sessionId)
+    }
+  }
+
   private extractJobTitle(jobDescription: string): string {
     // Try to extract job title from the first line or look for common patterns
     const lines = jobDescription.split('\n')

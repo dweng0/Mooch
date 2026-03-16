@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2 } from 'lucide-react'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -40,6 +40,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [reviewSession, setReviewSession] = useState<InterviewSession | null>(null)
   const [expandedFeedback, setExpandedFeedback] = useState<Set<number>>(new Set())
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+  const [isMaximized, setIsMaximized] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const localServiceRef = useRef(new LocalInterviewService())
@@ -343,6 +345,18 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     }
   }
 
+  const deleteAllSessions = async () => {
+    try {
+      await window.electronAPI.interviewDeleteAllSessions()
+      setDeleteAllConfirm(false)
+      // Reload sessions
+      await loadSessions()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete all sessions')
+      setDeleteAllConfirm(false)
+    }
+  }
+
   const getStatusMessage = (): string => {
     switch (status) {
       case 'idle': return ''
@@ -366,8 +380,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-900 text-white">
-      {/* Header */}
+    <div className="relative h-full">
+      <div className={`h-full flex flex-col bg-gray-900 text-white ${isMaximized ? 'absolute inset-0' : ''}`}>
+        {/* Header */}
       <div className="border-b border-gray-700 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -378,13 +393,22 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           </button>
           <h1 className="text-xl font-bold">Mock Interview</h1>
         </div>
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          title="Close interview"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMaximized(!isMaximized)}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            title={isMaximized ? 'Restore window' : 'Maximize window'}
+          >
+            {isMaximized ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+          </button>
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            title="Close interview"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Status Bar */}
@@ -453,18 +477,49 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold">Interview Sessions</h2>
-              <button
-                onClick={() => {
-                  setJobDescription('')
-                  setResume('')
-                  setError('')
-                  setView('setup')
-                }}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
-              >
-                New Interview
-              </button>
+              <div className="flex gap-2">
+                {sessions.length > 0 && !deleteAllConfirm && (
+                  <button
+                    onClick={() => setDeleteAllConfirm(true)}
+                    className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded-lg transition-colors text-sm"
+                    title="Delete all interview sessions"
+                  >
+                    Delete All Sessions
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setJobDescription('')
+                    setResume('')
+                    setError('')
+                    setView('setup')
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+                >
+                  New Interview
+                </button>
+              </div>
             </div>
+
+            {deleteAllConfirm && (
+              <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
+                <p className="text-red-200 mb-4">Are you sure you want to delete all sessions? This action cannot be undone.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => deleteAllSessions()}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Confirm Delete All
+                  </button>
+                  <button
+                    onClick={() => setDeleteAllConfirm(false)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {sessions.length === 0 ? (
               <div className="text-center py-12">
@@ -770,12 +825,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                                     'question'
                                   )
                                   if (audioBuffer) {
-                                    const blob = new Blob([audioBuffer], { type: 'audio/wav' })
-                                    const url = URL.createObjectURL(blob)
-                                    if (audioRef.current) {
-                                      audioRef.current.src = url
-                                      audioRef.current.play()
-                                    }
+                                    await playAudioBuffer(audioBuffer)
+                                  } else {
+                                    console.warn('No audio buffer available for this question')
                                   }
                                 } catch (err) {
                                   console.error('Failed to play audio:', err)
@@ -851,12 +903,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                                   'response'
                                 )
                                 if (audioBuffer) {
-                                  const blob = new Blob([audioBuffer], { type: 'audio/wav' })
-                                  const url = URL.createObjectURL(blob)
-                                  if (audioRef.current) {
-                                    audioRef.current.src = url
-                                    audioRef.current.play()
-                                  }
+                                  await playAudioBuffer(audioBuffer)
                                 } else {
                                   console.warn('No audio buffer for this response')
                                 }
@@ -894,8 +941,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         )}
       </div>
 
-      {/* Hidden audio element for TTS playback */}
-      <audio ref={audioRef} className="hidden" />
+        {/* Hidden audio element for TTS playback */}
+        <audio ref={audioRef} className="hidden" />
+      </div>
     </div>
   )
 }

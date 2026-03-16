@@ -149,5 +149,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   interviewSynthesize: (text: string): Promise<ArrayBuffer | null> => {
     return ipcRenderer.invoke('interview-synthesize', text)
+  },
+  interviewGetAudio: (sessionId: string, turn: number, type: 'question' | 'response'): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('interview-get-audio', sessionId, turn, type)
+  },
+  interviewDeleteAllSessions: (): Promise<void> => {
+    return ipcRenderer.invoke('interview-delete-all-sessions')
   }
 })
