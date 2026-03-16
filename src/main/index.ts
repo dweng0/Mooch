@@ -2,7 +2,7 @@ import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, s
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import * as fs from 'fs/promises'
-import pdfParse from 'pdf-parse'
+import { PDFParse } from 'pdf-parse'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
 import { transcribeAudio } from './services/transcribe'
@@ -610,7 +610,9 @@ ipcMain.handle('load-text-file', async () => {
   if (filePath.toLowerCase().endsWith('.pdf')) {
     try {
       const pdfBuffer = await fs.readFile(filePath)
-      const data = await pdfParse(pdfBuffer)
+      const parser = new PDFParse({ data: pdfBuffer })
+      const data = await parser.getText()
+      await parser.destroy()
       return { name, content: data.text }
     } catch (err) {
       console.error('Failed to parse PDF:', err)
