@@ -137,6 +137,7 @@ export interface ElectronAPI {
   transcribeAudio: (buffer: ArrayBuffer) => Promise<string>
   getAnswer: (question: string, provider: AIProvider, context: UserContext) => Promise<string>
   getAvailableProviders: () => Promise<AIProvider[]>
+  getInterviewProviders: () => Promise<{ llm: string | null; tts: string | null; stt: string | null }>
   analyzeCodeSnapshot: (imageBase64: string, context?: string) => Promise<string>
   captureScreen: () => Promise<string>
   getWindowSources: () => Promise<WindowSource[]>

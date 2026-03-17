@@ -51,6 +51,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [cvName, setCvName] = useState('')
   const [jobDescName, setJobDescName] = useState('')
+  const [interviewProviders, setInterviewProviders] = useState<{ llm: string | null; tts: string | null; stt: string | null } | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lineGraphRef = useRef<HTMLVideoElement>(null)
@@ -72,6 +73,12 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    if (view === 'setup') {
+      window.electronAPI.getInterviewProviders().then(setInterviewProviders).catch(() => {})
+    }
+  }, [view])
 
   useEffect(() => {
     if (view === 'review' && lineGraphRef.current) {
@@ -561,6 +568,22 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
               <div className="flex flex-col items-center">
                 <video src={determineProjectIcon} autoPlay muted playsInline className="h-32 w-32 flex-shrink-0" />
                 <h2 className="text-xl font-semibold text-gray-800 mt-2">Prepare for Your Interview</h2>
+                {interviewProviders && (
+                  <div className="flex flex-wrap gap-2 mt-3 justify-center">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                      <Brain size={12} />
+                      LLM: {interviewProviders.llm ?? 'none'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                      <Mic size={12} />
+                      STT: {interviewProviders.stt ?? 'none'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      <Volume2 size={12} />
+                      TTS: {interviewProviders.tts ?? 'none'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -35,6 +35,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAvailableProviders: (): Promise<AIProvider[]> => {
     return ipcRenderer.invoke('get-available-providers')
   },
+  getInterviewProviders: (): Promise<{ llm: string | null; tts: string | null; stt: string | null }> => {
+    return ipcRenderer.invoke('get-interview-providers')
+  },
   analyzeCodeSnapshot: (imageBase64: string, context?: string): Promise<string> => {
     return ipcRenderer.invoke('analyze-code-snapshot', imageBase64, context)
   },

@@ -425,6 +425,34 @@ ipcMain.handle('get-available-providers', async () => {
   return getAvailableProviders()
 })
 
+ipcMain.handle('get-interview-providers', async () => {
+  const keys = loadApiKeys()
+  const available = getAvailableProviders()
+  const llm = available.length > 0 ? available[0] : null
+
+  let tts: string | null = null
+  if (keys.localTtsUrl) tts = 'local'
+  else if (keys.cosyvoiceApiKey) tts = 'cosyvoice'
+  else tts = 'browser'
+
+  let stt: string | null = null
+  if (keys.preferredSttProvider) {
+    stt = keys.preferredSttProvider
+  } else if (keys.localSttUrl) {
+    stt = 'local'
+  } else if (keys.openaiApiKey) {
+    stt = 'openai'
+  } else if (keys.geminiApiKey) {
+    stt = 'gemini'
+  } else if (keys.qwenApiKey) {
+    stt = 'qwen'
+  } else if (keys.customProvider?.sttEnabled) {
+    stt = 'custom'
+  }
+
+  return { llm, tts, stt }
+})
+
 ipcMain.handle('analyze-code-snapshot', async (_event, imageBase64: string, context?: string) => {
   const keys = loadApiKeys()
   if (keys.qwenApiKey) {
