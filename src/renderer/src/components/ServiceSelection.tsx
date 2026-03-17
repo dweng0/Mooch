@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react'
-import { Settings, Lock } from 'lucide-react'
+import { Settings } from 'lucide-react'
+import { Tooltip } from 'react-tooltip'
 import StatusIndicator from './StatusIndicator'
 import MochiLogo from './MochiLogo'
 import bunnyLogo from '../assets/bunny-logo.png'
@@ -36,7 +37,6 @@ export type InterviewMode = 'general' | 'code' | 'mock'
 interface Props {
   onSelect: (mode: InterviewMode) => void
   onSettings: () => void
-  onLogout: () => void
   apiUrl: string
   cvName: string
   jobDescName: string
@@ -55,10 +55,38 @@ function hasAnyLlmKey(apiKeys?: UserApiKeys): boolean {
   )
 }
 
+function hasAnyStt(apiKeys?: UserApiKeys): boolean {
+  if (!apiKeys) return false
+  return !!(
+    apiKeys.openaiApiKey ||
+    apiKeys.geminiApiKey ||
+    apiKeys.qwenApiKey ||
+    apiKeys.customProvider?.sttEnabled ||
+    apiKeys.localSttUrl
+  )
+}
+
+function hasAnyTts(apiKeys?: UserApiKeys): boolean {
+  if (!apiKeys) return false
+  return !!(apiKeys.cosyvoiceApiKey || apiKeys.localTtsUrl)
+}
+
+export type BadgeSpec = {
+  tooltipId: string
+  /** shown when hasKeys=true */
+  activeLabel: string
+  activeTooltip: string
+  /** shown when hasKeys=false and required=true → amber warning */
+  missingLabel: string
+  missingTooltip: string
+  /** if false, shows a neutral gray badge instead of amber when !hasKeys */
+  required: boolean
+  hasKeys: boolean
+}
+
 export default function ServiceSelection({
   onSelect,
   onSettings,
-  onLogout,
   apiUrl,
   cvName,
   jobDescName,
@@ -66,6 +94,9 @@ export default function ServiceSelection({
   apiKeys,
 }: Props) {
   const hasKey = hasAnyLlmKey(apiKeys)
+  const hasStt = hasAnyStt(apiKeys)
+  const hasTts = hasAnyTts(apiKeys)
+  const hasVoice = hasStt && hasTts
   const hypePhrase = useMemo(
     () => HYPE_PHRASES[Math.floor(Math.random() * HYPE_PHRASES.length)],
     []
@@ -94,7 +125,6 @@ export default function ServiceSelection({
             >
               <Settings size={16} />
             </button>
-            <img src={bunnyLogo} alt="Mooch" className="h-8 w-8 ml-1" />
           </div>
         </div>
       </div>
@@ -128,8 +158,16 @@ export default function ServiceSelection({
           title="General Interview"
           videoSrc={generalIcon}
           borderColor="border-purple-300 hover:border-purple-500"
-          modelRequirement="Any LLM key"
-          unavailable={!hasKey}
+          onSettings={onSettings}
+          badges={[{
+            tooltipId: 'req-general-llm',
+            activeLabel: 'Any LLM key',
+            activeTooltip: 'You have set API keys that allow you to do this',
+            missingLabel: 'No API key',
+            missingTooltip: 'Requires an LLM key (Anthropic, OpenAI, Gemini, or Qwen)',
+            required: true,
+            hasKeys: hasKey,
+          }]}
           delay={0}
           onClick={() => onSelect('general')}
         />
@@ -137,8 +175,16 @@ export default function ServiceSelection({
           title="Code Interview"
           videoSrc={codeIcon}
           borderColor="border-blue-300 hover:border-blue-500"
-          modelRequirement="Any LLM key"
-          unavailable={!hasKey}
+          onSettings={onSettings}
+          badges={[{
+            tooltipId: 'req-code-llm',
+            activeLabel: 'Any LLM key',
+            activeTooltip: 'You have set API keys that allow you to do this',
+            missingLabel: 'No API key',
+            missingTooltip: 'Requires an LLM key (Anthropic, OpenAI, Gemini, or Qwen)',
+            required: true,
+            hasKeys: hasKey,
+          }]}
           delay={120}
           comingSoon
           onClick={() => onSelect('code')}
@@ -147,8 +193,27 @@ export default function ServiceSelection({
           title="Mock Interview"
           videoSrc={mockIcon}
           borderColor="border-green-300 hover:border-green-500"
-          modelRequirement="Any LLM key + Browser voice"
-          unavailable={!hasKey}
+          onSettings={onSettings}
+          badges={[
+            {
+              tooltipId: 'req-mock-llm',
+              activeLabel: 'Any LLM key',
+              activeTooltip: 'You have set API keys that allow you to do this',
+              missingLabel: 'No API key',
+              missingTooltip: 'Requires an LLM key (Anthropic, OpenAI, Gemini, or Qwen)',
+              required: true,
+              hasKeys: hasKey,
+            },
+            {
+              tooltipId: 'req-mock-voice',
+              activeLabel: 'STT + TTS',
+              activeTooltip: 'You have set STT and TTS keys for voice',
+              missingLabel: 'Browser voice',
+              missingTooltip: 'No STT/TTS keys set — browser built-in voice will be used instead',
+              required: false,
+              hasKeys: hasVoice,
+            },
+          ]}
           delay={240}
           onClick={() => onSelect('mock')}
         />
@@ -157,13 +222,6 @@ export default function ServiceSelection({
       {/* Footer */}
       <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between">
         <span className="text-[10px] text-gray-400">Mooch</span>
-        <button
-          onClick={onLogout}
-          title="Sign out"
-          className="text-[10px] text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-        >
-          ⏻
-        </button>
       </div>
     </div>
   )
@@ -173,8 +231,8 @@ function ModeCard({
   title,
   videoSrc,
   borderColor,
-  modelRequirement,
-  unavailable,
+  badges,
+  onSettings,
   delay,
   comingSoon,
   onClick
@@ -182,13 +240,14 @@ function ModeCard({
   title: string
   videoSrc: string
   borderColor: string
-  modelRequirement: string
-  unavailable?: boolean
+  badges: BadgeSpec[]
+  onSettings: () => void
   delay: number
   comingSoon?: boolean
   onClick: () => void
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const allRequiredMet = badges.filter(b => b.required).every(b => b.hasKeys)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -202,9 +261,9 @@ function ModeCard({
 
   return (
     <button
-      onClick={comingSoon ? undefined : onClick}
+      onClick={comingSoon ? undefined : !allRequiredMet ? onSettings : onClick}
       style={{ animation: `fadeInUp 0.4s ease both`, animationDelay: `${delay}ms` }}
-      className={`w-full text-left px-4 py-3 rounded-xl border bg-white transition-colors duration-150 ${comingSoon ? 'opacity-60 cursor-not-allowed' : `cursor-pointer ${borderColor}`} ${!comingSoon && unavailable ? 'opacity-60' : ''}`}
+      className={`w-full text-left px-4 py-3 rounded-xl border bg-white transition-colors duration-150 ${comingSoon ? 'opacity-60 cursor-not-allowed' : `cursor-pointer ${borderColor}`}`}
     >
       <div className="flex items-center gap-4">
         <video
@@ -223,21 +282,41 @@ function ModeCard({
               </span>
             ) : (
               <>
-                <span
-                  data-testid="model-requirement"
-                  className="text-xs text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full"
-                >
-                  {modelRequirement}
-                </span>
-                {unavailable && (
-                  <span
-                    data-testid="feature-unavailable"
-                    className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full"
-                  >
-                    <Lock size={9} />
-                    No API key
-                  </span>
-                )}
+                {badges.map(badge => (
+                  badge.hasKeys ? (
+                    <span
+                      key={badge.tooltipId}
+                      data-tooltip-id={badge.tooltipId}
+                      className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                      {badge.activeLabel}
+                      <Tooltip id={badge.tooltipId} content={badge.activeTooltip} place="bottom" />
+                    </span>
+                  ) : badge.required ? (
+                    <span
+                      key={badge.tooltipId}
+                      data-tooltip-id={badge.tooltipId}
+                      data-testid="feature-unavailable"
+                      className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full"
+                    >
+                      {badge.missingLabel}
+                      <Tooltip id={badge.tooltipId} content={badge.missingTooltip} place="bottom" />
+                    </span>
+                  ) : (
+                    <span
+                      key={badge.tooltipId}
+                      data-tooltip-id={badge.tooltipId}
+                      className="text-xs text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full"
+                    >
+                      {badge.missingLabel}
+                      <Tooltip id={badge.tooltipId} content={badge.missingTooltip} place="bottom" />
+                    </span>
+                  )
+                ))}
               </>
             )}
           </div>

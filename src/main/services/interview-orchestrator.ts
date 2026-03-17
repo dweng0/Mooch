@@ -1,7 +1,7 @@
-import type { AIProvider, InterviewTurn } from '../../shared/types'
+import type { AIProvider, InterviewTurn, InterviewSummary } from '../../shared/types'
 import { TTSProviderManager, type TTSConfig } from './tts-provider'
 import { InterviewSessionManager } from './interview-session'
-import { buildInterviewerSystemPrompt, buildInterviewerOpenerMessage } from '../../../config/systemPrompt'
+import { buildInterviewerSystemPrompt, buildInterviewerOpenerMessage, buildInterviewSummaryPrompt } from '../../../config/systemPrompt'
 import { loadApiKeys } from './api-keys'
 import OpenAI from 'openai'
 
@@ -173,6 +173,49 @@ export class InterviewOrchestrator {
     this.config = null
   }
 
+  async generateSummary(sessionId: string): Promise<InterviewSummary> {
+    const session = await this.sessionManager.getSession(sessionId)
+    if (!session) throw new Error('Session not found')
+
+    const ratingScore: Record<string, number> = { excellent: 5, good: 4, solid: 3, fair: 2, weak: 1 }
+    const scores = session.feedback.map(f => ratingScore[f.feedback?.rating] ?? 3)
+    const averageRating = scores.length > 0
+      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+      : 3
+
+    const turns = session.feedback.map(f => ({
+      question: f.llmQuestion,
+      response: f.userResponseText,
+      rating: f.feedback?.rating ?? 'solid',
+      comment: f.feedback?.comment ?? '',
+    }))
+
+    const prompt = buildInterviewSummaryPrompt(session.jobDescription, turns)
+    const client = this.createLLMClient()
+
+    const response = await client.chat.completions.create({
+      model: this.getModelName(),
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const content = response.choices[0]?.message?.content ?? ''
+    let areasOfImprovement: string[] = []
+    let areasOfStrength: string[] = []
+
+    try {
+      const parsed = JSON.parse(content)
+      areasOfImprovement = parsed.areasOfImprovement ?? []
+      areasOfStrength = parsed.areasOfStrength ?? []
+    } catch {
+      console.error('[Interview] Failed to parse summary response:', content)
+    }
+
+    const summary: InterviewSummary = { averageRating, areasOfImprovement, areasOfStrength }
+    await this.sessionManager.saveSummary(sessionId, summary)
+    return summary
+  }
+
   async generateOpener(): Promise<string> {
     if (!this.config) {
       throw new Error('Interview not configured')
@@ -182,11 +225,7 @@ export class InterviewOrchestrator {
     const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
     const client = this.createLLMClient()
 
-    console.log('[Interview] Generating opener', {
-      model: this.getModelName(),
-      userMessage: userMessage.substring(0, 100),
-      systemPromptStart: systemPrompt.substring(0, 80),
-    })
+    console.log('[Interview] Generating opener', { model: this.getModelName() })
 
     try {
       const response = await client.chat.completions.create({

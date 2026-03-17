@@ -65,6 +65,13 @@ export interface InterviewSessionMetadata {
   jobTitle: string
   isComplete: boolean
   totalTurns: number
+  averageRating?: number
+}
+
+export interface InterviewSummary {
+  averageRating: number // 1–5
+  areasOfImprovement: string[]
+  areasOfStrength: string[]
 }
 
 export interface InterviewSession {
@@ -73,6 +80,7 @@ export interface InterviewSession {
   resume: string
   transcript: string
   feedback: InterviewFeedback[]
+  summary?: InterviewSummary
 }
 
 export interface InterviewTurn {

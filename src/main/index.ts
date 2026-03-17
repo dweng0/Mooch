@@ -322,6 +322,10 @@ ipcMain.handle('interview-end-session', async (_event, sessionId: string, isComp
   return interviewOrchestrator.endInterview(isComplete)
 })
 
+ipcMain.handle('interview-generate-summary', async (_event, sessionId: string) => {
+  return interviewOrchestrator.generateSummary(sessionId)
+})
+
 ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => {
   return sessionManager.deleteSession(sessionId)
 })

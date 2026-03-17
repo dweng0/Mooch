@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { ArrowLeft, ChevronDown, Info, Power, Mic, Headphones, Settings2 } from 'lucide-react'
 import TranscriptPanel from './components/TranscriptPanel'
 import AnswerPanel from './components/AnswerPanel'
-import LoginScreen from './components/LoginScreen'
 import SubscribeScreen from './components/SubscribeScreen'
 import ServiceSelection, { type InterviewMode } from './components/ServiceSelection'
 import SettingsScreen from './components/SettingsScreen'
@@ -92,6 +91,7 @@ export default function App() {
         await loadApiKeyState()
         setAuthState('no-subscription')
       } else {
+        await loadApiKeyState()
         setAuthState('active')
         setProviders(status.availableProviders ?? [])
         const first = status.availableProviders?.[0]
@@ -270,12 +270,6 @@ export default function App() {
     if (derived.length > 0) {
       // Key is valid and saved — let them into the app
     }
-  }
-
-  const handleLogout = async () => {
-    await window.electronAPI.logout()
-    setAppView('select')
-    setAuthState('logged-out')
   }
 
   // Re-check subscription when user returns to the app (e.g. after subscribing in browser)
@@ -762,7 +756,6 @@ export default function App() {
     return <ServiceSelection
       onSelect={handleSelectMode}
       onSettings={() => setAppView('settings')}
-      onLogout={handleLogout}
       apiUrl={apiUrl}
       cvName={cvName}
       jobDescName={jobDescName}
@@ -772,7 +765,7 @@ export default function App() {
   }
 
   if (authState === 'no-subscription' && !hasApiKey) {
-    return <SubscribeScreen onLogout={handleLogout} onRefresh={handleRefreshSubscription} onApiKeySet={handleApiKeySet} />
+    return <SubscribeScreen onRefresh={handleRefreshSubscription} onApiKeySet={handleApiKeySet} />
   }
 
   // ── Service selection ──────────────────────────────────────────────────────
@@ -782,7 +775,6 @@ export default function App() {
       <ServiceSelection
         onSelect={handleSelectMode}
         onSettings={() => setAppView('settings')}
-        onLogout={handleLogout}
         apiUrl={apiUrl}
         cvName={cvName}
         jobDescName={jobDescName}
@@ -906,7 +898,6 @@ export default function App() {
                 className="flex items-center gap-0.5 p-0.5 rounded hover:bg-gray-100 transition-colors cursor-pointer"
                 title="Menu"
               >
-                <img src={bunnyLogo} alt="Mooch" className="h-7 w-7" />
                 <ChevronDown size={10} className="text-gray-400" />
               </button>
 
@@ -955,83 +946,156 @@ export default function App() {
           {/* General + Code: passive listen buttons */}
           {isGeneralOrCode && (
             <>
-              {/* Passive buttons grouped with their settings cog */}
-              <div className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl border ${vadSettingsOpen ? 'border-purple-200 bg-purple-50/50' : 'border-gray-200'} transition-colors`}>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => passiveStatus === 'off' || passiveSource !== 'system' ? startPassiveListen('system') : stopPassiveListen()}
-                    disabled={
-                      status === 'recording' ||
-                      status === 'transcribing' ||
-                      status === 'thinking' ||
-                      mockStatus !== 'off' ||
-                      codeSnapshotState !== 'idle' ||
-                      (passiveStatus !== 'off' && passiveSource !== 'system') ||
-                      (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && passiveStatus === 'off')
-                    }
-                    className={`
-                      min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
-                      ${passiveStatus !== 'off' && passiveSource === 'system'
-                        ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
-                      }
-                    `}
-                    title="Passively listen to system audio and auto-answer detected questions"
-                  >
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
-                      <span className="text-[11px] leading-tight">
-                        {(passiveStatus === 'off' || passiveSource !== 'system') && 'Passive Sys'}
-                        {passiveStatus === 'listening' && passiveSource === 'system' && 'Listening...'}
-                        {passiveStatus === 'processing' && passiveSource === 'system' && 'Processing...'}
-                      </span>
-                    </span>
-                  </button>
+              <button
+                onClick={() => passiveStatus === 'off' || passiveSource !== 'system' ? startPassiveListen('system') : stopPassiveListen()}
+                disabled={
+                  status === 'recording' ||
+                  status === 'transcribing' ||
+                  status === 'thinking' ||
+                  mockStatus !== 'off' ||
+                  codeSnapshotState !== 'idle' ||
+                  (passiveStatus !== 'off' && passiveSource !== 'system') ||
+                  (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && passiveStatus === 'off')
+                }
+                className={`
+                  min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
+                  ${passiveStatus !== 'off' && passiveSource === 'system'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
+                  }
+                `}
+                title="Passively listen to system audio and auto-answer detected questions"
+              >
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
+                  <span className="text-[11px] leading-tight">
+                    {(passiveStatus === 'off' || passiveSource !== 'system') && 'Passive Sys'}
+                    {passiveStatus === 'listening' && passiveSource === 'system' && 'Listening...'}
+                    {passiveStatus === 'processing' && passiveSource === 'system' && 'Processing...'}
+                  </span>
+                </span>
+              </button>
 
-                  <button
-                    onClick={() => passiveStatus === 'off' || passiveSource !== 'microphone' ? startPassiveListen('microphone') : stopPassiveListen()}
-                    disabled={
-                      status === 'recording' ||
-                      status === 'transcribing' ||
-                      status === 'thinking' ||
-                      mockStatus !== 'off' ||
-                      codeSnapshotState !== 'idle' ||
-                      (passiveStatus !== 'off' && passiveSource !== 'microphone') ||
-                      (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && passiveStatus === 'off')
-                    }
-                    className={`
-                      min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
-                      ${passiveStatus !== 'off' && passiveSource === 'microphone'
-                        ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
-                      }
-                    `}
-                    title="Passively listen to microphone and auto-answer detected questions"
-                  >
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
-                      <span className="text-[11px] leading-tight">
-                        {(passiveStatus === 'off' || passiveSource !== 'microphone') && 'Passive Mic'}
-                        {passiveStatus === 'listening' && passiveSource === 'microphone' && 'Listening...'}
-                        {passiveStatus === 'processing' && passiveSource === 'microphone' && 'Processing...'}
-                      </span>
-                    </span>
-                  </button>
-                </div>
+              <button
+                onClick={() => passiveStatus === 'off' || passiveSource !== 'microphone' ? startPassiveListen('microphone') : stopPassiveListen()}
+                disabled={
+                  status === 'recording' ||
+                  status === 'transcribing' ||
+                  status === 'thinking' ||
+                  mockStatus !== 'off' ||
+                  codeSnapshotState !== 'idle' ||
+                  (passiveStatus !== 'off' && passiveSource !== 'microphone') ||
+                  (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && passiveStatus === 'off')
+                }
+                className={`
+                  min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
+                  ${passiveStatus !== 'off' && passiveSource === 'microphone'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
+                  }
+                `}
+                title="Passively listen to microphone and auto-answer detected questions"
+              >
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
+                  <span className="text-[11px] leading-tight">
+                    {(passiveStatus === 'off' || passiveSource !== 'microphone') && 'Passive Mic'}
+                    {passiveStatus === 'listening' && passiveSource === 'microphone' && 'Listening...'}
+                    {passiveStatus === 'processing' && passiveSource === 'microphone' && 'Processing...'}
+                  </span>
+                </span>
+              </button>
 
-                {/* VAD settings cog + slider */}
+              <button
+                onClick={() => {
+                  console.log('[Mic Button] Clicked - current status:', status, 'audioSource:', audioSource)
+                  if (status === 'recording' && audioSource === 'microphone') {
+                    console.log('[Mic Button] Already recording with microphone, stopping')
+                    stopRecording()
+                  } else if (status === 'idle') {
+                    console.log('[Mic Button] Setting audioSource to microphone and starting recording')
+                    setAudioSource('microphone')
+                    setError('')
+                    startRecording('microphone')
+                  }
+                }}
+                disabled={
+                  mockStatus !== 'off' ||
+                  passiveStatus !== 'off' ||
+                  status === 'transcribing' ||
+                  status === 'thinking' ||
+                  (status === 'recording' && audioSource !== 'microphone') ||
+                  (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && status !== 'recording')
+                }
+                className={`
+                  min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
+                  ${audioSource === 'microphone' && status === 'recording'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
+                  }
+                `}
+                title="Record from microphone"
+              >
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
+                  <span className="text-[11px] leading-tight">
+                    {audioSource === 'microphone' && status === 'recording' ? 'Stop' : 'Mic'}
+                  </span>
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (status === 'recording' && audioSource === 'system') {
+                    stopRecording()
+                  } else if (status === 'idle') {
+                    setAudioSource('system')
+                    setError('')
+                    startRecording('system')
+                  }
+                }}
+                disabled={
+                  mockStatus !== 'off' ||
+                  passiveStatus !== 'off' ||
+                  status === 'transcribing' ||
+                  status === 'thinking' ||
+                  (status === 'recording' && audioSource !== 'system') ||
+                  (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && status !== 'recording')
+                }
+                className={`
+                  min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
+                  ${audioSource === 'system' && status === 'recording'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
+                  }
+                `}
+                title="Record system audio"
+              >
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
+                  <span className="text-[11px] leading-tight">
+                    {audioSource === 'system' && status === 'recording' ? 'Stop' : 'System'}
+                  </span>
+                </span>
+              </button>
+
+              {/* Passive settings — cog on its own row, expands below */}
+              <div className="w-full flex flex-col items-center gap-2 pt-1">
                 <button
                   onClick={() => setVadSettingsOpen((o) => !o)}
-                  className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
+                  className={`flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer ${vadSettingsOpen ? 'text-gray-700' : ''}`}
                   title="Adjust passive listen sensitivity"
                 >
-                  <Settings2 size={13} className={vadSettingsOpen ? 'text-purple-400' : ''} />
+                  <Settings2 size={13} />
+                  <span className="text-[11px]">Passive Settings</span>
                 </button>
                 {vadSettingsOpen && (
-                  <div className="w-full flex items-center gap-2 px-1">
-                    <span className="text-[10px] text-gray-400 whitespace-nowrap">Sensitivity</span>
+                  <div className="w-full flex items-center gap-2 px-2">
+                    <span className="text-[11px] text-gray-600 whitespace-nowrap">Sensitivity</span>
                     <input
                       type="range"
                       min={1}
@@ -1041,91 +1105,10 @@ export default function App() {
                       className="flex-1 h-1 accent-purple-500 cursor-pointer"
                       title={`VAD threshold: ${vadThreshold} (lower = more sensitive)`}
                     />
-                    <span className="text-[10px] text-gray-400 w-5 text-right">{vadThreshold}</span>
+                    <span className="text-[11px] text-gray-600 w-5 text-right">{vadThreshold}</span>
                   </div>
                 )}
               </div>
-
-              {/* Active record buttons — same wrapper for alignment */}
-              <div className="flex flex-col items-center gap-1 p-1.5 rounded-2xl border border-gray-200">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      console.log('[Mic Button] Clicked - current status:', status, 'audioSource:', audioSource)
-                      if (status === 'recording' && audioSource === 'microphone') {
-                        console.log('[Mic Button] Already recording with microphone, stopping')
-                        stopRecording()
-                      } else if (status === 'idle') {
-                        console.log('[Mic Button] Setting audioSource to microphone and starting recording')
-                        setAudioSource('microphone')
-                        setError('')
-                        startRecording('microphone')
-                      }
-                    }}
-                    disabled={
-                      mockStatus !== 'off' ||
-                      passiveStatus !== 'off' ||
-                      status === 'transcribing' ||
-                      status === 'thinking' ||
-                      (status === 'recording' && audioSource !== 'microphone') ||
-                      (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && status !== 'recording')
-                    }
-                    className={`
-                      min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
-                      ${audioSource === 'microphone' && status === 'recording'
-                        ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
-                      }
-                    `}
-                    title="Record from microphone"
-                  >
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
-                      <span className="text-[11px] leading-tight">
-                        {audioSource === 'microphone' && status === 'recording' ? 'Stop' : 'Mic'}
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (status === 'recording' && audioSource === 'system') {
-                        stopRecording()
-                      } else if (status === 'idle') {
-                        setAudioSource('system')
-                        setError('')
-                        startRecording('system')
-                      }
-                    }}
-                    disabled={
-                      mockStatus !== 'off' ||
-                      passiveStatus !== 'off' ||
-                      status === 'transcribing' ||
-                      status === 'thinking' ||
-                      (status === 'recording' && audioSource !== 'system') ||
-                      (transcriptionLimit !== null && transcriptionsUsed >= transcriptionLimit && status !== 'recording')
-                    }
-                    className={`
-                      min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
-                      ${audioSource === 'system' && status === 'recording'
-                        ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
-                      }
-                    `}
-                    title="Record system audio"
-                  >
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
-                      <span className="text-[11px] leading-tight">
-                        {audioSource === 'system' && status === 'recording' ? 'Stop' : 'System'}
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-
             </>
           )}
 
@@ -1270,13 +1253,6 @@ export default function App() {
             Speak naturally — AI answers after each question
           </p>
         )}
-        <button
-          onClick={handleLogout}
-          title="Sign out"
-          className="text-[10px] text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-        >
-          ⏻
-        </button>
       </div>
 
       {/* Window Picker Modal */}

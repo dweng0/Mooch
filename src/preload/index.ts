@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn } from '../shared/types'
+import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary } from '../shared/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -164,6 +164,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   interviewEndSession: (sessionId: string, isComplete: boolean): Promise<void> => {
     return ipcRenderer.invoke('interview-end-session', sessionId, isComplete)
+  },
+  interviewGenerateSummary: (sessionId: string): Promise<InterviewSummary> => {
+    return ipcRenderer.invoke('interview-generate-summary', sessionId)
   },
   interviewDeleteSession: (sessionId: string): Promise<void> => {
     return ipcRenderer.invoke('interview-delete-session', sessionId)

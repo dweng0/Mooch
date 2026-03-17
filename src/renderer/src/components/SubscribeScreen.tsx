@@ -5,7 +5,6 @@ import handCardIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Hold
 type ByokProvider = 'anthropic' | 'gemini' | 'openai'
 
 interface Props {
-  onLogout: () => void
   onRefresh: () => void
   onApiKeySet: () => void
 }
@@ -25,7 +24,7 @@ function detectProvider(key: string): ByokProvider | null {
   return null
 }
 
-export default function SubscribeScreen({ onLogout, onRefresh, onApiKeySet }: Props) {
+export default function SubscribeScreen({ onRefresh, onApiKeySet }: Props) {
   const [apiKey, setApiKey] = useState('')
   const [provider, setProvider] = useState<ByokProvider>('anthropic')
   const [autoDetected, setAutoDetected] = useState(false)
@@ -170,14 +169,6 @@ export default function SubscribeScreen({ onLogout, onRefresh, onApiKeySet }: Pr
         </div>
       </div>
 
-      <div className="px-4 py-2 border-t border-gray-200 text-center">
-        <button
-          onClick={onLogout}
-          className="text-[10px] text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-        >
-          Sign out
-        </button>
-      </div>
     </div>
   )
 }

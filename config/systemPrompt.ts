@@ -53,28 +53,63 @@ On your first turn (turn 0), respond with ONLY a plain English question—no JSO
 
 On all subsequent turns (turn > 0), respond ONLY with valid JSON in this exact format:
 {
-  "next_question": "Your next question here",
+  "next_question": "Your next interview question here",
   "feedback": {
     "rating": "excellent|good|solid|fair|weak",
-    "comment": "Brief assessment of their answer (1-2 sentences)",
+    "comment": "1-2 sentences explaining exactly why this rating—what did they demonstrate or miss? Be specific to what they actually said.",
     "context": {
-      "jobRequirement": "Which requirement this relates to",
-      "resumeSkill": "Relevant skill from their resume",
-      "conversationNote": "Key insight from the conversation"
+      "jobRequirement": "Quote the specific requirement from the job description this answer addresses (or falls short of)",
+      "resumeSkill": "Quote the specific skill or project from their resume that is (or should be) relevant here",
+      "conversationNote": "A pattern or insight noticed across the conversation so far (omit if none yet)"
     }
   }
 }
 
+Rating criteria:
+- excellent: specific, confident, demonstrates mastery with concrete examples
+- good: clear and relevant, minor gaps or vagueness
+- solid: adequate answer but lacks depth, specifics, or examples
+- fair: off-topic, superficial, or shows limited understanding
+- weak: missed the point, incorrect, or no real answer given
+
 ## Rules
-- Provide constructive, encouraging feedback
 - Build on previous answers—reference what they said earlier
 - Focus on job-relevant competencies
-- Avoid repetition—ask diverse questions
+- Avoid repetition—ask diverse questions covering different areas
 - Be professional but conversational in tone
 - NO preamble, NO markdown, NO explanations—just the response format specified above`
 }
 
+export function buildInterviewSummaryPrompt(
+  jobDescription: string,
+  turns: Array<{ question: string; response: string; rating: string; comment: string }>
+): string {
+  const transcript = turns
+    .map((t, i) => `Turn ${i + 1}:\nInterviewer: ${t.question}\nCandidate: ${t.response}\nRating: ${t.rating} — ${t.comment}`)
+    .join('\n\n')
+
+  return `You are an experienced interviewer. Review this completed interview for the following role and provide a concise overall assessment.
+
+## Job Description
+${jobDescription}
+
+## Interview Transcript with Turn Ratings
+${transcript}
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "areasOfImprovement": ["specific area 1", "specific area 2"],
+  "areasOfStrength": ["specific area 1", "specific area 2"]
+}
+
+Rules:
+- List exactly 2 areas of improvement (things the candidate should work on)
+- List up to 2 areas of strength — omit the array entry (keep array shorter) if there genuinely wasn't a strong area
+- Each item should be 1 concise sentence, specific to what the candidate actually said
+- Reference specific answers or patterns, not generic advice
+- NO preamble, NO markdown, just the JSON`
+}
+
 export function buildInterviewerOpenerMessage(jobDescription: string): string {
-  const roleTitle = jobDescription.split('\n')[0] || 'Software Engineer'
-  return `We're interviewing for a ${roleTitle} position. To start: tell me about yourself and what interests you about this role.`
+  return `You are an interviewer interviewing for a job with the following job description:\n\n${jobDescription}\n\nTo start: ask the candidate to tell you about themselves and what interests them about this role.`
 }

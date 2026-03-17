@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2, FileText } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Star, Brain, Briefcase, FileText, TrendingUp, Maximize2, Minimize2 } from 'lucide-react'
+import { Tooltip } from 'react-tooltip'
 import handTargetIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Target.webm'
 import reachGoalIcon from '../assets/proposed_images/Reach_Goal.webm'
 import determineProjectIcon from '../assets/proposed_images/Determine_Project.webm'
 import handTimeIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Time.webm'
+import lineGraphIcon from '../assets/proposed_images/08- Line Graph.webm'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -46,10 +48,12 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
+  const [isSummarizing, setIsSummarizing] = useState(false)
   const [cvName, setCvName] = useState('')
   const [jobDescName, setJobDescName] = useState('')
   const audioRef = useRef<HTMLAudioElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lineGraphRef = useRef<HTMLVideoElement>(null)
   const localServiceRef = useRef(new LocalInterviewService())
   const recordingMessageAddedRef = useRef(false)
 
@@ -68,6 +72,13 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    if (view === 'review' && lineGraphRef.current) {
+      lineGraphRef.current.currentTime = 2
+      lineGraphRef.current.play()
+    }
+  }, [view])
 
   const loadSessions = async () => {
     try {
@@ -352,12 +363,23 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       localServiceRef.current.stopSpeaking()
       await window.electronAPI.interviewEndSession(currentSession.sessionId, complete)
 
-      // Reload sessions
+      if (complete) {
+        setIsSummarizing(true)
+        try {
+          await window.electronAPI.interviewGenerateSummary(currentSession.sessionId)
+        } catch (err) {
+          console.error('Failed to generate summary:', err)
+        } finally {
+          setIsSummarizing(false)
+        }
+      }
+
       await loadSessions()
       setStatus('complete')
       setView('sessions')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to end session')
+      setIsSummarizing(false)
     }
   }
 
@@ -404,10 +426,85 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     }
   }
 
-  const getFeedbackColor = (rating: string): string => {
-    if (rating === 'excellent' || rating === 'good') return 'bg-green-100 text-green-700'
-    if (rating === 'solid') return 'bg-yellow-100 text-yellow-700'
-    return 'bg-orange-100 text-orange-700'
+  const ratingMeta = (rating: string): { color: string; label: string; stars: number } => {
+    switch (rating) {
+      case 'excellent': return { color: 'text-green-600', label: 'Excellent', stars: 5 }
+      case 'good':      return { color: 'text-green-500', label: 'Good',      stars: 4 }
+      case 'solid':     return { color: 'text-yellow-500', label: 'Solid',    stars: 3 }
+      case 'fair':      return { color: 'text-orange-500', label: 'Fair',     stars: 2 }
+      default:          return { color: 'text-red-500',    label: 'Weak',     stars: 1 }
+    }
+  }
+
+  const FeedbackCard = ({ feedback, id }: { feedback: NonNullable<InterviewTurn['llmFeedback']>; id: string }) => {
+    const meta = ratingMeta(feedback.rating)
+    return (
+      <div className="flex items-center gap-2 mt-1">
+        {/* Stars — rating strength */}
+        <div
+          data-tooltip-id={`fb-${id}-rating`}
+          data-tooltip-content={`${meta.label} — ${feedback.comment}`}
+          className={`flex gap-0.5 cursor-default ${meta.color}`}
+        >
+          {[1,2,3,4,5].map(n => (
+            <Star key={n} size={11} className={n <= meta.stars ? `fill-current ${meta.color}` : 'text-gray-300'} />
+          ))}
+        </div>
+        <Tooltip id={`fb-${id}-rating`} place="top" className="max-w-[220px] text-xs" />
+
+        {/* Brain — assessment comment */}
+        {feedback.comment && (
+          <>
+            <Brain
+              size={13}
+              className="text-blue-400 cursor-default"
+              data-tooltip-id={`fb-${id}-comment`}
+              data-tooltip-content={feedback.comment}
+            />
+            <Tooltip id={`fb-${id}-comment`} place="top" className="max-w-[220px] text-xs" />
+          </>
+        )}
+
+        {/* Briefcase — job requirement */}
+        {feedback.context?.jobRequirement && (
+          <>
+            <Briefcase
+              size={13}
+              className="text-orange-400 cursor-default"
+              data-tooltip-id={`fb-${id}-job`}
+              data-tooltip-content={feedback.context.jobRequirement}
+            />
+            <Tooltip id={`fb-${id}-job`} place="top" className="max-w-[220px] text-xs" />
+          </>
+        )}
+
+        {/* FileText — resume skill */}
+        {feedback.context?.resumeSkill && (
+          <>
+            <FileText
+              size={13}
+              className="text-cyan-400 cursor-default"
+              data-tooltip-id={`fb-${id}-resume`}
+              data-tooltip-content={feedback.context.resumeSkill}
+            />
+            <Tooltip id={`fb-${id}-resume`} place="top" className="max-w-[220px] text-xs" />
+          </>
+        )}
+
+        {/* TrendingUp — conversation pattern */}
+        {feedback.context?.conversationNote && (
+          <>
+            <TrendingUp
+              size={13}
+              className="text-purple-400 cursor-default"
+              data-tooltip-id={`fb-${id}-pattern`}
+              data-tooltip-content={feedback.context.conversationNote}
+            />
+            <Tooltip id={`fb-${id}-pattern`} place="top" className="max-w-[220px] text-xs" />
+          </>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -638,6 +735,21 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                         <p className="text-sm text-gray-500 mt-1">
                           {new Date(session.createdAt).toLocaleDateString()} · {session.totalTurns} turns
                         </p>
+                        {session.averageRating !== undefined && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            {[1,2,3,4,5].map(n => {
+                              const meta = ratingMeta(
+                                session.averageRating! >= 4.5 ? 'excellent'
+                                : session.averageRating! >= 3.5 ? 'good'
+                                : session.averageRating! >= 2.5 ? 'solid'
+                                : session.averageRating! >= 1.5 ? 'fair'
+                                : 'weak'
+                              )
+                              return <Star key={n} size={12} className={n <= Math.round(session.averageRating!) ? `fill-current ${meta.color}` : 'text-gray-300'} />
+                            })}
+                            <span className="text-xs text-gray-400 ml-1">{session.averageRating.toFixed(1)}</span>
+                          </div>
+                        )}
                       </div>
                       <span
                         className={`ml-3 shrink-0 px-2.5 py-1 text-xs font-medium rounded-full ${
@@ -722,34 +834,8 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                                 Play
                               </button>
                             )}
-                            {/* AI Thinking Icons */}
-                            {message.feedback && (
-                              <div className="flex items-center gap-1">
-                                {/* Rating indicator */}
-                                <div title={`Thinking: ${message.feedback.rating}`}>
-                                  <Circle
-                                    size={14}
-                                    className={`fill-current ${
-                                      message.feedback.rating === 'excellent' || message.feedback.rating === 'good'
-                                        ? 'text-green-400'
-                                        : message.feedback.rating === 'solid'
-                                        ? 'text-yellow-400'
-                                        : 'text-red-400'
-                                    }`}
-                                  />
-                                </div>
-                                {/* Thinking/Comment icon */}
-                                <div title={message.feedback.comment}>
-                                  <Lightbulb size={14} className="text-blue-400 hover:text-blue-300 cursor-help" />
-                                </div>
-                                {/* Context note icon */}
-                                {message.feedback.context?.conversationNote && (
-                                  <div title={message.feedback.context.conversationNote}>
-                                    <MessageCircle size={14} className="text-purple-400 hover:text-purple-300 cursor-help" />
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                            {/* Previous turn feedback shown under interviewer message */}
+                            {message.feedback && <FeedbackCard feedback={message.feedback} id={`live-int-${idx}`} />}
                           </div>
                         )}
                       </div>
@@ -763,51 +849,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                           <p className="text-sm">{message.text}</p>
                         )}
                       </div>
-                      {message.feedback && (
-                        <div className="flex flex-col gap-2">
-                          <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(message.feedback.rating)}`}>
-                            <span className="font-semibold uppercase">{message.feedback.rating}</span>
-                          </div>
-                          {/* Icons row for feedback details */}
-                          <div className="flex items-center gap-2">
-                            {/* Rating indicator */}
-                            <div title={message.feedback.rating}>
-                              <Circle
-                                size={16}
-                                className={`fill-current ${
-                                  message.feedback.rating === 'excellent' || message.feedback.rating === 'good'
-                                    ? 'text-green-400'
-                                    : message.feedback.rating === 'solid'
-                                    ? 'text-yellow-400'
-                                    : 'text-red-400'
-                                }`}
-                              />
-                            </div>
-                            {/* Thinking/Comment icon */}
-                            <div title={message.feedback.comment}>
-                              <Lightbulb size={16} className="text-blue-400 hover:text-blue-300 cursor-help" />
-                            </div>
-                            {/* Context note icon */}
-                            {message.feedback.context?.conversationNote && (
-                              <div title={message.feedback.context.conversationNote}>
-                                <MessageCircle size={16} className="text-purple-400 hover:text-purple-300 cursor-help" />
-                              </div>
-                            )}
-                            {/* Job requirement icon */}
-                            {message.feedback.context?.jobRequirement && (
-                              <div title={message.feedback.context.jobRequirement}>
-                                <Circle size={16} className="text-orange-400 hover:text-orange-300 cursor-help opacity-75" />
-                              </div>
-                            )}
-                            {/* Resume skill icon */}
-                            {message.feedback.context?.resumeSkill && (
-                              <div title={message.feedback.context.resumeSkill}>
-                                <Circle size={16} className="text-cyan-400 hover:text-cyan-300 cursor-help opacity-75" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      {message.feedback && <FeedbackCard feedback={message.feedback} id={`live-usr-${idx}`} />}
                     </div>
                   )}
                 </div>
@@ -872,9 +914,10 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 </button>
                 <button
                   onClick={() => endInterview(true)}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors"
+                  disabled={isSummarizing}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 rounded text-sm transition-colors flex items-center gap-1"
                 >
-                  Complete
+                  {isSummarizing ? 'Summarising...' : 'Complete'}
                 </button>
                 <button
                   onClick={() => endInterview(false)}
@@ -892,7 +935,60 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
           <div className="flex flex-col h-full">
             {/* Chat Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Review: {reviewSession.metadata.jobTitle}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Review: {reviewSession.metadata.jobTitle}</h2>
+
+              {reviewSession.summary && (
+                <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 space-y-3">
+                  <div className="flex justify-center">
+                    <video
+                      ref={lineGraphRef}
+                      src={lineGraphIcon}
+                      muted
+                      playsInline
+                      className="h-32 w-32"
+                    />
+                  </div>
+                  {/* Average stars */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(n => {
+                        const avg = reviewSession.summary!.averageRating
+                        const meta = ratingMeta(avg >= 4.5 ? 'excellent' : avg >= 3.5 ? 'good' : avg >= 2.5 ? 'solid' : avg >= 1.5 ? 'fair' : 'weak')
+                        return <Star key={n} size={14} className={n <= Math.round(avg) ? `fill-current ${meta.color}` : 'text-gray-300'} />
+                      })}
+                    </div>
+                    <span className="text-sm font-medium text-gray-600">
+                      {reviewSession.summary.averageRating.toFixed(1)} overall
+                    </span>
+                  </div>
+                  {/* Areas of strength */}
+                  {reviewSession.summary.areasOfStrength.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Strengths</p>
+                      <ul className="space-y-1">
+                        {reviewSession.summary.areasOfStrength.map((s, i) => (
+                          <li key={i} className="text-sm text-gray-700 flex gap-2">
+                            <span className="text-green-500 shrink-0">+</span>{s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Areas of improvement */}
+                  {reviewSession.summary.areasOfImprovement.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">To Improve</p>
+                      <ul className="space-y-1">
+                        {reviewSession.summary.areasOfImprovement.map((s, i) => (
+                          <li key={i} className="text-sm text-gray-700 flex gap-2">
+                            <span className="text-orange-400 shrink-0">↑</span>{s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {reviewSession.feedback.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
@@ -945,51 +1041,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                           <div className="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
                             <p className="text-sm">{feedback.userResponseText || 'User response'}</p>
                           </div>
-                          {feedback.feedback && (
-                            <div className="flex flex-col gap-2">
-                              <div className={`text-xs px-3 py-2 rounded-xl ${getFeedbackColor(feedback.feedback.rating)}`}>
-                                <span className="font-semibold uppercase">{feedback.feedback.rating}</span>
-                              </div>
-                              {/* Icons row for feedback details */}
-                              <div className="flex items-center gap-2">
-                                {/* Rating indicator */}
-                                <div title={feedback.feedback.rating}>
-                                  <Circle
-                                    size={16}
-                                    className={`fill-current ${
-                                      feedback.feedback.rating === 'excellent' || feedback.feedback.rating === 'good'
-                                        ? 'text-green-400'
-                                        : feedback.feedback.rating === 'solid'
-                                        ? 'text-yellow-400'
-                                        : 'text-red-400'
-                                    }`}
-                                  />
-                                </div>
-                                {/* Thinking/Comment icon */}
-                                <div title={feedback.feedback.comment}>
-                                  <Lightbulb size={16} className="text-blue-400 hover:text-blue-300 cursor-help" />
-                                </div>
-                                {/* Context note icon */}
-                                {feedback.feedback.context?.conversationNote && (
-                                  <div title={feedback.feedback.context.conversationNote}>
-                                    <MessageCircle size={16} className="text-purple-400 hover:text-purple-300 cursor-help" />
-                                  </div>
-                                )}
-                                {/* Job requirement icon */}
-                                {feedback.feedback.context?.jobRequirement && (
-                                  <div title={feedback.feedback.context.jobRequirement}>
-                                    <Circle size={16} className="text-orange-400 hover:text-orange-300 cursor-help opacity-75" />
-                                  </div>
-                                )}
-                                {/* Resume skill icon */}
-                                {feedback.feedback.context?.resumeSkill && (
-                                  <div title={feedback.feedback.context.resumeSkill}>
-                                    <Circle size={16} className="text-cyan-400 hover:text-cyan-300 cursor-help opacity-75" />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                          {feedback.feedback && <FeedbackCard feedback={feedback.feedback} id={`review-${idx}`} />}
                           {/* Audio playback button for user response */}
                           <button
                             onClick={async () => {
