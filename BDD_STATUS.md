@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 26 scenario(s) across 12 test file(s).
+Checked 27 scenario(s) across 12 test file(s).
 
 
 ## Feature: remove login
@@ -10,6 +10,7 @@ Checked 26 scenario(s) across 12 test file(s).
 ## Feature: better API key errors
 
 - [x] clear API key error message
+- [x] no API key badge only shows when no keys are configured
 
 ## Feature: mock interview sessions
 
@@ -57,4 +58,4 @@ Checked 26 scenario(s) across 12 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**26/26 scenarios covered.**
+**27/27 scenarios covered.**
