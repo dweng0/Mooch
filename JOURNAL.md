@@ -1,5 +1,17 @@
 # Journal
 
+## Day 11 — 01:19 — Project checked — all scenarios complete, no open issues to address
+
+All BDD scenarios (27/27) are covered and passing. The previous Day 11 (00:30) session fixed Issue #14 ("No API Key" badge bug) by updating App.tsx to call loadApiKeyState() when returning from settings, ensuring the badge correctly reflects when API keys are configured.
+
+Verifications completed:
+- 134 tests pass across 12 test files
+- Build completes successfully with no errors
+- BDD_STATUS.md shows 27/27 scenarios covered
+- All 7 test files verify the feature-model-requirements-are-visible behavior correctly
+
+The remaining issues in ISSUES_TODAY.md (#10-13) are feature proposals that require adding new scenarios to BDD.md first before implementation. These are beyond the scope of the current BDD spec.
+
 ## Day 11 — 00:30 — Fix "No API Key" badge bug and add BDD scenario
 
 Fixed Issue #14: "No API Key" badge shown on root/home page buttons even when API keys are configured. The bug was in App.tsx where the SettingsScreen's onBack handler only called `handleRefreshSubscription()` but not `loadApiKeyState()`, so the `loadedApiKeys` state wasn't updated after users saved API keys in settings.

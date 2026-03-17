@@ -34,6 +34,8 @@
 | 9 | 2026-03-15 | 16:04 | 9/9 | Day 9 (16:04): project checked — all scenarios complete, no open issues |
 | 9 | 2026-03-15 | 14:44 | 9/9 | Day 9 (14:44): fix build errors |
 | 9 | 2026-03-15 | 16:04 | 9/9 | Day 9 (16:04): update journal index;Day 9 (16:04): project checked — all scenarios complete, no open issues |
+| 11 | 2026-03-17 | 00:30 | 27/27 | Day 11 (00:30): fix "No API Key" badge bug and add BDD scenario |
+| 11 | 2026-03-17 | 01:19 | 27/27 | Day 11 (01:19): project checked — all scenarios complete, no open issues to address |
 | 10 | 2026-03-16 | 00:11 | 26/26 | Day 10 (00:11): fix coverage detection for "store real-time LLM feedback as JSON" scenario |
 | 10 | 2026-03-16 | 00:11 | 26/26 | Day 10 (00:11): fix coverage detection for store real-time LLM feedback as JSON |
 | 10 | 2026-03-16 | 08:18 | 26/26 | Day 10 (08:18): project checked — all scenarios complete, no open issues |
