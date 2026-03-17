@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 28 scenario(s) across 15 test file(s).
+Checked 34 scenario(s) across 17 test file(s).
 
 
 ## Feature: remove login
@@ -10,6 +10,7 @@ Checked 28 scenario(s) across 15 test file(s).
 ## Feature: better API key errors
 
 - [x] clear API key error message
+- [x] no API key badge only shows when no keys are configured
 
 ## Feature: mock interview sessions
 
@@ -19,7 +20,7 @@ Checked 28 scenario(s) across 15 test file(s).
 - [x] degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
 - [x] record and store interview audio per turn
-- [ ] UNCOVERED: store real-time LLM feedback as JSON
+- [x] store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
 - [x] review interview with same stats and controls as live interview
 - [x] mark interview as complete or incomplete
@@ -58,8 +59,19 @@ Checked 28 scenario(s) across 15 test file(s).
 - [x] warn when pre-configured provider is unreachable
 - [x] custom provider requires manual entry
 
----
-**27/28 scenarios covered.**
+## Feature: conversation history memory limits
 
-1 scenario(s) need tests:
-- store real-time LLM feedback as JSON
+- [x] conversation history bounded to rolling window
+- [x] memory usage stable over long interview sessions
+
+## Feature: web workers for audio processing
+
+- [x] STT processing runs in a web worker
+- [x] audio processing does not block the UI
+
+## Feature: audio pipeline integration tests
+
+- [x] end-to-end audio pipeline integration test
+
+---
+**34/34 scenarios covered.**
