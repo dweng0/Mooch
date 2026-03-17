@@ -33,6 +33,7 @@ type CodeSnapshotState = 'idle' | 'selecting-window' | 'awaiting-voice' | 'analy
 export default function App() {
 
   // ── Auth state ─────────────────────────────────────────────────────────────
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [authState, setAuthState] = useState<AuthState>('loading')
   const [hasApiKey, setHasApiKey] = useState(false)
   const [loadedApiKeys, setLoadedApiKeys] = useState<UserApiKeys>({})
@@ -769,19 +770,58 @@ export default function App() {
     return <SubscribeScreen onRefresh={handleRefreshSubscription} onApiKeySet={handleApiKeySet} />
   }
 
+  // ── Exit button (shown on every screen) ────────────────────────────────────
+
+  const exitButton = (
+    <button
+      onClick={() => setShowExitConfirm(true)}
+      className="fixed bottom-3 right-3 p-1.5 rounded-full bg-black hover:bg-red-600 text-white transition-colors z-50"
+      title="Exit app"
+    >
+      <Power size={12} />
+    </button>
+  )
+
+  const exitDialog = showExitConfirm && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl p-6 flex flex-col items-center gap-4 min-w-[220px]">
+        <Power size={28} className="text-red-500" />
+        <p className="text-gray-800 font-medium">Really exit?</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowExitConfirm(false)}
+            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => window.electronAPI.quitApp()}
+            className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm transition-colors"
+          >
+            Exit
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   // ── Service selection ──────────────────────────────────────────────────────
 
   if (appView === 'select') {
     return (
-      <ServiceSelection
-        onSelect={handleSelectMode}
-        onSettings={() => setAppView('settings')}
-        apiUrl={apiUrl}
-        cvName={cvName}
-        jobDescName={jobDescName}
-        manualContext={manualContext}
-        apiKeys={loadedApiKeys}
-      />
+      <>
+        <ServiceSelection
+          onSelect={handleSelectMode}
+          onSettings={() => setAppView('settings')}
+          apiUrl={apiUrl}
+          cvName={cvName}
+          jobDescName={jobDescName}
+          manualContext={manualContext}
+          apiKeys={loadedApiKeys}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
     )
   }
 
@@ -789,23 +829,27 @@ export default function App() {
 
   if (appView === 'settings') {
     return (
-      <SettingsScreen
-        onBack={async () => {
-          // Refresh subscription status to pick up any new API keys
-          await handleRefreshSubscription().catch(() => {})
-          // Also refresh API keys that may have been updated in settings
-          await loadApiKeyState().catch(() => {})
-          setAppView('select')
-        }}
-        cvName={cvName}
-        jobDescName={jobDescName}
-        manualContext={manualContext}
-        onLoadCV={handleLoadCV}
-        onLoadJobDesc={handleLoadJobDesc}
-        onClearCV={() => { setCv(''); setCvName('') }}
-        onClearJobDesc={() => { setJobDesc(''); setJobDescName('') }}
-        onManualContextChange={setManualContext}
-      />
+      <>
+        <SettingsScreen
+          onBack={async () => {
+            // Refresh subscription status to pick up any new API keys
+            await handleRefreshSubscription().catch(() => {})
+            // Also refresh API keys that may have been updated in settings
+            await loadApiKeyState().catch(() => {})
+            setAppView('select')
+          }}
+          cvName={cvName}
+          jobDescName={jobDescName}
+          manualContext={manualContext}
+          onLoadCV={handleLoadCV}
+          onLoadJobDesc={handleLoadJobDesc}
+          onClearCV={() => { setCv(''); setCvName('') }}
+          onClearJobDesc={() => { setJobDesc(''); setJobDescName('') }}
+          onManualContextChange={setManualContext}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
     )
   }
 
@@ -813,9 +857,13 @@ export default function App() {
 
   if (appView === 'mock') {
     return (
-      <MockInterviewScreen
-        onBack={() => setAppView('select')}
-      />
+      <>
+        <MockInterviewScreen
+          onBack={() => setAppView('select')}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
     )
   }
 
@@ -1305,6 +1353,8 @@ export default function App() {
           onCancel={handleCancelCodeSnapshot}
         />
       )}
+      {exitButton}
+      {exitDialog}
     </div>
   )
 }

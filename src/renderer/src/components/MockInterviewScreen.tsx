@@ -6,6 +6,7 @@ import reachGoalIcon from '../assets/proposed_images/Reach_Goal.webm'
 import determineProjectIcon from '../assets/proposed_images/Determine_Project.webm'
 import handTimeIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Time.webm'
 import lineGraphIcon from '../assets/proposed_images/08- Line Graph.webm'
+import dataCollectionIcon from '../assets/proposed_images/Data_Collection.webm'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
 interface MockInterviewScreenProps {
@@ -745,12 +746,12 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
             )}
 
             {sessions.length === 0 ? (
-              <div className="text-center py-12 flex flex-col items-center gap-4">
-                <video src={handTargetIcon} autoPlay loop muted playsInline className="h-24 w-24" />
-                <p className="text-gray-500">No interview sessions yet</p>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center flex flex-col items-center gap-4">
+                <video src={dataCollectionIcon} autoPlay muted playsInline className="h-32 w-32" />
+                <h3 className="text-xl font-semibold text-gray-800">No interview sessions yet</h3>
                 <button
                   onClick={() => setView('setup')}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors text-sm font-medium cursor-pointer"
                 >
                   Create First Session
                 </button>
@@ -1126,6 +1127,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         {/* Hidden audio element for TTS playback */}
         <audio ref={audioRef} className="hidden" />
       </div>
+
     </div>
   )
 }

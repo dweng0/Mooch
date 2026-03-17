@@ -11,9 +11,6 @@ vi.mock('./assets/Visual.webm', () => ({ default: '' }))
 vi.mock('./assets/Web_Development.webm', () => ({ default: '' }))
 vi.mock('./assets/Photo_Editor.webm', () => ({ default: '' }))
 vi.mock('./assets/Rocket.webm', () => ({ default: '' }))
-vi.mock('./assets/Presentation.webm', () => ({ default: '' }))
-vi.mock('./assets/Idea.webm', () => ({ default: '' }))
-vi.mock('./assets/Responsive_Design.webm', () => ({ default: '' }))
 
 // Mock ServiceSelection to expose callbacks as clickable buttons
 vi.mock('./components/ServiceSelection', () => ({
