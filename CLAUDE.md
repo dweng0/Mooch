@@ -44,7 +44,7 @@ When the user asks to "evolve", "run an evolution session", or "implement the ne
 6. Write the minimum code to make it pass
 7. Run build and tests: check the commands from BDD.md frontmatter
 8. If checks fail: fix, try again up to 3 times; revert if still broken
-9. Commit: `git add -A && git commit -m "Day X: <short description>"`
+9. Commit: `git add -A && git commit -m "YYYY-MM-DD HH:MM: <short description>"`
 10. (Claude Code only) If the implemented scenario came from a GitHub issue, comment on it with `gh issue comment <N> --body "Implemented in <commit hash>"` and close it with `gh issue close <N>`.
 11. Update `BDD_STATUS.md`: `python3 scripts/check_bdd_coverage.py BDD.md > BDD_STATUS.md`
 12. Ask the user if they want to continue to the next scenario

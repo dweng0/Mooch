@@ -367,8 +367,8 @@ def run_anthropic_loop(api_key, model, system_prompt, prompt, mode):
     messages = [{"role": "user", "content": prompt}]
 
     iteration = 0
-    max_iterations = 50
-    wrap_up_at = 45
+    max_iterations = 75
+    wrap_up_at = 70
     wrap_up_injected = False
 
     while iteration < max_iterations:
@@ -424,8 +424,8 @@ def run_openai_loop(client, model, system_prompt, prompt, mode):
     ]
 
     iteration = 0
-    max_iterations = 50
-    wrap_up_at = 45
+    max_iterations = 75
+    wrap_up_at = 70
     wrap_up_injected = False
 
     while iteration < max_iterations:

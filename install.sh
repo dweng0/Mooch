@@ -77,6 +77,17 @@ if [[ "$FORCE_UPDATE" == true ]]; then
   echo "Updating BAADD: ${CURRENT} → ${VERSION}"
   echo ""
 
+  # Archive existing journals before overwriting
+  if [[ -f "JOURNAL.md" ]]; then
+    cp JOURNAL.md "JOURNAL_archive_v${CURRENT}.md"
+    echo "  Archived JOURNAL.md → JOURNAL_archive_v${CURRENT}.md"
+  fi
+  if [[ -f "JOURNAL_INDEX.md" ]]; then
+    cp JOURNAL_INDEX.md "JOURNAL_INDEX_archive_v${CURRENT}.md"
+    echo "  Archived JOURNAL_INDEX.md → JOURNAL_INDEX_archive_v${CURRENT}.md"
+  fi
+  echo ""
+
   while IFS= read -r file; do
     download "$file"
   done < <(read_manifest_files)
@@ -86,6 +97,13 @@ if [[ "$FORCE_UPDATE" == true ]]; then
 
   echo ""
   echo "BAADD updated to ${VERSION}."
+  echo "Previous journals archived as:"
+  if [[ -f "JOURNAL_archive_v${CURRENT}.md" ]]; then
+    echo "  - JOURNAL_archive_v${CURRENT}.md"
+  fi
+  if [[ -f "JOURNAL_INDEX_archive_v${CURRENT}.md" ]]; then
+    echo "  - JOURNAL_INDEX_archive_v${CURRENT}.md"
+  fi
 
 # ── Init mode ─────────────────────────────────────────────────────────────────
 else

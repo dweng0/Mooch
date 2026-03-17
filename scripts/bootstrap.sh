@@ -44,6 +44,16 @@ if ! command -v timeout &>/dev/null; then
     command -v gtimeout &>/dev/null && TIMEOUT_CMD="gtimeout" || TIMEOUT_CMD=""
 fi
 
+# ── Ensure journal files exist before agent runs ──
+if [ ! -f JOURNAL.md ]; then
+    echo "→ Creating JOURNAL.md..."
+    printf "# Journal\n" > JOURNAL.md
+fi
+if [ ! -f JOURNAL_INDEX.md ]; then
+    echo "→ Creating JOURNAL_INDEX.md..."
+    printf "# Journal Index\n\n| Day | Date | Time | Coverage | Summary |\n|-----|------|------|----------|---------|\n" > JOURNAL_INDEX.md
+fi
+
 # ── Run bootstrap agent session ──
 echo "→ Starting bootstrap session..."
 echo ""
