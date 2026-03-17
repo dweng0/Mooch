@@ -7,6 +7,7 @@ import OpenAI from 'openai'
 
 const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 const DEFAULT_MODEL = 'qwen-max'
+const MAX_HISTORY_ENTRIES = 30
 
 export interface InterviewConfig {
   sessionId: string
@@ -98,6 +99,11 @@ export class InterviewOrchestrator {
         role: 'assistant',
         content: nextQuestion,
       })
+
+      // Trim history to rolling window to keep memory usage bounded
+      if (this.conversationHistory.length > MAX_HISTORY_ENTRIES) {
+        this.conversationHistory = this.conversationHistory.slice(-MAX_HISTORY_ENTRIES)
+      }
 
       // Update transcript
       const transcript = await this.buildTranscript()

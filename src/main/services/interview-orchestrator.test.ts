@@ -272,6 +272,46 @@ describe('Interview Orchestrator', () => {
     })
   })
 
+  describe('Conversation history memory limits', () => {
+    beforeEach(async () => {
+      const config: InterviewConfig = {
+        sessionId: 'session-123',
+        llmProvider: 'openai',
+        ttsConfig: {
+          provider: 'cosyvoice',
+          apiKey: 'key',
+        },
+        jobDescription: 'Role',
+        resume: 'Resume',
+      }
+
+      await orchestrator.startRealTimeVoiceInterview(config)
+    })
+
+    it('conversation history bounded to rolling window - keeps at most 30 entries', async () => {
+      // 16 turns × 2 messages (user + assistant) = 32 entries, which should be capped at 30
+      for (let i = 1; i <= 16; i++) {
+        await orchestrator.processUserResponse(`Turn ${i} response`)
+      }
+
+      const history = orchestrator.getConversationHistory()
+      expect(history.length).toBeLessThanOrEqual(30)
+    })
+
+    it('memory usage stable over long interview sessions - history does not grow unboundedly', async () => {
+      // Process many turns and verify history stays bounded
+      for (let i = 1; i <= 40; i++) {
+        await orchestrator.processUserResponse(`Response ${i}`)
+      }
+
+      const history = orchestrator.getConversationHistory()
+      expect(history.length).toBeLessThanOrEqual(30)
+      // Most recent entries should be present
+      const lastEntry = history[history.length - 1]
+      expect(lastEntry.role).toBe('assistant')
+    })
+  })
+
   describe('Error handling and recovery', () => {
     beforeEach(async () => {
       const config: InterviewConfig = {

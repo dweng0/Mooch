@@ -173,3 +173,34 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the user selects "Custom" from the provider dropdown
             Then they should be able to manually enter the provider URL as before
 
+    Feature: conversation history memory limits
+
+        Scenario: conversation history bounded to rolling window
+            Given the user is in a long interview session
+            When the conversation history exceeds 30 turns
+            Then the app should truncate older turns keeping only the most recent 30 entries so memory usage remains bounded
+
+        Scenario: memory usage stable over long interview sessions
+            Given the user has been in an interview for more than 60 minutes
+            When many conversation turns have accumulated
+            Then memory consumption should remain stable and not grow unboundedly
+
+    Feature: web workers for audio processing
+
+        Scenario: STT processing runs in a web worker
+            Given the app is processing audio input
+            When speech-to-text transcription is performed
+            Then the processing should run in a web worker so the UI thread remains responsive
+
+        Scenario: audio processing does not block the UI
+            Given the app is handling real-time audio
+            When STT, TTS buffering, or format conversion is occurring
+            Then the main UI thread should not be blocked and the interface should remain interactive
+
+    Feature: audio pipeline integration tests
+
+        Scenario: end-to-end audio pipeline integration test
+            Given the app's audio pipeline components (STT, LLM, TTS)
+            When tested end-to-end with mock providers
+            Then the integration test suite should verify the complete flow from audio input through LLM processing to TTS output
+
