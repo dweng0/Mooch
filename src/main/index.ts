@@ -425,10 +425,12 @@ ipcMain.handle('get-available-providers', async () => {
   return getAvailableProviders()
 })
 
-ipcMain.handle('get-interview-providers', async () => {
+ipcMain.handle('get-interview-providers', async (_event, preferredLlm?: string) => {
   const keys = loadApiKeys()
   const available = getAvailableProviders()
-  const llm = available.length > 0 ? available[0] : null
+  const llm = preferredLlm && available.includes(preferredLlm as AIProvider)
+    ? preferredLlm
+    : available.length > 0 ? available[0] : null
 
   let tts: string | null = null
   if (keys.localTtsUrl) tts = 'local'

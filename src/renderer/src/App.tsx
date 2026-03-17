@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, ChevronDown, Info, Power, Mic, Headphones, Settings2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Info, Power, Mic, Headphones, Settings2, Brain } from 'lucide-react'
+import { Tooltip } from 'react-tooltip'
 import TranscriptPanel from './components/TranscriptPanel'
 import AnswerPanel from './components/AnswerPanel'
 import SubscribeScreen from './components/SubscribeScreen'
@@ -1233,6 +1234,37 @@ export default function App() {
               Upgrade Plan
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Provider badges */}
+      {isGeneralOrCode && (
+        <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 justify-center">
+          <span
+            data-tooltip-id="badge-llm"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 cursor-default"
+          >
+            <Brain size={12} />
+            LLM: {selectedProvider === 'claude' ? 'Claude' : selectedProvider === 'gemini' ? 'Gemini' : selectedProvider === 'openai' ? 'OpenAI' : selectedProvider === 'qwen' ? 'Qwen' : selectedProvider === 'custom' ? 'Local' : selectedProvider}
+          </span>
+          <Tooltip id="badge-llm" content="Language model used to generate answers" place="bottom" className="max-w-[220px] text-xs !rounded-lg" />
+
+          <span
+            data-tooltip-id="badge-stt"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 cursor-default"
+          >
+            <Mic size={12} />
+            STT: {loadedApiKeys.preferredSttProvider
+              ? loadedApiKeys.preferredSttProvider === 'local' ? 'Local'
+                : loadedApiKeys.preferredSttProvider === 'custom' ? 'Local'
+                : loadedApiKeys.preferredSttProvider === 'openai' ? 'OpenAI'
+                : loadedApiKeys.preferredSttProvider.charAt(0).toUpperCase() + loadedApiKeys.preferredSttProvider.slice(1)
+              : loadedApiKeys.openaiApiKey ? 'OpenAI'
+              : loadedApiKeys.geminiApiKey ? 'Gemini'
+              : loadedApiKeys.qwenApiKey ? 'Qwen'
+              : 'Server'}
+          </span>
+          <Tooltip id="badge-stt" content="Speech-to-text provider used for transcription" place="bottom" className="max-w-[220px] text-xs !rounded-lg" />
         </div>
       )}
 

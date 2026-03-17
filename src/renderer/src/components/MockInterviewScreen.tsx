@@ -76,7 +76,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
   useEffect(() => {
     if (view === 'setup') {
-      window.electronAPI.getInterviewProviders().then(setInterviewProviders).catch(() => {})
+      const storedByok = localStorage.getItem('byok_provider')
+      const preferred = storedByok === 'anthropic' ? 'claude'
+        : storedByok === 'gemini' ? 'gemini'
+        : storedByok === 'openai' ? 'openai'
+        : storedByok === 'qwen' ? 'qwen'
+        : storedByok === 'custom' ? 'custom'
+        : undefined
+      window.electronAPI.getInterviewProviders(preferred).then(setInterviewProviders).catch(() => {})
     }
   }, [view])
 
@@ -570,18 +577,21 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 <h2 className="text-xl font-semibold text-gray-800 mt-2">Prepare for Your Interview</h2>
                 {interviewProviders && (
                   <div className="flex flex-wrap gap-2 mt-3 justify-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                    <span data-tooltip-id="mock-badge-llm" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 cursor-default">
                       <Brain size={12} />
-                      LLM: {interviewProviders.llm ?? 'none'}
+                      LLM: {interviewProviders.llm === 'custom' ? 'Local' : interviewProviders.llm === 'openai' ? 'OpenAI' : interviewProviders.llm ? interviewProviders.llm.charAt(0).toUpperCase() + interviewProviders.llm.slice(1) : 'none'}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                    <Tooltip id="mock-badge-llm" content="Language model used for the interviewer" place="bottom" className="max-w-[220px] text-xs !rounded-lg" />
+                    <span data-tooltip-id="mock-badge-stt" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 cursor-default">
                       <Mic size={12} />
-                      STT: {interviewProviders.stt ?? 'none'}
+                      STT: {interviewProviders.stt === 'custom' || interviewProviders.stt === 'local' ? 'Local' : interviewProviders.stt === 'openai' ? 'OpenAI' : interviewProviders.stt ? interviewProviders.stt.charAt(0).toUpperCase() + interviewProviders.stt.slice(1) : 'none'}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <Tooltip id="mock-badge-stt" content="Speech-to-text provider used for transcription" place="bottom" className="max-w-[220px] text-xs !rounded-lg" />
+                    <span data-tooltip-id="mock-badge-tts" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default">
                       <Volume2 size={12} />
-                      TTS: {interviewProviders.tts ?? 'none'}
+                      TTS: {interviewProviders.tts === 'local' ? 'Local' : interviewProviders.tts === 'cosyvoice' ? 'CosyVoice' : interviewProviders.tts ? interviewProviders.tts.charAt(0).toUpperCase() + interviewProviders.tts.slice(1) : 'none'}
                     </span>
+                    <Tooltip id="mock-badge-tts" content="Text-to-speech provider for the interviewer's voice" place="bottom" className="max-w-[220px] text-xs !rounded-lg" />
                   </div>
                 )}
               </div>
