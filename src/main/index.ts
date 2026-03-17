@@ -1,6 +1,8 @@
 import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, screen } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
+import * as fs from 'fs/promises'
+import { PDFParse } from 'pdf-parse'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
 import { transcribeAudio } from './services/transcribe'
@@ -8,6 +10,9 @@ import { getAnswer, getAvailableProviders } from './services/ai-provider'
 import { analyzeCodeSnapshot } from './services/claude'
 import { analyzeCodeSnapshotQwen } from './services/qwen'
 import { analyzeCodeSnapshotCustom, testCustomProvider } from './services/openai-compat'
+import { InterviewSessionManager } from './services/interview-session'
+import { TTSProviderManager } from './services/tts-provider'
+import { InterviewOrchestrator } from './services/interview-orchestrator'
 import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
@@ -20,12 +25,17 @@ let cachedWindowSources: DesktopCapturerSource[] = []
 let cacheTimestamp = 0
 const CACHE_DURATION_MS = 30000 // 30 seconds
 
+// Interview services
+const sessionManager = new InterviewSessionManager()
+const ttsManager = new TTSProviderManager()
+const interviewOrchestrator = new InterviewOrchestrator(sessionManager, ttsManager)
+
 function createWindow(): void {
   const { width: screenWidth, height: screenHeight } =
     require('electron').screen.getPrimaryDisplay().workAreaSize
 
   const winWidth = 500
-  const winHeight = 760
+  const winHeight = 920
 
   mainWindow = new BrowserWindow({
     width: winWidth,
@@ -77,7 +87,7 @@ ipcMain.handle('get-api-keys', async () => {
   return loadApiKeys()
 })
 
-ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => {
+ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => {
   const keys = loadApiKeys()
   if (provider === 'anthropic') {
     keys.anthropicApiKey = apiKey
@@ -87,12 +97,20 @@ ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 
     keys.openaiApiKey = apiKey
   } else if (provider === 'qwen') {
     keys.qwenApiKey = apiKey
+  } else if (provider === 'cosyvoice') {
+    keys.cosyvoiceApiKey = apiKey
   }
   saveApiKeys(keys)
 })
 
-ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => {
-  clearApiKey(provider)
+ipcMain.handle('clear-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice') => {
+  const keys = loadApiKeys()
+  if (provider === 'cosyvoice') {
+    delete keys.cosyvoiceApiKey
+    saveApiKeys(keys)
+  } else {
+    clearApiKey(provider)
+  }
 })
 
 ipcMain.handle('set-qwen-model', async (_event, model: string) => {
@@ -113,7 +131,82 @@ ipcMain.handle('clear-custom-provider', async () => {
   saveApiKeys(keys)
 })
 
-ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => {
+ipcMain.handle('set-local-tts', async (_event, url: string, model?: string) => {
+  const keys = loadApiKeys()
+  keys.localTtsUrl = url
+  keys.localTtsModel = model || undefined
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('clear-local-tts', async () => {
+  const keys = loadApiKeys()
+  delete keys.localTtsUrl
+  delete keys.localTtsModel
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('set-local-stt', async (_event, url: string, model?: string) => {
+  const keys = loadApiKeys()
+  keys.localSttUrl = url
+  keys.localSttModel = model || undefined
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('clear-local-stt', async () => {
+  const keys = loadApiKeys()
+  delete keys.localSttUrl
+  delete keys.localSttModel
+  saveApiKeys(keys)
+})
+
+ipcMain.handle('test-local-tts', async (_event, url: string, model?: string): Promise<ArrayBuffer | null> => {
+  const testManager = new TTSProviderManager()
+  testManager.setConfig({ provider: 'local', baseUrl: url, model: model || undefined })
+  try {
+    const response = await testManager.synthesize('Hello, this is a test.')
+    if (!response.audioBuffer) return null
+    return response.audioBuffer.buffer.slice(response.audioBuffer.byteOffset, response.audioBuffer.byteOffset + response.audioBuffer.byteLength)
+  } catch (error) {
+    console.error('[TTS Test]', error instanceof Error ? error.message : error)
+    return null
+  }
+})
+
+ipcMain.handle('test-local-stt', async (_event, url: string, model?: string): Promise<{ ok: boolean; message: string }> => {
+  // Build a minimal 0.1s silence WAV (16kHz mono 16-bit PCM)
+  const sampleRate = 16000
+  const numSamples = Math.floor(sampleRate * 0.1)
+  const dataBytes = numSamples * 2 // 16-bit = 2 bytes per sample
+  const wavBuffer = Buffer.alloc(44 + dataBytes)
+  wavBuffer.write('RIFF', 0)
+  wavBuffer.writeUInt32LE(36 + dataBytes, 4)
+  wavBuffer.write('WAVE', 8)
+  wavBuffer.write('fmt ', 12)
+  wavBuffer.writeUInt32LE(16, 16)       // PCM chunk size
+  wavBuffer.writeUInt16LE(1, 20)        // PCM format
+  wavBuffer.writeUInt16LE(1, 22)        // mono
+  wavBuffer.writeUInt32LE(sampleRate, 24)
+  wavBuffer.writeUInt32LE(sampleRate * 2, 28) // byte rate
+  wavBuffer.writeUInt16LE(2, 32)        // block align
+  wavBuffer.writeUInt16LE(16, 34)       // bits per sample
+  wavBuffer.write('data', 36)
+  wavBuffer.writeUInt32LE(dataBytes, 40)
+  // samples remain zero (silence)
+
+  try {
+    const OpenAI = (await import('openai')).default
+    const client = new OpenAI({ apiKey: 'no-key', baseURL: url, timeout: 30000 })
+    const file = new File([wavBuffer], 'test.wav', { type: 'audio/wav' })
+    await client.audio.transcriptions.create({ model: model || 'whisper-1', file, response_format: 'text' })
+    return { ok: true, message: 'STT server responded successfully' }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const isTimeout = msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')
+    return { ok: false, message: isTimeout ? 'Timed out after 30s — model may still be loading, try again' : msg }
+  }
+})
+
+ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null) => {
   const keys = loadApiKeys()
   keys.preferredSttProvider = provider ?? undefined
   saveApiKeys(keys)
@@ -121,6 +214,17 @@ ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' 
 
 ipcMain.handle('test-custom-provider', async (_event, config: CustomProviderConfig) => {
   return testCustomProvider(config)
+})
+
+ipcMain.handle('list-custom-provider-models', async (_event, baseUrl: string) => {
+  try {
+    const res = await fetch(`${baseUrl}/models`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.data ?? []).map((m: { id: string }) => m.id).filter(Boolean)
+  } catch {
+    return []
+  }
 })
 
 ipcMain.handle('get-auth-status', async () => {
@@ -145,6 +249,167 @@ ipcMain.handle('open-external-url', async (_event, url: string) => {
 })
 
 // ---------------------------------------------------------------------------
+// Interview IPC handlers
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('interview-create-session', async (_event, jobDescription: string, resume: string) => {
+  const keys = loadApiKeys()
+  console.log('[IPC] interview-create-session received', {
+    hasCosyvoiceKey: !!keys.cosyvoiceApiKey,
+    availableLlmProviders: getAvailableProviders(),
+    hasCustomProvider: !!keys.customProvider?.baseUrl,
+  })
+
+  // Select a random voice for this session
+  const voices = ['Cherry', 'Ethan', 'Kai', 'Ryan', 'Aiden', 'Jennifer']
+  const randomVoice = voices[Math.floor(Math.random() * voices.length)]
+
+  // Configure TTS — prefer local > cosyvoice
+  let ttsConfig: Parameters<typeof ttsManager.setConfig>[0] | undefined
+  if (keys.localTtsUrl) {
+    console.log('[IPC] Configuring TTS with local provider:', keys.localTtsUrl)
+    ttsConfig = { provider: 'local', baseUrl: keys.localTtsUrl, model: keys.localTtsModel }
+  } else if (keys.cosyvoiceApiKey) {
+    console.log('[IPC] Configuring TTS with Qwen3 TTS, voice:', randomVoice)
+    ttsConfig = { provider: 'cosyvoice', apiKey: keys.cosyvoiceApiKey, model: 'qwen3-tts-flash', voice: randomVoice }
+  } else {
+    console.log('[IPC] No TTS configured, falling back to browser speech synthesis')
+  }
+  if (ttsConfig) ttsManager.setConfig(ttsConfig)
+
+  // Create session (this will throw if no LLM provider is configured)
+  const metadata = await sessionManager.createSession(jobDescription, resume)
+  console.log('[IPC] Session created:', metadata.sessionId)
+
+  // Start orchestrator with the session
+  await interviewOrchestrator.startRealTimeVoiceInterview({
+    sessionId: metadata.sessionId,
+    llmProvider: getFirstProvider(keys),
+    jobDescription,
+    resume,
+    ttsConfig
+  })
+  return metadata
+})
+
+ipcMain.handle('interview-list-sessions', async () => {
+  return sessionManager.listSessions()
+})
+
+ipcMain.handle('interview-get-session', async (_event, sessionId: string) => {
+  return sessionManager.getSession(sessionId)
+})
+
+ipcMain.handle('interview-generate-opener', async (_event, sessionId: string) => {
+  return interviewOrchestrator.generateOpener()
+})
+
+ipcMain.handle('interview-process-turn', async (_event, sessionId: string, userText: string, audioBuffer?: ArrayBuffer) => {
+  // Save user audio if provided
+  if (audioBuffer) {
+    try {
+      await interviewOrchestrator.saveUserAudio(Buffer.from(audioBuffer))
+      console.log('[Interview] Saved user audio for turn')
+    } catch (err) {
+      console.warn('[Interview] Failed to save user audio:', err)
+      // Continue processing even if audio save fails
+    }
+  }
+  return interviewOrchestrator.processUserResponse(userText)
+})
+
+ipcMain.handle('interview-end-session', async (_event, sessionId: string, isComplete: boolean) => {
+  return interviewOrchestrator.endInterview(isComplete)
+})
+
+ipcMain.handle('interview-generate-summary', async (_event, sessionId: string) => {
+  return interviewOrchestrator.generateSummary(sessionId)
+})
+
+ipcMain.handle('interview-delete-session', async (_event, sessionId: string) => {
+  return sessionManager.deleteSession(sessionId)
+})
+
+ipcMain.handle('interview-delete-all-sessions', async () => {
+  console.log('[Interview] Starting delete all sessions')
+  try {
+    await sessionManager.deleteAllSessions()
+    console.log('[Interview] Delete all sessions completed')
+  } catch (err) {
+    console.error('[Interview] Delete all sessions failed:', err)
+    throw err
+  }
+})
+
+ipcMain.handle('interview-synthesize', async (_event, text: string) => {
+  if (!ttsManager.getConfig()) {
+    console.warn('[TTS IPC] No TTS config set')
+    return null
+  }
+  try {
+    console.log('[TTS IPC] Synthesizing text:', text.substring(0, 50) + '...')
+    const response = await ttsManager.synthesize(text)
+    if (!response.audioBuffer) {
+      console.warn('[TTS IPC] No audio buffer in response')
+      return null
+    }
+    console.log('[TTS IPC] Synthesis successful, returning buffer:', response.audioBuffer.length, 'bytes')
+
+    // Save the question audio to the current session for later playback during review
+    if (interviewOrchestrator.getSessionId()) {
+      try {
+        await interviewOrchestrator.saveQuestionAudio(response.audioBuffer)
+        console.log('[TTS IPC] Saved question audio to session')
+      } catch (saveError) {
+        console.warn('[TTS IPC] Failed to save question audio:', saveError)
+        // Don't fail the entire synthesis if saving fails
+      }
+    }
+
+    return response.audioBuffer.buffer.slice(response.audioBuffer.byteOffset, response.audioBuffer.byteOffset + response.audioBuffer.byteLength)
+  } catch (error) {
+    console.error('[TTS IPC] Synthesis failed:', error instanceof Error ? error.message : error)
+    if (error instanceof Error) {
+      console.error('[TTS IPC] Stack:', error.stack)
+    }
+    return null
+  }
+})
+
+ipcMain.handle('interview-get-audio', async (_event, sessionId: string, turn: number, type: 'question' | 'response') => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const os = require('os')
+
+    const SESSIONS_DIR = path.join(os.homedir(), '.mooch', 'interview-sessions')
+    const sessionPath = path.join(SESSIONS_DIR, `interview-${sessionId}`)
+    const filename = type === 'question' ? `question-turn-${turn}.wav` : `user-turn-${turn}.wav`
+    const audioPath = path.join(sessionPath, 'audio', filename)
+
+    if (!fs.existsSync(audioPath)) {
+      console.warn('[Interview Audio] File not found:', audioPath)
+      return null
+    }
+
+    const audioBuffer = fs.readFileSync(audioPath)
+    return audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength)
+  } catch (error) {
+    console.error('[Interview Audio] Failed to read audio:', error)
+    return null
+  }
+})
+
+// Helper to get the first available LLM provider
+function getFirstProvider(keys: any): AIProvider {
+  const available = getAvailableProviders()
+  if (available.length === 0) {
+    throw new Error('No LLM provider configured. Please set an API key in Settings.')
+  }
+  return available[0]
+}
+
+// ---------------------------------------------------------------------------
 // Copilot IPC handlers (direct API calls)
 // ---------------------------------------------------------------------------
 
@@ -158,6 +423,34 @@ ipcMain.handle('get-answer', async (_event, question: string, provider: AIProvid
 
 ipcMain.handle('get-available-providers', async () => {
   return getAvailableProviders()
+})
+
+ipcMain.handle('get-interview-providers', async () => {
+  const keys = loadApiKeys()
+  const available = getAvailableProviders()
+  const llm = available.length > 0 ? available[0] : null
+
+  let tts: string | null = null
+  if (keys.localTtsUrl) tts = 'local'
+  else if (keys.cosyvoiceApiKey) tts = 'cosyvoice'
+  else tts = 'browser'
+
+  let stt: string | null = null
+  if (keys.preferredSttProvider) {
+    stt = keys.preferredSttProvider
+  } else if (keys.localSttUrl) {
+    stt = 'local'
+  } else if (keys.openaiApiKey) {
+    stt = 'openai'
+  } else if (keys.geminiApiKey) {
+    stt = 'gemini'
+  } else if (keys.qwenApiKey) {
+    stt = 'qwen'
+  } else if (keys.customProvider?.sttEnabled) {
+    stt = 'custom'
+  }
+
+  return { llm, tts, stt }
 })
 
 ipcMain.handle('analyze-code-snapshot', async (_event, imageBase64: string, context?: string) => {
@@ -429,8 +722,24 @@ ipcMain.handle('load-text-file', async () => {
   })
   if (result.canceled || result.filePaths.length === 0) return null
   const filePath = result.filePaths[0]
-  const content = readFileSync(filePath, 'utf-8')
   const name = filePath.split(/[\\/]/).pop() ?? ''
+
+  // Handle PDF files separately
+  if (filePath.toLowerCase().endsWith('.pdf')) {
+    try {
+      const pdfBuffer = await fs.readFile(filePath)
+      const parser = new PDFParse({ data: pdfBuffer })
+      const data = await parser.getText()
+      await parser.destroy()
+      return { name, content: data.text }
+    } catch (err) {
+      console.error('Failed to parse PDF:', err)
+      throw new Error('Failed to extract text from PDF')
+    }
+  }
+
+  // For text files, read as UTF-8
+  const content = readFileSync(filePath, 'utf-8')
   return { name, content }
 })
 

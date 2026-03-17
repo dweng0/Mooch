@@ -2,7 +2,7 @@ export type AIProvider = 'claude' | 'gemini' | 'openai' | 'qwen' | 'custom'
 export type AudioSource = 'microphone' | 'system'
 export type TextSize = 'small' | 'medium' | 'large' | 'extra-large'
 export type OAuthProvider = 'google' | 'github' | 'discord'
-export type TTSProvider = 'cosyvoice' | 'openai' | 'elevenlabs'
+export type TTSProvider = 'cosyvoice' | 'openai' | 'elevenlabs' | 'local'
 
 export interface OAuthUser {
   loggedIn: boolean
@@ -32,13 +32,20 @@ export interface UserApiKeys {
   qwenApiKey?: string
   qwenModel?: string
   customProvider?: CustomProviderConfig
-  preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom'
+  preferredSttProvider?: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local'
+  cosyvoiceApiKey?: string
+  localTtsUrl?: string
+  localTtsModel?: string
+  localSttUrl?: string
+  localSttModel?: string
 }
 
 export interface InterviewFeedback {
   turn: number
   timestamp: string
   audioFile: string
+  questionAudioFile?: string
+  llmQuestion: string
   userResponseText: string
   feedback: {
     rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
@@ -58,6 +65,13 @@ export interface InterviewSessionMetadata {
   jobTitle: string
   isComplete: boolean
   totalTurns: number
+  averageRating?: number
+}
+
+export interface InterviewSummary {
+  averageRating: number // 1–5
+  areasOfImprovement: string[]
+  areasOfStrength: string[]
 }
 
 export interface InterviewSession {
@@ -66,7 +80,21 @@ export interface InterviewSession {
   resume: string
   transcript: string
   feedback: InterviewFeedback[]
+  summary?: InterviewSummary
 }
+
+export interface InterviewTurn {
+  turn: number
+  userText: string
+  llmQuestion: string
+  llmFeedback: {
+    rating: 'excellent' | 'good' | 'solid' | 'fair' | 'weak'
+    comment: string
+    context?: { jobRequirement?: string; resumeSkill?: string; conversationNote?: string }
+  }
+}
+
+export type InterviewStatus = 'idle' | 'analyzing' | 'questioning' | 'thinking' | 'formulating' | 'speaking' | 'responding' | 'listening' | 'processing' | 'complete'
 
 export interface WindowSource {
   id: string
@@ -109,6 +137,7 @@ export interface ElectronAPI {
   transcribeAudio: (buffer: ArrayBuffer) => Promise<string>
   getAnswer: (question: string, provider: AIProvider, context: UserContext) => Promise<string>
   getAvailableProviders: () => Promise<AIProvider[]>
+  getInterviewProviders: () => Promise<{ llm: string | null; tts: string | null; stt: string | null }>
   analyzeCodeSnapshot: (imageBase64: string, context?: string) => Promise<string>
   captureScreen: () => Promise<string>
   getWindowSources: () => Promise<WindowSource[]>
@@ -125,17 +154,34 @@ export interface ElectronAPI {
   getApiUrl: () => Promise<string>
   // API Keys
   getApiKeys: () => Promise<UserApiKeys>
-  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen', apiKey: string) => Promise<void>
-  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen') => Promise<void>
+  setApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => Promise<void>
+  clearApiKey: (provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice') => Promise<void>
+  setLocalTts: (url: string, model?: string) => Promise<void>
+  clearLocalTts: () => Promise<void>
+  testLocalTts: (url: string, model?: string) => Promise<ArrayBuffer | null>
+  setLocalStt: (url: string, model?: string) => Promise<void>
+  clearLocalStt: () => Promise<void>
+  testLocalStt: (url: string, model?: string) => Promise<{ ok: boolean; message: string }>
   setQwenModel: (model: string) => Promise<void>
   // Custom provider
   setCustomProvider: (config: CustomProviderConfig) => Promise<void>
   clearCustomProvider: () => Promise<void>
-  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null) => Promise<void>
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null) => Promise<void>
   testCustomProvider: (config: CustomProviderConfig) => Promise<{ reasoning: boolean; stt: boolean }>
   // Hotkeys
   onHotkeyRecordStart: (callback: () => void) => () => void
   onHotkeyRecordStop: (callback: () => void) => () => void
+  // Interview
+  interviewCreateSession: (jobDescription: string, resume: string) => Promise<InterviewSessionMetadata>
+  interviewListSessions: () => Promise<InterviewSessionMetadata[]>
+  interviewGetSession: (sessionId: string) => Promise<InterviewSession | null>
+  interviewGenerateOpener: (sessionId: string) => Promise<string>
+  interviewProcessTurn: (sessionId: string, userText: string) => Promise<InterviewTurn>
+  interviewEndSession: (sessionId: string, isComplete: boolean) => Promise<void>
+  interviewDeleteSession: (sessionId: string) => Promise<void>
+  interviewDeleteAllSessions: () => Promise<void>
+  interviewSynthesize: (text: string) => Promise<ArrayBuffer | null>
+  interviewGetAudio: (sessionId: string, turn: number, type: 'question' | 'response') => Promise<ArrayBuffer | null>
 }
 
 declare global {

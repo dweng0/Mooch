@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
-import type { InterviewSession, InterviewSessionMetadata, InterviewFeedback } from '../../shared/types'
+import type { InterviewSession, InterviewSessionMetadata, InterviewFeedback, InterviewSummary } from '../../shared/types'
 
 const SESSIONS_DIR = path.join(os.homedir(), '.mooch', 'interview-sessions')
 
@@ -111,12 +111,18 @@ export class InterviewSessionManager {
       // Sort feedback by turn
       feedback.sort((a, b) => a.turn - b.turn)
 
+      const summaryPath = path.join(sessionPath, 'summary.json')
+      const summary: InterviewSummary | undefined = fs.existsSync(summaryPath)
+        ? JSON.parse(fs.readFileSync(summaryPath, 'utf-8'))
+        : undefined
+
       return {
         metadata,
         jobDescription,
         resume,
         transcript,
         feedback,
+        summary,
       }
     } catch (error) {
       console.error(`Failed to load session ${sessionId}:`, error)
@@ -135,6 +141,16 @@ export class InterviewSessionManager {
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
     metadata.updatedAt = new Date().toISOString()
     metadata.totalTurns = Math.max(metadata.totalTurns, feedback.turn)
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
+  }
+
+  async saveSummary(sessionId: string, summary: InterviewSummary): Promise<void> {
+    const sessionPath = this.getSessionPath(sessionId)
+    fs.writeFileSync(path.join(sessionPath, 'summary.json'), JSON.stringify(summary, null, 2))
+    // Cache averageRating in session metadata for quick listing
+    const metadataPath = path.join(sessionPath, 'session.json')
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
+    metadata.averageRating = summary.averageRating
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
@@ -160,6 +176,15 @@ export class InterviewSessionManager {
     return audioPath
   }
 
+  async saveQuestionAudio(sessionId: string, turn: number, audioBuffer: Buffer): Promise<string> {
+    const sessionPath = this.getSessionPath(sessionId)
+    const audioPath = path.join(sessionPath, 'audio', `question-turn-${turn}.wav`)
+
+    fs.writeFileSync(audioPath, audioBuffer)
+
+    return audioPath
+  }
+
   async markComplete(sessionId: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     const metadataPath = path.join(sessionPath, 'session.json')
@@ -169,6 +194,26 @@ export class InterviewSessionManager {
     metadata.updatedAt = new Date().toISOString()
 
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    const sessionPath = this.getSessionPath(sessionId)
+
+    if (fs.existsSync(sessionPath)) {
+      // Recursively delete the entire session directory and all files
+      fs.rmSync(sessionPath, { recursive: true, force: true })
+    }
+  }
+
+  async deleteAllSessions(): Promise<void> {
+    console.log('[SessionManager] Starting delete all sessions')
+    const sessions = await this.listSessions()
+    console.log('[SessionManager] Found', sessions.length, 'sessions to delete')
+    for (const session of sessions) {
+      console.log('[SessionManager] Deleting session:', session.sessionId)
+      await this.deleteSession(session.sessionId)
+    }
+    console.log('[SessionManager] Delete all sessions completed')
   }
 
   private extractJobTitle(jobDescription: string): string {

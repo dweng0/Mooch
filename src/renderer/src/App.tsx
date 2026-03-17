@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, ChevronDown, Info, Power } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Info, Power, Mic, Headphones, Settings2 } from 'lucide-react'
 import TranscriptPanel from './components/TranscriptPanel'
 import AnswerPanel from './components/AnswerPanel'
-import LoginScreen from './components/LoginScreen'
 import SubscribeScreen from './components/SubscribeScreen'
 import ServiceSelection, { type InterviewMode } from './components/ServiceSelection'
 import SettingsScreen from './components/SettingsScreen'
@@ -92,6 +91,7 @@ export default function App() {
         await loadApiKeyState()
         setAuthState('no-subscription')
       } else {
+        await loadApiKeyState()
         setAuthState('active')
         setProviders(status.availableProviders ?? [])
         const first = status.availableProviders?.[0]
@@ -272,12 +272,6 @@ export default function App() {
     }
   }
 
-  const handleLogout = async () => {
-    await window.electronAPI.logout()
-    setAppView('select')
-    setAuthState('logged-out')
-  }
-
   // Re-check subscription when user returns to the app (e.g. after subscribing in browser)
   const handleRefreshSubscription = async () => {
     const status = await window.electronAPI.getAuthStatus()
@@ -344,6 +338,11 @@ export default function App() {
   const [passiveSource, setPassiveSource] = useState<'microphone' | 'system'>('system')
   const passiveStatusRef = useRef(passiveStatus)
   passiveStatusRef.current = passiveStatus
+  const [vadThreshold, setVadThreshold] = useState<number>(() => {
+    const stored = localStorage.getItem('vad_threshold')
+    return stored ? Number(stored) : 10
+  })
+  const [vadSettingsOpen, setVadSettingsOpen] = useState(false)
 
   // ── Mock interview (live) state ────────────────────────────────────────────
   const liveServiceRef = useRef(new LiveInterviewService())
@@ -436,6 +435,7 @@ export default function App() {
     if (passiveStatusRef.current !== 'off') return
     setPassiveSource(audioSource)
     setError('')
+    passiveServiceRef.current.setThreshold(vadThreshold)
     await passiveServiceRef.current.start({
       audioSource,
       onTranscript: (text) => setTranscript(text),
@@ -465,11 +465,17 @@ export default function App() {
         setPassiveStatus('off')
       }
     })
-  }, [])
+  }, [vadThreshold])
 
   const stopPassiveListen = useCallback(() => {
     passiveServiceRef.current.stop()
     setPassiveStatus('off')
+  }, [])
+
+  const handleVadThresholdChange = useCallback((value: number) => {
+    setVadThreshold(value)
+    localStorage.setItem('vad_threshold', String(value))
+    passiveServiceRef.current.setThreshold(value)
   }, [])
 
   // Clean up passive listen on unmount
@@ -734,7 +740,7 @@ export default function App() {
 
   if (authState === 'loading') {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-900/85 rounded-2xl backdrop-blur-sm border border-white/10 shadow-2xl">
+      <div className="h-full flex items-center justify-center bg-white/90 rounded-2xl backdrop-blur-sm border border-gray-200 shadow-2xl">
         <p className="text-xs text-gray-500">Connecting...</p>
       </div>
     )
@@ -750,7 +756,6 @@ export default function App() {
     return <ServiceSelection
       onSelect={handleSelectMode}
       onSettings={() => setAppView('settings')}
-      onLogout={handleLogout}
       apiUrl={apiUrl}
       cvName={cvName}
       jobDescName={jobDescName}
@@ -760,7 +765,7 @@ export default function App() {
   }
 
   if (authState === 'no-subscription' && !hasApiKey) {
-    return <SubscribeScreen onLogout={handleLogout} onRefresh={handleRefreshSubscription} onApiKeySet={handleApiKeySet} />
+    return <SubscribeScreen onRefresh={handleRefreshSubscription} onApiKeySet={handleApiKeySet} />
   }
 
   // ── Service selection ──────────────────────────────────────────────────────
@@ -770,7 +775,6 @@ export default function App() {
       <ServiceSelection
         onSelect={handleSelectMode}
         onSettings={() => setAppView('settings')}
-        onLogout={handleLogout}
         apiUrl={apiUrl}
         cvName={cvName}
         jobDescName={jobDescName}
@@ -821,23 +825,23 @@ export default function App() {
   const isGeneralOrCode = appView === 'general' || appView === 'code'
 
   return (
-    <div className="h-full flex flex-col bg-gray-900/85 rounded-2xl backdrop-blur-sm border border-white/10 overflow-hidden shadow-2xl">
+    <div className="h-full flex flex-col bg-white/90 rounded-2xl backdrop-blur-sm border border-gray-200 overflow-hidden shadow-2xl">
       {/* Draggable title bar */}
-      <div className="drag-region px-4 py-3 border-b border-white/10">
+      <div className="drag-region px-4 py-3 border-b border-gray-200">
         {/* Top row: back + status | controls + logo */}
         <div className="flex items-center justify-between mb-3">
           <div className="no-drag flex items-center gap-2">
             <button
               onClick={handleBackToSelect}
-              className="p-1 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded transition-colors cursor-pointer"
+              className="p-1 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
               title="Back to mode selection"
             >
               <ArrowLeft size={14} />
             </button>
-            <span className="text-xs font-semibold text-gray-300">{modeLabel}</span>
+            <span className="text-xs font-semibold text-gray-700">{modeLabel}</span>
             {apiUrl && <StatusIndicator apiUrl={apiUrl} />}
             {status !== 'idle' && (
-              <span className="text-xs text-gray-400 capitalize">{status}...</span>
+              <span className="text-xs text-gray-500 capitalize">{status}...</span>
             )}
             {status === 'idle' && mockStatus !== 'off' && (
               <span className="text-xs text-green-400 capitalize">{mockStatus}...</span>
@@ -861,7 +865,7 @@ export default function App() {
             <select
               value={textSize}
               onChange={(e) => setTextSize(e.target.value as TextSize)}
-              className="bg-gray-800 text-gray-300 text-xs rounded-md px-2 py-1.5 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+              className="bg-gray-100 text-gray-700 text-xs rounded-md px-2 py-1.5 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="small">S</option>
               <option value="medium">M</option>
@@ -873,7 +877,7 @@ export default function App() {
               <select
                 value={selectedProvider}
                 onChange={(e) => setSelectedProvider(e.target.value as AIProvider)}
-                className="bg-gray-800 text-gray-300 text-xs rounded-md px-2 py-1.5 border border-white/10 outline-none focus:border-blue-500 cursor-pointer"
+                className="bg-gray-100 text-gray-700 text-xs rounded-md px-2 py-1.5 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
               >
                 {providers.map((p) => (
                   <option key={p} value={p}>
@@ -882,7 +886,7 @@ export default function App() {
                 ))}
               </select>
             ) : providers.length === 1 ? (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 font-medium">
                 {providers[0] === 'claude' ? 'Claude' : providers[0] === 'gemini' ? 'Gemini' : providers[0] === 'qwen' ? 'Qwen' : providers[0] === 'custom' ? 'Custom' : 'OpenAI'}
               </span>
             ) : null}
@@ -891,25 +895,24 @@ export default function App() {
             <div ref={logoMenuRef} className="relative ml-1">
               <button
                 onClick={() => setLogoMenuOpen(o => !o)}
-                className="flex items-center gap-0.5 p-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                className="flex items-center gap-0.5 p-0.5 rounded hover:bg-gray-100 transition-colors cursor-pointer"
                 title="Menu"
               >
-                <img src={bunnyLogo} alt="Mooch" className="h-7 w-7" />
                 <ChevronDown size={10} className="text-gray-400" />
               </button>
 
               {logoMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-40 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
                   <button
                     onClick={() => { setLogoMenuOpen(false); setShowAbout(true) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                   >
                     <Info size={13} />
                     About
                   </button>
                   <button
                     onClick={() => window.electronAPI.quitApp()}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-gray-100 transition-colors cursor-pointer"
                   >
                     <Power size={13} />
                     Quit
@@ -923,13 +926,13 @@ export default function App() {
         {/* About modal */}
         {showAbout && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAbout(false)}>
-            <div className="bg-gray-800 border border-white/10 rounded-xl p-6 shadow-2xl text-center w-56" onClick={e => e.stopPropagation()}>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-2xl text-center w-56" onClick={e => e.stopPropagation()}>
               <img src={bunnyLogo} alt="Mooch" className="h-14 w-14 mx-auto mb-3" />
-              <p className="text-white font-semibold text-sm">Interview Co-Pilot</p>
-              <p className="text-gray-400 text-xs mt-1">Version {appVersion}</p>
+              <p className="text-gray-900 font-semibold text-sm">Interview Co-Pilot</p>
+              <p className="text-gray-500 text-xs mt-1">Version {appVersion}</p>
               <button
                 onClick={() => setShowAbout(false)}
-                className="mt-4 px-4 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded-lg transition-colors cursor-pointer"
+                className="mt-4 px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs rounded-lg transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -938,7 +941,7 @@ export default function App() {
         )}
 
         {/* Mode buttons */}
-        <div className="no-drag flex items-end gap-2 flex-wrap">
+        <div className="no-drag flex items-end justify-center gap-2 flex-wrap">
 
           {/* General + Code: passive listen buttons */}
           {isGeneralOrCode && (
@@ -958,14 +961,14 @@ export default function App() {
                   min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
                   ${passiveStatus !== 'off' && passiveSource === 'system'
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
-                    : 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
                   }
                 `}
                 title="Passively listen to system audio and auto-answer detected questions"
               >
                 <span className="flex flex-col items-center gap-1">
-                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><video src={iconPassiveSys} autoPlay muted playsInline className="h-9 w-9" /></span>
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
                   <span className="text-[11px] leading-tight">
                     {(passiveStatus === 'off' || passiveSource !== 'system') && 'Passive Sys'}
                     {passiveStatus === 'listening' && passiveSource === 'system' && 'Listening...'}
@@ -989,14 +992,14 @@ export default function App() {
                   min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
                   ${passiveStatus !== 'off' && passiveSource === 'microphone'
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
-                    : 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
                   }
                 `}
                 title="Passively listen to microphone and auto-answer detected questions"
               >
                 <span className="flex flex-col items-center gap-1">
-                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><video src={iconPassiveMic} autoPlay muted playsInline className="h-9 w-9" /></span>
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
                   <span className="text-[11px] leading-tight">
                     {(passiveStatus === 'off' || passiveSource !== 'microphone') && 'Passive Mic'}
                     {passiveStatus === 'listening' && passiveSource === 'microphone' && 'Listening...'}
@@ -1030,14 +1033,14 @@ export default function App() {
                   min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
                   ${audioSource === 'microphone' && status === 'recording'
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25'
-                    : 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
                   }
                 `}
                 title="Record from microphone"
               >
                 <span className="flex flex-col items-center gap-1">
-                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><video src={iconMic} autoPlay muted playsInline className="h-9 w-9" /></span>
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Mic size={24} className="text-gray-800" /></span>
                   <span className="text-[11px] leading-tight">
                     {audioSource === 'microphone' && status === 'recording' ? 'Stop' : 'Mic'}
                   </span>
@@ -1066,19 +1069,46 @@ export default function App() {
                   min-w-[64px] px-2 py-2 rounded-xl font-medium transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
                   ${audioSource === 'system' && status === 'recording'
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25'
-                    : 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25'
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-lg border border-gray-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
                   }
                 `}
                 title="Record system audio"
               >
                 <span className="flex flex-col items-center gap-1">
-                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><video src={iconSystem} autoPlay muted playsInline className="h-9 w-9" /></span>
+                  <span className="flex items-center justify-center h-10 w-10 rounded-lg bg-white"><Headphones size={24} className="text-gray-800" /></span>
                   <span className="text-[11px] leading-tight">
                     {audioSource === 'system' && status === 'recording' ? 'Stop' : 'System'}
                   </span>
                 </span>
               </button>
+
+              {/* Passive settings — cog on its own row, expands below */}
+              <div className="w-full flex flex-col items-center gap-2 pt-1">
+                <button
+                  onClick={() => setVadSettingsOpen((o) => !o)}
+                  className={`flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer ${vadSettingsOpen ? 'text-gray-700' : ''}`}
+                  title="Adjust passive listen sensitivity"
+                >
+                  <Settings2 size={13} />
+                  <span className="text-[11px]">Passive Settings</span>
+                </button>
+                {vadSettingsOpen && (
+                  <div className="w-full flex items-center gap-2 px-2">
+                    <span className="text-[11px] text-gray-600 whitespace-nowrap">Sensitivity</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={50}
+                      value={vadThreshold}
+                      onChange={(e) => handleVadThresholdChange(Number(e.target.value))}
+                      className="flex-1 h-1 accent-purple-500 cursor-pointer"
+                      title={`VAD threshold: ${vadThreshold} (lower = more sensitive)`}
+                    />
+                    <span className="text-[11px] text-gray-600 w-5 text-right">{vadThreshold}</span>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -1213,23 +1243,16 @@ export default function App() {
         passiveProcessing={passiveStatus === 'processing'}
       />
 
-      <div className="px-4 py-2 border-t border-white/10 flex items-center justify-between">
+      <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between">
         {isGeneralOrCode ? (
           <p className="text-[10px] text-gray-500 flex-1 text-center">
-            Hold <kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400">Ctrl+Shift+Space</kbd> to record
+            Hold <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-600">Ctrl+Shift+Space</kbd> to record
           </p>
         ) : (
           <p className="text-[10px] text-gray-500 flex-1 text-center">
             Speak naturally — AI answers after each question
           </p>
         )}
-        <button
-          onClick={handleLogout}
-          title="Sign out"
-          className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
-        >
-          ⏻
-        </button>
       </div>
 
       {/* Window Picker Modal */}

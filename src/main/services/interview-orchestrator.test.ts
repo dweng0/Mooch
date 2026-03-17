@@ -3,6 +3,29 @@ import { InterviewOrchestrator, type InterviewConfig } from './interview-orchest
 import { TTSProviderManager } from './tts-provider'
 import type { InterviewSessionManager } from './interview-session'
 
+// Mock the api-keys module
+vi.mock('./api-keys', () => ({
+  loadApiKeys: () => ({
+    qwenApiKey: 'mock-qwen-key',
+    qwenModel: 'qwen-max',
+  }),
+}))
+
+// Mock OpenAI
+vi.mock('openai', () => {
+  return {
+    default: class MockOpenAI {
+      chat = {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: JSON.stringify({ next_question: 'What is your experience?', feedback: { rating: 'good', comment: 'Good start' } }) } }],
+          }),
+        },
+      }
+    }
+  }
+})
+
 describe('Interview Orchestrator', () => {
   let orchestrator: InterviewOrchestrator
   let mockSessionManager: Partial<InterviewSessionManager>
@@ -17,6 +40,7 @@ describe('Interview Orchestrator', () => {
 
     mockTtsManager = {
       setConfig: vi.fn(),
+      getConfig: vi.fn().mockReturnValue({ provider: 'cosyvoice', apiKey: 'test' }),
       synthesize: vi.fn().mockResolvedValue({ audioBuffer: Buffer.from('audio'), mimeType: 'audio/wav' }),
     }
 
@@ -45,7 +69,7 @@ describe('Interview Orchestrator', () => {
       expect(mockTtsManager.setConfig).toHaveBeenCalledWith(config.ttsConfig)
     })
 
-    it('should throw error if TTS provider not configured', async () => {
+    it('should degrade gracefully if TTS provider not configured', async () => {
       const config: InterviewConfig = {
         sessionId: 'session-123',
         llmProvider: 'openai',
@@ -53,9 +77,10 @@ describe('Interview Orchestrator', () => {
         resume: 'Resume',
       }
 
-      await expect(orchestrator.startRealTimeVoiceInterview(config)).rejects.toThrow(
-        'TTS provider not configured'
-      )
+      // Should not throw - just warn
+      await orchestrator.startRealTimeVoiceInterview(config)
+
+      expect(orchestrator.getCurrentTurn()).toBe(0)
     })
 
     it('should initialize conversation history', async () => {
@@ -117,10 +142,22 @@ describe('Interview Orchestrator', () => {
       )
     })
 
-    it('should synthesize LLM response with TTS', async () => {
+    it('should save feedback with the question being responded to', async () => {
+      // First, generate an opener to add a question to history
+      await orchestrator.generateOpener()
+
+      // Now process a response
       await orchestrator.processUserResponse('Test response')
 
-      expect(mockTtsManager.synthesize).toHaveBeenCalled()
+      // Verify feedback was saved with the question being responded to
+      expect(mockSessionManager.saveFeedback).toHaveBeenCalledWith(
+        'session-123',
+        expect.objectContaining({
+          turn: 1,
+          llmQuestion: 'What is your experience?', // This is the question from the mock opener
+          userResponseText: 'Test response',
+        })
+      )
     })
 
     it('should update transcript with each turn', async () => {

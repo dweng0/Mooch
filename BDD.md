@@ -64,6 +64,11 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the user clicks "Review"
             Then the app should load the session's metadata and feedback JSON files, play audio files in sequence, and display corresponding feedback alongside playback as each audio file plays
 
+        Scenario: review interview with same stats and controls as live interview
+            Given the user is reviewing a completed interview session
+            When the user views the review page
+            Then the review page should display with the same layout as the live interview, showing feedback icons (rating indicator, thinking icon, context icons) below each message and audio playback buttons for both user responses and interviewer questions
+
         Scenario: mark interview as complete or incomplete
             Given an interview session is in progress or has ended
             When the LLM determines the interview is complete (or the user ends it)
@@ -78,6 +83,13 @@ System: a tool we call mooch, that helps users during interview by listening and
             Given an interview is in progress
             When a provider fails (STT, LLM, or TTS timeout/error)
             Then the app should save all progress collected so far (transcript, audio, feedback) and display an error message allowing the user to resume later
+
+        Scenario: delete all interview sessions
+            Given the user is on the mock interview sessions page
+            When the user clicks "Delete All Sessions"
+            Then the app should display a confirmation dialog
+            And when the user confirms the deletion
+            Then all interview sessions should be deleted and the sessions list should be empty
 
     Feature: TTS provider support
 

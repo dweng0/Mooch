@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig } from '../shared/types'
+import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary } from '../shared/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getAvailableProviders: (): Promise<AIProvider[]> => {
     return ipcRenderer.invoke('get-available-providers')
+  },
+  getInterviewProviders: (): Promise<{ llm: string | null; tts: string | null; stt: string | null }> => {
+    return ipcRenderer.invoke('get-interview-providers')
   },
   analyzeCodeSnapshot: (imageBase64: string, context?: string): Promise<string> => {
     return ipcRenderer.invoke('analyze-code-snapshot', imageBase64, context)
@@ -96,11 +99,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearCustomProvider: (): Promise<void> => {
     return ipcRenderer.invoke('clear-custom-provider')
   },
-  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | null): Promise<void> => {
+  setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null): Promise<void> => {
     return ipcRenderer.invoke('set-stt-provider', provider)
+  },
+  setLocalTts: (url: string, model?: string): Promise<void> => {
+    return ipcRenderer.invoke('set-local-tts', url, model)
+  },
+  clearLocalTts: (): Promise<void> => {
+    return ipcRenderer.invoke('clear-local-tts')
+  },
+  testLocalTts: (url: string, model?: string): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('test-local-tts', url, model)
+  },
+  setLocalStt: (url: string, model?: string): Promise<void> => {
+    return ipcRenderer.invoke('set-local-stt', url, model)
+  },
+  clearLocalStt: (): Promise<void> => {
+    return ipcRenderer.invoke('clear-local-stt')
+  },
+  testLocalStt: (url: string, model?: string): Promise<{ ok: boolean; message: string }> => {
+    return ipcRenderer.invoke('test-local-stt', url, model)
   },
   testCustomProvider: (config: CustomProviderConfig): Promise<{ reasoning: boolean; stt: boolean }> => {
     return ipcRenderer.invoke('test-custom-provider', config)
+  },
+  listCustomProviderModels: (baseUrl: string): Promise<string[]> => {
+    return ipcRenderer.invoke('list-custom-provider-models', baseUrl)
   },
 
   // ── Hotkey events ─────────────────────────────────────────────────────────
@@ -123,5 +147,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event: any, status: AuthStatus) => callback(status)
     ipcRenderer.on('auth:status', handler)
     return () => { ipcRenderer.removeListener('auth:status', handler) }
+  },
+
+  // ── Interview ─────────────────────────────────────────────────────────────
+  interviewCreateSession: (jobDescription: string, resume: string): Promise<InterviewSessionMetadata> => {
+    return ipcRenderer.invoke('interview-create-session', jobDescription, resume)
+  },
+  interviewListSessions: (): Promise<InterviewSessionMetadata[]> => {
+    return ipcRenderer.invoke('interview-list-sessions')
+  },
+  interviewGetSession: (sessionId: string): Promise<InterviewSession | null> => {
+    return ipcRenderer.invoke('interview-get-session', sessionId)
+  },
+  interviewGenerateOpener: (sessionId: string): Promise<string> => {
+    return ipcRenderer.invoke('interview-generate-opener', sessionId)
+  },
+  interviewProcessTurn: (sessionId: string, userText: string, audioBuffer?: ArrayBuffer): Promise<InterviewTurn> => {
+    return ipcRenderer.invoke('interview-process-turn', sessionId, userText, audioBuffer)
+  },
+  interviewEndSession: (sessionId: string, isComplete: boolean): Promise<void> => {
+    return ipcRenderer.invoke('interview-end-session', sessionId, isComplete)
+  },
+  interviewGenerateSummary: (sessionId: string): Promise<InterviewSummary> => {
+    return ipcRenderer.invoke('interview-generate-summary', sessionId)
+  },
+  interviewDeleteSession: (sessionId: string): Promise<void> => {
+    return ipcRenderer.invoke('interview-delete-session', sessionId)
+  },
+  interviewSynthesize: (text: string): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('interview-synthesize', text)
+  },
+  interviewGetAudio: (sessionId: string, turn: number, type: 'question' | 'response'): Promise<ArrayBuffer | null> => {
+    return ipcRenderer.invoke('interview-get-audio', sessionId, turn, type)
+  },
+  interviewDeleteAllSessions: (): Promise<void> => {
+    return ipcRenderer.invoke('interview-delete-all-sessions')
   }
 })

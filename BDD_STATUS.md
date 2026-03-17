@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 26 scenario(s) across 12 test file(s).
+Checked 28 scenario(s) across 15 test file(s).
 
 
 ## Feature: remove login
@@ -21,9 +21,11 @@ Checked 26 scenario(s) across 12 test file(s).
 - [x] record and store interview audio per turn
 - [ ] UNCOVERED: store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
+- [x] review interview with same stats and controls as live interview
 - [x] mark interview as complete or incomplete
 - [x] resume incomplete interview session
 - [x] graceful failure recovery during interview
+- [x] delete all interview sessions
 
 ## Feature: TTS provider support
 
@@ -57,7 +59,7 @@ Checked 26 scenario(s) across 12 test file(s).
 - [x] custom provider requires manual entry
 
 ---
-**25/26 scenarios covered.**
+**27/28 scenarios covered.**
 
 1 scenario(s) need tests:
 - store real-time LLM feedback as JSON
