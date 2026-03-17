@@ -1,5 +1,19 @@
 # Journal
 
+## Day 11 — 08:28 — Project checked — all 27 scenarios complete
+
+BDD review confirms 27/27 scenarios are covered and passing:
+- All 134 tests pass
+- Build completes successfully
+- Feature model requirements correctly displayed on ServiceSelection cards
+- No API key badge logic verified (shows only when no keys configured)
+
+The Issue #14 "No API Key badge" bug was addressed in Day 11 (00:30) session. Current tests confirm badge correctly hides when any LLM API key is present.
+
+ISSUES_TODAY.md contains 5 feature proposals (#10-14) that would require adding new BDD scenarios before implementation. These are out of scope for the current spec.
+
+Next session: Update BDD.md to add any desired scenarios from ISSUES_TODAY.md, then implement.
+
 ## Day 11 — 01:19 — Project checked — all scenarios complete, no open issues to address
 
 All BDD scenarios (27/27) are covered and passing. The previous Day 11 (00:30) session fixed Issue #14 ("No API Key" badge bug) by updating App.tsx to call loadApiKeyState() when returning from settings, ensuring the badge correctly reflects when API keys are configured.
