@@ -62,9 +62,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install setuptools (macOS Python 3.12+ drops distutils, needed by node-gyp)
-        if: matrix.os == 'macos-latest'
+      - name: Install setuptools (Python 3.12+ drops distutils, needed by node-gyp)
+        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
         run: pip3 install setuptools --break-system-packages
+
+      - name: Install setuptools (Windows)
+        if: matrix.os == 'windows-latest'
+        run: pip install setuptools
 
       - name: Package
         run: npx electron-builder ${{ matrix.args }} --publish never
