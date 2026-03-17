@@ -22,6 +22,11 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the API key returns an error
             Then the error message should clearly indicate whether it is a token limit issue or another problem
 
+        Scenario: no API key badge only shows when no keys are configured
+            Given the user has configured API keys in settings
+            When the user navigates back to the service selection screen
+            Then the "No API key" badge should not appear on any mode cards
+
     Feature: mock interview sessions
 
         Scenario: create new interview session with job description and resume

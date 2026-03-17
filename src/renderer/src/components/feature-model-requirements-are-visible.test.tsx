@@ -64,4 +64,19 @@ describe('feature model requirements are visible', () => {
     const unavailable = screen.queryAllByTestId('feature-unavailable')
     expect(unavailable.length).toBe(0)
   })
+
+  /**
+   * Scenario: no API key badge only shows when no keys are configured
+   * Given the user has configured API keys in settings
+   * When the user navigates back to the service selection screen
+   * Then the "No API key" badge should not appear on any mode cards
+   */
+  it('should not show badge after API keys are configured (simulating settings save)', () => {
+    // Simulate the scenario where settings save API keys and user returns to service selection
+    const apiKeysAfterSave: UserApiKeys = { anthropicApiKey: 'sk-ant-test-key' }
+    render(React.createElement(ServiceSelection, { ...defaultProps, apiKeys: apiKeysAfterSave }))
+
+    const unavailable = screen.queryAllByTestId('feature-unavailable')
+    expect(unavailable.length).toBe(0)
+  })
 })

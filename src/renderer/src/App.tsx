@@ -789,9 +789,11 @@ export default function App() {
   if (appView === 'settings') {
     return (
       <SettingsScreen
-        onBack={() => {
+        onBack={async () => {
           // Refresh subscription status to pick up any new API keys
-          handleRefreshSubscription().catch(() => {})
+          await handleRefreshSubscription().catch(() => {})
+          // Also refresh API keys that may have been updated in settings
+          await loadApiKeyState().catch(() => {})
           setAppView('select')
         }}
         cvName={cvName}
