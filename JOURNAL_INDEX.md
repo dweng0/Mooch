@@ -45,3 +45,4 @@
 | 11 | 2026-03-17 | 01:19 | 27/27 | Day 11 (01:19): project checked — all scenarios complete, no open issues to address |
 | 11 | 2026-03-17 | 08:28 | 27/27 | Day 11 (08:28): update journal index;Day 11 (08:28): project checked — all 27 scenarios complete |
 | 11 | 2026-03-17 | 16:21 | 27/27 | Day 11 (16:21): project checked — all 27 scenarios complete |
+| 2026-03-17 | 21:55 | 34/34 | cover 4 BDD scenarios (web workers + audio pipeline) |
