@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, Mic, MicOff, Volume2, Send, X, Trash2, Circle, Lightbulb, MessageCircle, Maximize2, Minimize2, FileText } from 'lucide-react'
 import handTargetIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Target.webm'
+import reachGoalIcon from '../assets/proposed_images/Reach_Goal.webm'
+import determineProjectIcon from '../assets/proposed_images/Determine_Project.webm'
 import handTimeIcon from '../assets/proposed_images/Hands_General_WEBM/Hand_Holding_Time.webm'
 import type { InterviewSessionMetadata, InterviewSession, InterviewStatus, InterviewTurn } from '../../../shared/types'
 
@@ -456,10 +458,17 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       <div className="flex-1 overflow-y-auto">
         {/* Setup View */}
         {view === 'setup' && (
-          <div className="p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold mb-6">Prepare for Your Interview</h2>
+          <div className="p-6 space-y-4">
+            {/* Header panel */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
+              <div className="flex flex-col items-center">
+                <video src={determineProjectIcon} autoPlay muted playsInline className="h-32 w-32 flex-shrink-0" />
+                <h2 className="text-xl font-semibold text-gray-800 mt-2">Prepare for Your Interview</h2>
+              </div>
+            </div>
 
-            <div className="space-y-6">
+            {/* Inputs panel */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 space-y-5">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resume / CV</label>
                 {resume ? (
@@ -527,22 +536,22 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
               </div>
 
               {error && (
-                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">
                   {error}
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setView('sessions')}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-sm text-gray-700"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors text-sm text-gray-700 cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   onClick={createSession}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors disabled:opacity-50 text-sm font-medium cursor-pointer"
                 >
                   {isLoading ? 'Creating...' : 'Start Interview'}
                 </button>
@@ -554,13 +563,16 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
         {/* Sessions View */}
         {view === 'sessions' && (
           <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold">Interview Sessions</h2>
-              <div className="flex gap-2">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 mb-6">
+              <div className="flex flex-col items-center mb-4">
+                <video src={reachGoalIcon} autoPlay muted playsInline className="h-32 w-32 flex-shrink-0" />
+                <h2 className="text-xl font-semibold text-gray-800 mt-2">Interview Sessions</h2>
+              </div>
+              <div className="flex gap-2 justify-center">
                 {sessions.length > 0 && !deleteAllConfirm && (
                   <button
                     onClick={() => setDeleteAllConfirm(true)}
-                    className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded-lg transition-colors text-sm"
+                    className="px-4 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 rounded-lg transition-colors text-sm cursor-pointer"
                     title="Delete all interview sessions"
                   >
                     Delete All Sessions
@@ -575,7 +587,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                     setError('')
                     setView('setup')
                   }}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors text-sm font-medium cursor-pointer"
                 >
                   New Interview
                 </button>
@@ -618,15 +630,17 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 {sessions.map((session) => (
                   <div
                     key={session.sessionId}
-                    className="bg-gray-100 rounded-lg p-4 flex justify-between items-center hover:bg-gray-200 transition-colors"
+                    className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{session.jobTitle}</h3>
-                      <p className="text-sm text-gray-500">
-                        {new Date(session.createdAt).toLocaleDateString()} • {session.totalTurns} turns
-                      </p>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-base">{session.jobTitle}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {new Date(session.createdAt).toLocaleDateString()} · {session.totalTurns} turns
+                        </p>
+                      </div>
                       <span
-                        className={`inline-block mt-2 px-2 py-1 text-xs rounded ${
+                        className={`ml-3 shrink-0 px-2.5 py-1 text-xs font-medium rounded-full ${
                           session.isComplete
                             ? 'bg-green-100 text-green-700'
                             : 'bg-yellow-100 text-yellow-700'
@@ -635,34 +649,35 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                         {session.isComplete ? 'Completed' : 'In Progress'}
                       </span>
                     </div>
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
                       {deleteConfirmId === session.sessionId ? (
-                        <div className="flex gap-2">
+                        <>
                           <button
                             onClick={() => deleteSession(session.sessionId)}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors text-white font-medium"
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-colors text-white font-medium"
                           >
                             Confirm Delete
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm transition-colors text-gray-700"
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors text-gray-700"
                           >
                             Cancel
                           </button>
-                        </div>
+                        </>
                       ) : (
                         <>
                           <button
                             onClick={() => loadSessionForReview(session)}
-                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
+                            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm transition-colors font-medium"
                           >
                             Review
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(session.sessionId)}
-                            className="px-2 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded text-sm transition-colors flex items-center gap-1"
-                            title="Delete this session and all associated audio files"
+                            className="px-2 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-colors flex items-center gap-1"
+                            title="Delete this session"
                           >
                             <Trash2 size={14} />
                           </button>

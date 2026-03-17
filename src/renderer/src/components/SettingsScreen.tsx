@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, FileText, KeyRound, X, Eye, EyeOff, Check, Trash2, Star } from 'lucide-react'
 import type { UserApiKeys, CustomProviderConfig } from '../../shared/types'
+import itDepartmentIcon from '../assets/proposed_images/IT_Department.webm'
 
 const BYOK_STORAGE_KEY = 'byok_provider'
 
@@ -439,8 +440,16 @@ export default function SettingsScreen({
 
       {/* Content */}
       <div className="flex-1 px-4 py-4 flex flex-col gap-5 overflow-y-auto">
+        {/* Header panel */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
+          <div className="flex flex-col items-center">
+            <video src={itDepartmentIcon} autoPlay muted playsInline className="h-32 w-32 flex-shrink-0" />
+            <h2 className="text-xl font-semibold text-gray-800 mt-2">Settings</h2>
+          </div>
+        </div>
+
         {/* Resume / CV */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Resume / CV</h3>
           {cvName ? (
             <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
@@ -465,10 +474,10 @@ export default function SettingsScreen({
               Load resume file (.txt, .pdf, .docx)
             </button>
           )}
-        </section>
+        </div>
 
         {/* Job Description */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Description</h3>
           {jobDescName ? (
             <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
@@ -493,10 +502,10 @@ export default function SettingsScreen({
               Load job description file
             </button>
           )}
-        </section>
+        </div>
 
         {/* Additional Context */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Additional Context</h3>
           <textarea
             value={manualContext}
@@ -505,14 +514,13 @@ export default function SettingsScreen({
             rows={4}
             className="w-full bg-gray-100 text-gray-700 text-xs rounded-lg px-3 py-2.5 border border-gray-200 outline-none focus:border-blue-500 placeholder-gray-400 resize-none"
           />
-        </section>
-
-        <p className="text-[10px] text-gray-500 text-center">
-          Context is sent with every AI request to personalize answers.
-        </p>
+          <p className="text-[10px] text-gray-500 mt-2">
+            Context is sent with every AI request to personalize answers.
+          </p>
+        </div>
 
         {/* API Keys */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">API Keys</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Add your own API keys to use your own accounts. Your keys are stored securely on your device.
@@ -607,10 +615,11 @@ export default function SettingsScreen({
           <p className="text-[10px] text-gray-500 mt-2">
             Your API keys are encrypted and stored locally.
           </p>
-        </section>
+        </div>
+
 
         {/* Cosyvoice TTS */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Text-to-Speech (TTS)</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Add your Cosyvoice (Alibaba DashScope) API key for high-quality interview audio.
@@ -760,10 +769,11 @@ export default function SettingsScreen({
           <p className="text-[10px] text-gray-500 mt-2">
             Local TTS takes priority over Cosyvoice when set. Try <span className="text-gray-500">Kokoro-FastAPI</span> on port 8880. Include <code className="text-gray-500">/v1</code> in the URL.
           </p>
-        </section>
+        </div>
+
 
         {/* Custom / OpenAI-compatible provider */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Custom Provider</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Any OpenAI-compatible API — Groq, OpenRouter, Ollama, Together AI, etc.
@@ -964,10 +974,11 @@ export default function SettingsScreen({
               <p className="text-[10px] text-gray-500 mt-1.5">This provider will be used for AI responses.</p>
             </div>
           )}
-        </section>
+        </div>
+
 
         {/* Local STT */}
-        <section>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Local STT</h3>
           <p className="text-[10px] text-gray-500 mb-3">
             Point to a local Whisper server (OpenAI-compatible <code className="text-gray-500">/v1/audio/transcriptions</code>).
@@ -1054,7 +1065,7 @@ export default function SettingsScreen({
               )}
             </div>
           </div>
-        </section>
+        </div>
 
         {/* STT Provider Preference */}
         {(() => {
@@ -1067,7 +1078,7 @@ export default function SettingsScreen({
           ].filter(p => p.enabled)
 
           return sttProviders.length > 0 ? (
-            <section>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Preferred STT Provider</h3>
               <div className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5">
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -1090,7 +1101,7 @@ export default function SettingsScreen({
                 </div>
                 <p className="text-[10px] text-gray-500">Falls back automatically if unavailable.</p>
               </div>
-            </section>
+            </div>
           ) : null
         })()}
       </div>

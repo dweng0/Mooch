@@ -262,22 +262,18 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
 
 async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const inputFile = join(tmpdir(), `audio-${randomUUID()}.webm`)
+    const { ext } = detectAudioExtension(audioBuffer)
+    const inputFile = join(tmpdir(), `audio-${randomUUID()}.${ext}`)
     const outputFile = join(tmpdir(), `audio-${randomUUID()}.pcm`)
 
-    console.log(`[FFmpeg] Input WebM size: ${audioBuffer.length} bytes`)
+    console.log(`[FFmpeg] Input audio size: ${audioBuffer.length} bytes`)
+    console.log(`[FFmpeg] Detected format: ${ext}`)
     console.log(`[FFmpeg] Input file: ${inputFile}`)
     console.log(`[FFmpeg] Output file: ${outputFile}`)
 
-    // Check WebM header
-    const isValidWebM = audioBuffer.length > 12 &&
-                        audioBuffer[0] === 0x1a &&
-                        audioBuffer[1] === 0x45 &&
-                        audioBuffer[2] === 0xdf &&
-                        audioBuffer[3] === 0xa3
-    console.log(`[FFmpeg] WebM header validation: ${isValidWebM ? '✓ valid' : '✗ invalid'}`)
-    if (!isValidWebM && audioBuffer.length > 0) {
-      console.log(`[FFmpeg] First 16 bytes: ${audioBuffer.slice(0, 16).toString('hex')}`)
+    // Log first 16 bytes for debugging
+    if (audioBuffer.length > 0) {
+      console.log(`[FFmpeg] First 16 bytes: ${audioBuffer.slice(0, Math.min(16, audioBuffer.length)).toString('hex')}`)
     }
 
     try {
@@ -343,12 +339,36 @@ async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
   })
 }
 
+function detectAudioExtension(buffer: Buffer): { ext: string; mime: string } {
+  if (buffer.length >= 4) {
+    // WebM / MKV — EBML header
+    if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
+      return { ext: 'webm', mime: 'audio/webm' }
+    }
+    // RIFF / WAV
+    if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
+      return { ext: 'wav', mime: 'audio/wav' }
+    }
+    // Ogg
+    if (buffer[0] === 0x4f && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) {
+      return { ext: 'ogg', mime: 'audio/ogg' }
+    }
+    // MP4 / M4A — ftyp box
+    if (buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70) {
+      return { ext: 'mp4', mime: 'audio/mp4' }
+    }
+  }
+  // Unknown container — let ffmpeg probe
+  return { ext: 'audio', mime: 'audio/webm' }
+}
+
 async function transcribeWithCustom(audioBuffer: Buffer, config: CustomProviderConfig): Promise<string> {
   const client = new OpenAI({
     apiKey: config.apiKey || 'no-key',
     baseURL: config.baseUrl,
   })
-  const file = new File([audioBuffer], 'recording.webm', { type: 'audio/webm' })
+  const { ext, mime } = detectAudioExtension(audioBuffer)
+  const file = new File([audioBuffer], `recording.${ext}`, { type: mime })
 
   const response = await client.audio.transcriptions.create({
     model: config.sttModel || 'whisper-1',

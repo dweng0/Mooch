@@ -34,8 +34,10 @@ export class PassiveListenService {
 
   // Tunable constants
   private readonly SILENCE_DELAY_MS = 1500
-  private readonly SPEECH_THRESHOLD = 10   // 0-255 average frequency magnitude
+  private SPEECH_THRESHOLD = 10   // 0-255 average frequency magnitude
   private readonly MIN_SPEECH_MS = 800     // ignore segments shorter than this
+
+  private _vadLogCounter = 0
 
   private onTranscriptCb: OnTranscriptCb | null = null
   private onDetectedCb: OnDetectedCb | null = null
@@ -44,6 +46,11 @@ export class PassiveListenService {
 
   get isRunning(): boolean {
     return this.isActive
+  }
+
+  setThreshold(value: number): void {
+    this.SPEECH_THRESHOLD = value
+    console.log(`[PassiveListen] VAD threshold updated to ${value}`)
   }
 
   async start(callbacks: {
@@ -249,9 +256,16 @@ export class PassiveListenService {
         this.analyser!.getByteFrequencyData(dataArray)
         const avg = dataArray.reduce((sum, v) => sum + v, 0) / dataArray.length
 
+        // Log VAD energy periodically (every ~2s) so we can tune the threshold
+        if (!this._vadLogCounter) this._vadLogCounter = 0
+        this._vadLogCounter++
+        if (this._vadLogCounter % 20 === 0) {
+          console.log(`[PassiveListen] VAD energy: ${avg.toFixed(2)} (threshold: ${this.SPEECH_THRESHOLD}, speaking: ${this.isSpeaking})`)
+        }
+
         if (avg > this.SPEECH_THRESHOLD) {
           if (!this.isSpeaking) {
-            console.log('[PassiveListen] Speech detected, starting recording')
+            console.log(`[PassiveListen] Speech detected (energy: ${avg.toFixed(2)}), starting recording`)
             this.isSpeaking = true
             this.speechStartTime = Date.now()
             this.speechChunks = []
@@ -263,7 +277,7 @@ export class PassiveListenService {
           }
         } else if (this.isSpeaking && !this.silenceTimer) {
           // Start silence countdown
-          console.log('[PassiveListen] Silence detected, starting countdown...')
+          console.log(`[PassiveListen] Silence detected (energy: ${avg.toFixed(2)}), starting countdown...`)
           this.silenceTimer = setTimeout(() => {
             this.silenceTimer = null
             const duration = Date.now() - this.speechStartTime

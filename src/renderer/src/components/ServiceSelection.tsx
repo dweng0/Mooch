@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import { Settings, Lock } from 'lucide-react'
 import StatusIndicator from './StatusIndicator'
 import MochiLogo from './MochiLogo'
@@ -140,6 +140,7 @@ export default function ServiceSelection({
           modelRequirement="Any LLM key"
           unavailable={!hasKey}
           delay={120}
+          comingSoon
           onClick={() => onSelect('code')}
         />
         <ModeCard
@@ -175,6 +176,7 @@ function ModeCard({
   modelRequirement,
   unavailable,
   delay,
+  comingSoon,
   onClick
 }: {
   title: string
@@ -183,18 +185,31 @@ function ModeCard({
   modelRequirement: string
   unavailable?: boolean
   delay: number
+  comingSoon?: boolean
   onClick: () => void
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = 2
+        videoRef.current.play()
+      }
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [delay])
+
   return (
     <button
-      onClick={onClick}
+      onClick={comingSoon ? undefined : onClick}
       style={{ animation: `fadeInUp 0.4s ease both`, animationDelay: `${delay}ms` }}
-      className={`w-full text-left px-4 py-3 rounded-xl border bg-white transition-colors duration-150 cursor-pointer ${borderColor} ${unavailable ? 'opacity-60' : ''}`}
+      className={`w-full text-left px-4 py-3 rounded-xl border bg-white transition-colors duration-150 ${comingSoon ? 'opacity-60 cursor-not-allowed' : `cursor-pointer ${borderColor}`} ${!comingSoon && unavailable ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-4">
         <video
+          ref={videoRef}
           src={videoSrc}
-          autoPlay
           muted
           playsInline
           className="h-32 w-32 flex-shrink-0"
@@ -202,20 +217,28 @@ function ModeCard({
         <div className="flex-1 min-w-0">
           <div className="text-3xl font-semibold text-gray-900">{title}</div>
           <div className="flex items-center gap-1.5 mt-2">
-            <span
-              data-testid="model-requirement"
-              className="text-xs text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full"
-            >
-              {modelRequirement}
-            </span>
-            {unavailable && (
-              <span
-                data-testid="feature-unavailable"
-                className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full"
-              >
-                <Lock size={9} />
-                No API key
+            {comingSoon ? (
+              <span className="text-xs text-blue-500 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                Coming soon
               </span>
+            ) : (
+              <>
+                <span
+                  data-testid="model-requirement"
+                  className="text-xs text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full"
+                >
+                  {modelRequirement}
+                </span>
+                {unavailable && (
+                  <span
+                    data-testid="feature-unavailable"
+                    className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full"
+                  >
+                    <Lock size={9} />
+                    No API key
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
