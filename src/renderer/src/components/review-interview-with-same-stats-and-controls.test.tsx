@@ -13,20 +13,17 @@ vi.mock('../services/localInterview', () => ({
 }))
 
 // Mock window.electronAPI
-global.window = {
-  ...global.window,
-  electronAPI: {
-    interviewListSessions: vi.fn(),
-    interviewGetSession: vi.fn(),
-    interviewCreateSession: vi.fn(),
-    interviewGenerateOpener: vi.fn(),
-    interviewProcessTurn: vi.fn(),
-    interviewEndSession: vi.fn(),
-    interviewDeleteSession: vi.fn(),
-    interviewSynthesize: vi.fn(),
-    interviewGetAudio: vi.fn(),
-  },
-}
+global.window.electronAPI = {
+  interviewListSessions: vi.fn(),
+  interviewGetSession: vi.fn(),
+  interviewCreateSession: vi.fn(),
+  interviewGenerateOpener: vi.fn(),
+  interviewProcessTurn: vi.fn(),
+  interviewEndSession: vi.fn(),
+  interviewDeleteSession: vi.fn(),
+  interviewSynthesize: vi.fn(),
+  interviewGetAudio: vi.fn(),
+} as any
 
 import MockInterviewScreen from './MockInterviewScreen'
 import type { InterviewSession } from '../../../shared/types'
@@ -106,9 +103,10 @@ describe('review interview with same stats and controls as live interview', () =
     const reviewTitle = screen.getByText(/Review: Software Engineer/i)
     expect(reviewTitle).toBeDefined()
 
-    // Verify feedback rating badge is shown
-    const feedbackBadge = screen.getByText(/EXCELLENT/i)
-    expect(feedbackBadge).toBeDefined()
+    // Verify feedback rating card is shown with correct rating
+    const feedbackCard = screen.getByTestId('feedback-rating-card')
+    expect(feedbackCard).toBeDefined()
+    expect(feedbackCard.getAttribute('data-rating')).toBe('excellent')
   })
 
   it('should display audio playback buttons for both questions and user responses', async () => {
@@ -223,9 +221,10 @@ describe('review interview with same stats and controls as live interview', () =
 
     await new Promise((resolve) => setTimeout(resolve, 100))
 
-    // The review should show the feedback badge with icons for context
-    const feedbackBadge = screen.getByText(/SOLID/i)
-    expect(feedbackBadge).toBeDefined()
+    // The review should show the feedback rating card
+    const feedbackCard = screen.getByTestId('feedback-rating-card')
+    expect(feedbackCard).toBeDefined()
+    expect(feedbackCard.getAttribute('data-rating')).toBe('solid')
 
     // Verify user response and feedback icons are displayed
     const userResponse = screen.getByText(/I use normalized schemas with proper indexing/)

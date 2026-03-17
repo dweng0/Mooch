@@ -287,6 +287,7 @@ function ModeCard({
                     <span
                       key={badge.tooltipId}
                       data-tooltip-id={badge.tooltipId}
+                      data-testid="model-requirement"
                       className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full"
                     >
                       <span className="relative flex h-2 w-2">
@@ -310,6 +311,7 @@ function ModeCard({
                     <span
                       key={badge.tooltipId}
                       data-tooltip-id={badge.tooltipId}
+                      data-testid="model-requirement"
                       className="text-xs text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full"
                     >
                       {badge.missingLabel}

@@ -454,7 +454,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const FeedbackCard = ({ feedback, id }: { feedback: NonNullable<InterviewTurn['llmFeedback']>; id: string }) => {
     const meta = ratingMeta(feedback.rating)
     return (
-      <div className="flex items-center gap-2 mt-1">
+      <div className="flex items-center gap-2 mt-1" data-testid="feedback-rating-card" data-rating={feedback.rating}>
         {/* Stars — rating strength */}
         <div
           data-tooltip-id={`fb-${id}-rating`}

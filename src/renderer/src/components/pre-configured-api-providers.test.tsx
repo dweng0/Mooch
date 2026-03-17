@@ -118,8 +118,8 @@ describe('pre-configured API providers', () => {
 
       await waitFor(() => {
         // The custom provider config should exist
-        const modelInput = screen.getByPlaceholderText(/Model/i)
-        expect(modelInput).toBeDefined()
+        const modelInputs = screen.getAllByPlaceholderText(/Model/i)
+        expect(modelInputs.length).toBeGreaterThan(0)
         // When provider is selected and reachable, models dropdown should appear
         // This will be implemented next
       })
@@ -146,8 +146,8 @@ describe('pre-configured API providers', () => {
 
       await waitFor(() => {
         // Verify that Test button exists to check connectivity
-        const testButton = screen.getByRole('button', { name: /Test/i })
-        expect(testButton).toBeDefined()
+        const testButtons = screen.getAllByRole('button', { name: /Test/i })
+        expect(testButtons.length).toBeGreaterThan(0)
         // When test returns false, warning should appear
         // This will be verified after implementation
       })
@@ -173,10 +173,10 @@ describe('pre-configured API providers', () => {
       await waitFor(() => {
         // Verify custom provider input fields exist
         const baseUrlInput = screen.getByPlaceholderText(/Base URL/i)
-        const modelInput = screen.getByPlaceholderText(/Model/i)
+        const modelInputs = screen.getAllByPlaceholderText(/Model/i)
 
         expect(baseUrlInput).toBeDefined()
-        expect(modelInput).toBeDefined()
+        expect(modelInputs.length).toBeGreaterThan(0)
       })
     })
 
