@@ -59,6 +59,19 @@ load_dotenv()
 MAX_TOKENS = 8192
 TOOL_OUTPUT_LIMIT = 12000
 
+# Detect GitHub Actions for log grouping
+IN_CI = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+
+# Icons for tool types (plain-text, no emoji to keep CI logs clean)
+TOOL_ICONS = {
+    "bash":         "$",
+    "read_file":    "<-",
+    "write_file":   "->",
+    "edit_file":    "~~",
+    "list_files":   "ls",
+    "search_files": "??",
+}
+
 # Provider detection — ordered by priority
 PROVIDER_PRIORITY = [
     ("anthropic",  "ANTHROPIC_API_KEY"),
@@ -292,31 +305,84 @@ def run_tool(name, input_data):
         return f"ERROR: {e}"
 
 
-def print_tool_call(name, input_data, result):
-    """Print a coloured tool call summary with output preview."""
+def _ci_group(title):
+    """Start a collapsible group in GitHub Actions logs."""
+    if IN_CI:
+        print(f"::group::{title}", flush=True)
+
+def _ci_endgroup():
+    """End a collapsible group in GitHub Actions logs."""
+    if IN_CI:
+        print("::endgroup::", flush=True)
+
+def _result_summary(result):
+    """Return a short one-line summary of a tool result."""
+    preview = str(result).strip()
+    if not preview or preview == "(exit code: 0)":
+        return ""
+    lines = preview.splitlines()
+    # For short results (<=3 lines), show inline
+    if len(lines) <= 3:
+        return " | ".join(l.strip() for l in lines if l.strip())
+    # Otherwise just the first line + count
+    first = lines[0].strip()[:100]
+    return f"{first}  (+{len(lines)-1} lines)"
+
+
+def print_tool_call(name, input_data, result, iteration=None, max_iterations=None):
+    """Print a structured tool call summary optimised for CI readability."""
+    icon = TOOL_ICONS.get(name, ">")
+    iter_tag = f"[{iteration}/{max_iterations}] " if iteration else ""
+
+    # Build the one-line header
     if name == "bash":
-        cmd_preview = input_data.get("command", "")[:120]
-        print(f"\n\033[36m[{name}]\033[0m \033[90m$ {cmd_preview}\033[0m", flush=True)
+        cmd = input_data.get("command", "")
+        # Multi-line commands: show first line only
+        cmd_preview = cmd.split("\n")[0][:120]
+        if "\n" in cmd:
+            cmd_preview += " ..."
+        header = f"{iter_tag}{icon} {cmd_preview}"
     elif name == "write_file":
         path = input_data.get("path", "")
-        content = input_data.get("content", "")
-        lines = content.splitlines()
-        print(f"\n\033[36m[{name}]\033[0m \033[90m{path} ({len(lines)} lines)\033[0m", flush=True)
-        shown = "\n  ".join(lines[:4])
-        suffix = f"\n  ... ({len(lines) - 4} more lines)" if len(lines) > 4 else ""
-        print(f"  \033[90m{shown}{suffix}\033[0m", flush=True)
-    elif name in ("read_file", "edit_file"):
-        print(f"\n\033[36m[{name}]\033[0m \033[90m{input_data.get('path', '')}\033[0m", flush=True)
+        n = len(input_data.get("content", "").splitlines())
+        header = f"{iter_tag}{icon} {path} ({n} lines)"
+    elif name == "edit_file":
+        path = input_data.get("path", "")
+        header = f"{iter_tag}{icon} {path}"
+    elif name == "read_file":
+        path = input_data.get("path", "")
+        n = len(str(result).splitlines()) if result else 0
+        header = f"{iter_tag}{icon} {path} ({n} lines)"
+    elif name == "search_files":
+        pattern = input_data.get("pattern", "")
+        header = f"{iter_tag}{icon} search: {pattern}"
+    elif name == "list_files":
+        path = input_data.get("path", ".")
+        header = f"{iter_tag}{icon} {path}"
     else:
-        print(f"\n\033[36m[{name}]\033[0m", flush=True)
+        header = f"{iter_tag}{icon} {name}"
 
-    if result:
-        preview = str(result).strip()
-        if preview and preview != "(exit code: 0)":
-            lines = preview.splitlines()
-            shown = "\n  ".join(lines[:5])
-            suffix = f"\n  ... ({len(lines) - 5} more lines)" if len(lines) > 5 else ""
-            print(f"  \033[90m{shown}{suffix}\033[0m", flush=True)
+    summary = _result_summary(result)
+
+    # Print the header
+    print(f"\033[36m  {header}\033[0m", flush=True)
+
+    # For bash commands and search results, show output (collapsible in CI)
+    if name in ("bash", "search_files", "list_files") and summary:
+        if IN_CI and len(str(result).splitlines()) > 5:
+            _ci_group(f"  output: {summary[:80]}")
+            print(f"\033[90m{str(result).strip()}\033[0m", flush=True)
+            _ci_endgroup()
+        else:
+            print(f"\033[90m    {summary}\033[0m", flush=True)
+    elif name == "edit_file" and result:
+        r = str(result).strip()
+        if r.startswith("ERROR"):
+            print(f"\033[31m    {r}\033[0m", flush=True)
+        else:
+            print(f"\033[32m    {r}\033[0m", flush=True)
+    elif name == "write_file":
+        print(f"\033[32m    Written\033[0m", flush=True)
 
 
 def make_wrap_up_message(iteration, max_iterations, mode):
@@ -387,12 +453,22 @@ def run_anthropic_loop(api_key, model, system_prompt, prompt, mode):
             messages=messages
         )
 
+        # Print agent reasoning text
+        has_text = False
         for block in response.content:
             if hasattr(block, "text") and block.text:
-                print(block.text, end="", flush=True)
+                has_text = True
+                text = block.text.strip()
+                if text:
+                    if IN_CI:
+                        _ci_group(f"Agent [{iteration}/{max_iterations}]: {text[:80]}...")
+                        print(text, flush=True)
+                        _ci_endgroup()
+                    else:
+                        print(f"\n\033[33m> {text}\033[0m", flush=True)
 
         if response.stop_reason == "end_turn":
-            print("\n[BAADD agent done]", flush=True)
+            print(f"\n[BAADD agent done — {iteration} iterations]", flush=True)
             break
 
         if response.stop_reason == "tool_use":
@@ -400,7 +476,7 @@ def run_anthropic_loop(api_key, model, system_prompt, prompt, mode):
             for block in response.content:
                 if block.type == "tool_use":
                     result = run_tool(block.name, block.input)
-                    print_tool_call(block.name, block.input, result)
+                    print_tool_call(block.name, block.input, result, iteration, max_iterations)
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -447,11 +523,19 @@ def run_openai_loop(client, model, system_prompt, prompt, mode):
         choice = response.choices[0]
         msg = choice.message
 
+        # Print agent reasoning text
         if msg.content:
-            print(msg.content, end="", flush=True)
+            text = msg.content.strip()
+            if text:
+                if IN_CI:
+                    _ci_group(f"Agent [{iteration}/{max_iterations}]: {text[:80]}...")
+                    print(text, flush=True)
+                    _ci_endgroup()
+                else:
+                    print(f"\n\033[33m> {text}\033[0m", flush=True)
 
         if choice.finish_reason == "stop":
-            print("\n[BAADD agent done]", flush=True)
+            print(f"\n[BAADD agent done — {iteration} iterations]", flush=True)
             break
 
         if choice.finish_reason == "tool_calls":
@@ -465,7 +549,7 @@ def run_openai_loop(client, model, system_prompt, prompt, mode):
                 except json.JSONDecodeError:
                     input_data = {}
                 result = run_tool(name, input_data)
-                print_tool_call(name, input_data, result)
+                print_tool_call(name, input_data, result, iteration, max_iterations)
                 messages.append({
                     "role":         "tool",
                     "tool_call_id": tool_call.id,

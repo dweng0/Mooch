@@ -88,6 +88,9 @@ if [[ "$FORCE_UPDATE" == true ]]; then
   fi
   echo ""
 
+  # Download the new manifest first so the file list matches the target version
+  download "$MANIFEST_FILE"
+
   while IFS= read -r file; do
     download "$file"
   done < <(read_manifest_files)

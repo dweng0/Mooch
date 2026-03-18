@@ -13,6 +13,11 @@
 
 set -euo pipefail
 
+# ── Helpers ──
+# Use GitHub Actions log groups when running in CI
+ci_group()  { [ "${CI:-}" = "true" ] && echo "::group::$1" || echo "── $1 ──"; }
+ci_endgroup() { [ "${CI:-}" = "true" ] && echo "::endgroup::" || true; }
+
 # ── Load .env if present ──
 if [ -f .env ]; then
   set -o allexport
@@ -22,13 +27,7 @@ if [ -f .env ]; then
 fi
 
 # ── Step 1: Load config from BDD.md ──
-echo "→ Loading config from BDD.md..."
 eval "$(python3 scripts/parse_bdd_config.py BDD.md)"
-echo "  Language:  $LANGUAGE"
-echo "  Framework: $FRAMEWORK"
-echo "  Build:     $BUILD_CMD"
-echo "  Test:      $TEST_CMD"
-echo ""
 
 REPO="${REPO:-$(git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]//' | sed 's/\.git$//' || echo 'unknown/repo')}"
 MODEL="${MODEL:-claude-haiku-4-5-20251001}"
@@ -36,26 +35,30 @@ TIMEOUT="${TIMEOUT:-3600}"
 DATE=$(date +%Y-%m-%d)
 SESSION_TIME=$(date +%H:%M)
 
-echo "=== $DATE $SESSION_TIME ==="
-echo "Repo:    $REPO"
-echo "Model:   $MODEL"
-echo "Timeout: ${TIMEOUT}s"
-echo ""
+ci_group "Session: $DATE $SESSION_TIME | $REPO | $MODEL"
+echo "  Language:  $LANGUAGE"
+echo "  Framework: $FRAMEWORK"
+echo "  Build:     $BUILD_CMD"
+echo "  Test:      $TEST_CMD"
+echo "  Timeout:   ${TIMEOUT}s"
 
 # ── Step 2: Setup environment ──
 bash scripts/setup_env.sh
-echo ""
 
 # ── Step 3: Verify starting state ──
-echo "→ Checking build..."
-eval "$BUILD_CMD" > /dev/null 2>&1 && echo "  Build: OK" || { echo "  Build: FAIL (fix before proceeding)"; exit 1; }
-eval "$TEST_CMD"  > /dev/null 2>&1 && echo "  Tests: OK" || echo "  Tests: FAILING (agent will fix)"
+BUILD_OK="yes"; TEST_OK="yes"
+eval "$BUILD_CMD" > /dev/null 2>&1 || BUILD_OK="no"
+eval "$TEST_CMD"  > /dev/null 2>&1 || TEST_OK="no"
+
 echo ""
+if [ "$BUILD_OK" = "no" ]; then
+    echo "  Build: FAIL"; ci_endgroup; exit 1
+fi
+echo "  Build: OK | Tests: $([ "$TEST_OK" = "yes" ] && echo "OK" || echo "FAILING (agent will fix)")"
 
 # ── Step 4: Check previous CI status ──
 CI_STATUS_MSG=""
 if command -v gh &>/dev/null; then
-    echo "→ Checking previous CI run..."
     CI_CONCLUSION=$(gh run list --repo "$REPO" --workflow ci.yml --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
     if [ "$CI_CONCLUSION" = "failure" ]; then
         CI_RUN_ID=$(gh run list --repo "$REPO" --workflow ci.yml --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || echo "")
@@ -65,20 +68,17 @@ if command -v gh &>/dev/null; then
         fi
         CI_STATUS_MSG="Previous CI run FAILED. Error logs:
 $CI_LOGS"
-        echo "  CI: FAILED — agent will fix this first."
+        echo "  CI:    FAILED (agent will fix first)"
     else
-        echo "  CI: $CI_CONCLUSION"
+        echo "  CI:    $CI_CONCLUSION"
     fi
-    echo ""
 fi
 
 # ── Step 5: Fetch GitHub issues ──
 ISSUES_FILE="ISSUES_TODAY.md"
-echo "→ Fetching community issues..."
+ISSUE_COUNT=0
 if command -v gh &>/dev/null; then
-    # Derive repo owner dynamically so this works for any fork/deployment
     REPO_OWNER="${REPO%%/*}"
-    # Trusted: issues authored by repo owner with agent-input label
     gh issue list --repo "$REPO" \
         --state open \
         --label "agent-input" \
@@ -86,14 +86,12 @@ if command -v gh &>/dev/null; then
         --limit 10 \
         --json number,title,body,labels,reactionGroups,author \
         > /tmp/issues_owner.json 2>/dev/null || echo "[]" > /tmp/issues_owner.json
-    # Community: issues with agent-approved label (owner-applied, enforced by GH Actions)
     gh issue list --repo "$REPO" \
         --state open \
         --label "agent-approved" \
         --limit 10 \
         --json number,title,body,labels,reactionGroups,author \
         > /tmp/issues_approved.json 2>/dev/null || echo "[]" > /tmp/issues_approved.json
-    # Merge, deduplicating by issue number
     python3 -c "
 import json
 owner = json.load(open('/tmp/issues_owner.json'))
@@ -101,22 +99,23 @@ approved = json.load(open('/tmp/issues_approved.json'))
 merged = {i['number']: i for i in owner + approved}
 print(json.dumps(list(merged.values())))
 " > /tmp/issues_merged.json 2>/dev/null || echo "[]" > /tmp/issues_merged.json
-    # Verify trust: owner's issues accepted directly; community issues only if
-    # the owner was the one who actually applied the agent-approved label
     python3 scripts/verify_issue_trust.py /tmp/issues_merged.json \
         --repo "$REPO" --owner "$REPO_OWNER" \
         > /tmp/issues_raw.json 2>/dev/null || echo "[]" > /tmp/issues_raw.json
     python3 scripts/format_issues.py /tmp/issues_raw.json > "$ISSUES_FILE" 2>/dev/null || echo "No issues found." > "$ISSUES_FILE"
-    echo "  $(grep -c '^### Issue' "$ISSUES_FILE" 2>/dev/null || echo 0) issues loaded."
+    ISSUE_COUNT=$(grep -c '^### Issue' "$ISSUES_FILE" 2>/dev/null || echo 0)
+    echo "  Issues: $ISSUE_COUNT"
 else
-    echo "  gh CLI not available. Skipping."
+    echo "  Issues: gh CLI not available"
     echo "No issues available." > "$ISSUES_FILE"
 fi
+ci_endgroup
+
 echo ""
 
 # ── Step 6: Run evolution session ──
 SESSION_START_SHA=$(git rev-parse HEAD)
-echo "→ Starting evolution session..."
+echo "=== Agent session starting ==="
 echo ""
 
 TIMEOUT_CMD="timeout"
@@ -275,9 +274,11 @@ fi
 rm -f "$AGENT_LOG"
 
 echo ""
-echo "→ Session complete. Verifying..."
+echo "=== Agent session complete ==="
+echo ""
 
 # ── Step 7: Post-session build verification ──
+ci_group "Post-session verification"
 FIX_ATTEMPTS=3
 for FIX_ROUND in $(seq 1 $FIX_ATTEMPTS); do
     ERRORS=""
@@ -318,11 +319,11 @@ FIXEOF
 done
 
 # ── Step 8: Update BDD coverage ──
-echo "→ Updating BDD_STATUS.md..."
 python3 scripts/check_bdd_coverage.py BDD.md > BDD_STATUS.md || true
 COVERED=$(grep -c '\- \[x\]' BDD_STATUS.md 2>/dev/null || echo 0)
 TOTAL=$(grep -c '\- \[' BDD_STATUS.md 2>/dev/null || echo 0)
 echo "  Coverage: $COVERED/$TOTAL scenarios"
+ci_endgroup
 
 # ── Step 9: Ensure journal was written ──
 if ! grep -q "## $DATE $SESSION_TIME" JOURNAL.md 2>/dev/null; then
@@ -370,7 +371,6 @@ if ! git diff --cached --quiet; then
 fi
 
 # ── Step 11: Update journal index ──
-echo "→ Updating JOURNAL_INDEX.md..."
 COMMITS_SUMMARY=$(git log --oneline "$SESSION_START_SHA"..HEAD --format="%s" \
     | { grep -v "session wrap-up\|BDD status\|journal entry\|fallback" || true; } \
     | sed "s/$DATE $SESSION_TIME: //" \
@@ -390,8 +390,7 @@ echo "  Index updated."
 
 # ── Step 12: Handle issue responses ──
 if [ -f ISSUE_RESPONSE.md ] && command -v gh &>/dev/null; then
-    echo ""
-    echo "→ Posting issue responses..."
+    ci_group "Issue responses"
     # Support multiple issue blocks in ISSUE_RESPONSE.md
     grep "^issue_number:" ISSUE_RESPONSE.md 2>/dev/null | awk '{print $2}' | while read -r ISSUE_NUM; do
         [ -z "$ISSUE_NUM" ] && continue
@@ -414,12 +413,17 @@ Commit: $(git rev-parse --short HEAD)" 2>/dev/null; then
         fi
     done
     rm -f ISSUE_RESPONSE.md
+    ci_endgroup
 fi
 
 # ── Step 13: Push ──
-echo ""
-echo "→ Pushing..."
 git push || echo "  Push failed (check remote/auth)"
 
+# ── Summary ──
+COMMITS_MADE=$(git log --oneline "$SESSION_START_SHA"..HEAD 2>/dev/null | wc -l | tr -d ' ')
 echo ""
-echo "=== $DATE $SESSION_TIME complete. BDD coverage: $COVERED/$TOTAL ==="
+echo "=== Session complete ==="
+echo "  Coverage: $COVERED/$TOTAL scenarios"
+echo "  Commits:  $COMMITS_MADE"
+echo "  Duration: $(( $(date +%s) - $(date -d "$DATE $SESSION_TIME" +%s 2>/dev/null || echo 0) ))s"
+echo "======================="
