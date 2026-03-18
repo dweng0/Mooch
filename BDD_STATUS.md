@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 34 scenario(s) across 17 test file(s).
+Checked 48 scenario(s) across 18 test file(s).
 
 
 ## Feature: remove login
@@ -20,7 +20,7 @@ Checked 34 scenario(s) across 17 test file(s).
 - [x] degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
 - [x] record and store interview audio per turn
-- [x] store real-time LLM feedback as JSON
+- [ ] UNCOVERED: store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
 - [x] review interview with same stats and controls as live interview
 - [x] mark interview as complete or incomplete
@@ -44,6 +44,26 @@ Checked 34 scenario(s) across 17 test file(s).
 ## Feature: code review chrome extension
 
 - [x] Better context for coding challenges
+
+## Feature: code interview mode
+
+- [ ] UNCOVERED: launch code interview mode from home screen
+- [ ] UNCOVERED: show waiting state until extension connects
+- [ ] UNCOVERED: detect extension connection
+- [ ] UNCOVERED: live code interview dashboard
+- [ ] UNCOVERED: display extension hint requests in real time
+- [ ] UNCOVERED: enrich hints with interview session context
+- [ ] UNCOVERED: handle extension disconnect gracefully
+- [ ] UNCOVERED: stop code interview mode
+
+## Feature: local API for chrome extension integration
+
+- [x] expose local HTTP API for extension communication
+- [x] accept hint requests from chrome extension
+- [x] expose provider configuration via API
+- [x] accept code analysis requests from chrome extension
+- [x] include active interview context in hint requests
+- [x] restrict local API to localhost only
 
 ## Feature: configurable STT provider
 
@@ -71,7 +91,19 @@ Checked 34 scenario(s) across 17 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [x] end-to-end audio pipeline integration test
+- [ ] UNCOVERED: end-to-end audio pipeline integration test
 
 ---
-**34/34 scenarios covered.**
+**38/48 scenarios covered.**
+
+10 scenario(s) need tests:
+- store real-time LLM feedback as JSON
+- launch code interview mode from home screen
+- show waiting state until extension connects
+- detect extension connection
+- live code interview dashboard
+- display extension hint requests in real time
+- enrich hints with interview session context
+- handle extension disconnect gracefully
+- stop code interview mode
+- end-to-end audio pipeline integration test
