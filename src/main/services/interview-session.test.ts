@@ -325,7 +325,7 @@ describe('Interview Session Manager', () => {
   })
 
   describe('Save Feedback', () => {
-    it('store real-time llm feedback as json - saves feedback with rating and context', async () => {
+    it('store realtime llm feedback as json - saves feedback with rating and context', async () => {
       const jobDescription = 'Backend Engineer'
       const resume = 'Resume'
 
@@ -447,8 +447,8 @@ describe('Interview Session Manager', () => {
     })
   })
 
-  describe('Store real-time LLM feedback as JSON', () => {
-    it('store real-time llm feedback as json - with rating and context', async () => {
+  describe('Store realtime LLM feedback as JSON', () => {
+    it('store realtime llm feedback as json - with rating and context', async () => {
       const metadata = await manager.createSession('Role', 'Resume')
 
       const feedback = {

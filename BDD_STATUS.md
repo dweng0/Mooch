@@ -20,7 +20,7 @@ Checked 48 scenario(s) across 18 test file(s).
 - [x] degrade gracefully when TTS provider is unavailable
 - [x] save interview transcript as markdown
 - [x] record and store interview audio per turn
-- [ ] UNCOVERED: store real-time LLM feedback as JSON
+- [x] store real-time LLM feedback as JSON
 - [x] playback interview with synchronized feedback
 - [x] review interview with same stats and controls as live interview
 - [x] mark interview as complete or incomplete
@@ -94,10 +94,9 @@ Checked 48 scenario(s) across 18 test file(s).
 - [ ] UNCOVERED: end-to-end audio pipeline integration test
 
 ---
-**38/48 scenarios covered.**
+**39/48 scenarios covered.**
 
-10 scenario(s) need tests:
-- store real-time LLM feedback as JSON
+9 scenario(s) need tests:
 - launch code interview mode from home screen
 - show waiting state until extension connects
 - detect extension connection
