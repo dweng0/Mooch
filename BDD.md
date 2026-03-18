@@ -129,6 +129,68 @@ System: a tool we call mooch, that helps users during interview by listening and
             When When the site opens and they are on the page with the code
             Then Then the llm should be able to identify the code, and provide hints and tips
 
+    Feature: local API for chrome extension integration
+
+        Contract: Mooch Local Bridge API
+            Base URL: http://localhost:62544
+            All requests and responses use Content-Type: application/json
+            All requests must include header X-Mooch-Client: chrome-extension
+            Server must bind to 127.0.0.1 only (not 0.0.0.0)
+            CORS: Allow origin chrome-extension://*
+
+            GET /health
+                Response 200: { "status": "ok", "version": "string", "activeSession": "string | null" }
+
+            GET /api/providers
+                Response 200: { "providers": [{ "name": "string", "type": "anthropic | openai-compatible", "configured": true }] }
+                Note: must never expose API keys or secrets
+
+            POST /api/hint
+                Request:  { "code": "string", "pageTitle": "string", "language": "string | null", "metadata": { "difficulty": "string | null", "tags": ["string"] | null, "constraints": "string | null" } | null, "hintStyle": "gentle | detailed | pseudocode" | null }
+                Response 200: { "hint": "string" }
+                Response 503: { "error": "no provider configured" }
+                Note: if an interview session is active, the server should automatically append job description and resume to the LLM context
+
+            POST /api/analyze
+                Request:  { "code": "string", "context": "string | null" }
+                Response 200: { "analysis": "string" }
+                Response 503: { "error": "no provider configured" }
+
+        Scenario: expose local HTTP API for extension communication
+            Given the Mooch desktop app is running
+            When the app starts
+            Then it should start a local HTTP server bound to 127.0.0.1 on port 62544
+            And expose a GET /health endpoint that returns { status, version, activeSession }
+
+        Scenario: accept hint requests from chrome extension
+            Given the local API server is running
+            When a POST request is received at /api/hint with the contract-defined request body
+            Then the app should route the request through its configured LLM provider
+            And return { hint: "string" } on success or { error: "string" } on failure
+
+        Scenario: expose provider configuration via API
+            Given the local API server is running
+            When a GET request is received at /api/providers
+            Then the app should return the list of configured providers with name, type, and configured status
+            And must never include API keys or secrets in the response
+
+        Scenario: accept code analysis requests from chrome extension
+            Given the local API server is running
+            When a POST request is received at /api/analyze with code text and optional context
+            Then the app should analyze the code using its configured providers
+            And return { analysis: "string" } on success
+
+        Scenario: include active interview context in hint requests
+            Given the local API server is running and an interview session is active
+            When a POST /api/hint request is received from the chrome extension
+            Then the app should automatically append the active session's job description and resume to the LLM context
+            And the activeSession field in GET /health should reflect the session ID
+
+        Scenario: restrict local API to localhost only
+            Given the local API server is running
+            When a request arrives from a non-localhost origin or without the X-Mooch-Client header
+            Then the request should be rejected with 403 to prevent external access to the user's data
+
     Feature: configurable STT provider
 
         Scenario: custom provider supports STT
