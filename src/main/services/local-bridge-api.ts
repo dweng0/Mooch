@@ -25,7 +25,8 @@ export interface ExtensionState {
 }
 
 export interface BridgeHintEntry {
-  hint: string
+  answer: string
+  explanation: string
   timestamp: number
   pageTitle?: string
   language?: string | null
@@ -87,7 +88,13 @@ export class LocalBridgeApi {
 
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     // CORS headers for chrome extension
-    res.setHeader('Access-Control-Allow-Origin', 'chrome-extension://*')
+    // Use the request origin if it's a chrome-extension, otherwise allow all localhost
+    const origin = req.headers['origin'] || ''
+    if (origin.startsWith('chrome-extension://') || origin === '') {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*')
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Mooch-Client')
 
@@ -156,27 +163,39 @@ export class LocalBridgeApi {
     }
 
     try {
-      const { code, pageTitle, language, metadata, hintStyle } = body
-      const style = hintStyle || 'gentle'
+      const { code, pageTitle, language, metadata } = body
 
-      // Build prompt
-      let prompt = `You are a coding interview hint assistant. Provide a ${style} hint for the following code challenge.\n\n`
+      // Build prompt that asks for structured answer + explanation
+      let prompt = `You are a coding interview assistant. Given a coding challenge and the user's current code, provide:\n`
+      prompt += `1. A complete, correct solution to the problem\n`
+      prompt += `2. An explanation of why the solution works and the key insights\n\n`
+      prompt += `You MUST respond in this exact format:\n`
+      prompt += `---ANSWER---\n<the complete working code solution>\n---EXPLANATION---\n<explanation of why this works, key patterns used, time/space complexity>\n\n`
       prompt += `Page: ${pageTitle || 'Unknown'}\n`
       if (language) prompt += `Language: ${language}\n`
       if (metadata?.difficulty) prompt += `Difficulty: ${metadata.difficulty}\n`
       if (metadata?.tags) prompt += `Tags: ${metadata.tags.join(', ')}\n`
       if (metadata?.constraints) prompt += `Constraints: ${metadata.constraints}\n`
-      prompt += `\nCode:\n${code}\n`
+      prompt += `\nUser's current code:\n${code}\n`
 
       // If there's an active interview session, append context
       const context: any = { cv: '', jobDescription: '', manualContext: '' }
       if (this.activeSession) {
         const keys = loadApiKeys()
-        // Session context will be appended by the orchestrator
         context.manualContext = `Active interview session: ${this.activeSession}`
       }
 
-      const hint = await getAnswer(prompt, providers[0], context)
+      const raw = await getAnswer(prompt, providers[0], context)
+
+      // Parse structured response
+      let answer = raw
+      let explanation = ''
+      const answerMatch = raw.indexOf('---ANSWER---')
+      const explMatch = raw.indexOf('---EXPLANATION---')
+      if (answerMatch !== -1 && explMatch !== -1) {
+        answer = raw.substring(answerMatch + '---ANSWER---'.length, explMatch).trim()
+        explanation = raw.substring(explMatch + '---EXPLANATION---'.length).trim()
+      }
 
       // Track in extension state and hint history
       this.extensionState = {
@@ -185,12 +204,12 @@ export class LocalBridgeApi {
         pageTitle: pageTitle || undefined,
         language: language || null,
       }
-      const entry: BridgeHintEntry = { hint, timestamp: Date.now(), pageTitle, language }
+      const entry: BridgeHintEntry = { answer, explanation, timestamp: Date.now(), pageTitle, language }
       this.hintHistory.unshift(entry)
       this.onExtensionUpdate?.(this.extensionState)
       this.onHintGenerated?.(entry)
 
-      this.json(res, 200, { hint })
+      this.json(res, 200, { hint: answer, answer, explanation })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       this.json(res, 500, { error: message })

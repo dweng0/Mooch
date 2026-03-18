@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, Plug, PlugZap, ExternalLink, Code, Globe } from 'lucide-react'
+import { ArrowLeft, Plug, PlugZap, ExternalLink, Code, Globe, CheckCircle, Lightbulb } from 'lucide-react'
 
 interface HintEntry {
-  hint: string
+  answer: string
+  explanation: string
   timestamp: number
   pageTitle?: string
   language?: string | null
@@ -14,7 +15,7 @@ interface Props {
 
 type ConnectionStatus = 'starting' | 'waiting' | 'connected' | 'disconnected'
 
-const EXTENSION_REPO_URL = 'https://github.com/jay/mooch_chrome_extension'
+const EXTENSION_REPO_URL = 'https://github.com/dweng0/moochiepoo'
 const POLL_INTERVAL = 3000
 const DISCONNECT_TIMEOUT = 15000
 
@@ -222,6 +223,8 @@ function DashboardView({ extensionState, hintHistory }: {
   extensionState: { code?: string; pageTitle?: string; language?: string | null }
   hintHistory: HintEntry[]
 }) {
+  const latest = hintHistory[0] || null
+
   return (
     <div className="space-y-4">
       {/* Problem info */}
@@ -239,7 +242,7 @@ function DashboardView({ extensionState, hintHistory }: {
         )}
       </div>
 
-      {/* Code preview */}
+      {/* Extracted Code */}
       {extensionState.code && (
         <div className="rounded-lg border border-gray-200 overflow-hidden">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 border-b border-gray-200">
@@ -253,41 +256,71 @@ function DashboardView({ extensionState, hintHistory }: {
         </div>
       )}
 
-      {/* Hint history */}
-      <div>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-          Hints ({hintHistory.length})
-        </h3>
-        {hintHistory.length === 0 ? (
-          <p className="text-xs text-gray-400 italic">
-            No hints yet. Click "Get Hint" in the extension popup.
-          </p>
-        ) : (
-          <HintList hints={hintHistory} />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function HintList({ hints }: { hints: HintEntry[] }) {
-  return (
-    <div className="space-y-3">
-      {hints.map((entry, i) => (
-        <div key={`${entry.timestamp}-${i}`} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-400">
-              {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            {entry.pageTitle && (
-              <span className="text-[10px] text-gray-400 truncate max-w-[200px]">
-                {entry.pageTitle}
+      {/* Answer */}
+      {latest ? (
+        <>
+          <div className="rounded-lg border border-emerald-200 overflow-hidden">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border-b border-emerald-200">
+              <CheckCircle size={12} className="text-emerald-600" />
+              <span className="text-[10px] font-medium text-emerald-700 uppercase">Answer</span>
+              <span className="ml-auto text-[10px] text-emerald-500">
+                {new Date(latest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
-            )}
+            </div>
+            <pre className="p-3 text-xs text-gray-800 bg-emerald-50/30 overflow-x-auto max-h-60 overflow-y-auto font-mono leading-relaxed whitespace-pre-wrap">
+              {latest.answer}
+            </pre>
           </div>
-          <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{entry.hint}</p>
+
+          {/* Explanation */}
+          {latest.explanation && (
+            <div className="rounded-lg border border-amber-200 overflow-hidden">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border-b border-amber-200">
+                <Lightbulb size={12} className="text-amber-600" />
+                <span className="text-[10px] font-medium text-amber-700 uppercase">Why This Works</span>
+              </div>
+              <div className="p-3 text-xs text-gray-700 bg-amber-50/30 whitespace-pre-wrap leading-relaxed">
+                {latest.explanation}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+          <p className="text-xs text-gray-400 italic">
+            No answers yet. Click "Get Hint" in the extension popup.
+          </p>
         </div>
-      ))}
+      )}
+
+      {/* Previous answers */}
+      {hintHistory.length > 1 && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+            Previous ({hintHistory.length - 1})
+          </h3>
+          <div className="space-y-3">
+            {hintHistory.slice(1).map((entry, i) => (
+              <div key={`${entry.timestamp}-${i}`} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {entry.pageTitle && (
+                    <span className="text-[10px] text-gray-400 truncate max-w-[200px]">
+                      {entry.pageTitle}
+                    </span>
+                  )}
+                </div>
+                <pre className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed font-mono mb-2">{entry.answer}</pre>
+                {entry.explanation && (
+                  <p className="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed border-t border-gray-200 pt-2 mt-2">{entry.explanation}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
