@@ -13,6 +13,7 @@ import { analyzeCodeSnapshotCustom, testCustomProvider } from './services/openai
 import { InterviewSessionManager } from './services/interview-session'
 import { TTSProviderManager } from './services/tts-provider'
 import { InterviewOrchestrator } from './services/interview-orchestrator'
+import { LocalBridgeApi } from './services/local-bridge-api'
 import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
@@ -28,6 +29,9 @@ const CACHE_DURATION_MS = 30000 // 30 seconds
 // Interview services
 const sessionManager = new InterviewSessionManager()
 const ttsManager = new TTSProviderManager()
+
+// Bridge API for Chrome extension
+let bridgeApi: LocalBridgeApi | null = null
 const interviewOrchestrator = new InterviewOrchestrator(sessionManager, ttsManager)
 
 function createWindow(): void {
@@ -78,6 +82,42 @@ function createWindow(): void {
 ipcMain.handle('login', async () => { /* no-op */ })
 ipcMain.handle('logout', async () => { /* no-op */ })
 ipcMain.handle('open-oauth', async () => { /* no-op */ })
+
+// ---------------------------------------------------------------------------
+// Bridge API IPC handlers (Chrome extension integration)
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('bridge-start', async () => {
+  if (bridgeApi) return { ok: true }
+  bridgeApi = new LocalBridgeApi()
+  bridgeApi.setOnExtensionUpdate((state) => {
+    mainWindow?.webContents.send('bridge-extension-update', state)
+  })
+  bridgeApi.setOnHintGenerated((entry) => {
+    mainWindow?.webContents.send('bridge-hint-generated', entry)
+  })
+  await bridgeApi.start()
+  return { ok: true }
+})
+
+ipcMain.handle('bridge-stop', async () => {
+  if (bridgeApi) {
+    await bridgeApi.stop()
+    bridgeApi = null
+  }
+  return { ok: true }
+})
+
+ipcMain.handle('bridge-status', async () => {
+  if (!bridgeApi) return { running: false, extensionConnected: false }
+  const state = bridgeApi.getExtensionState()
+  return { running: true, ...state }
+})
+
+ipcMain.handle('bridge-hint-history', async () => {
+  if (!bridgeApi) return []
+  return bridgeApi.getHintHistory()
+})
 
 // ---------------------------------------------------------------------------
 // API Key IPC handlers
@@ -825,10 +865,25 @@ app.whenReady().then(() => {
 
   createWindow()
   setupHotkey()
+
+  // Auto-start the local bridge API so the Chrome extension can probe it
+  bridgeApi = new LocalBridgeApi()
+  bridgeApi.setOnExtensionUpdate((state) => {
+    mainWindow?.webContents.send('bridge-extension-update', state)
+  })
+  bridgeApi.setOnHintGenerated((entry) => {
+    mainWindow?.webContents.send('bridge-hint-generated', entry)
+  })
+  bridgeApi.start().catch((err) => {
+    console.error('[Bridge API] Failed to auto-start:', err)
+  })
 })
 
 app.on('will-quit', () => {
   uIOhook.stop()
+  if (bridgeApi) {
+    bridgeApi.stop().catch(() => {})
+  }
 })
 
 app.on('window-all-closed', () => {

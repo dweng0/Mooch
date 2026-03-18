@@ -186,7 +186,6 @@ export default function ServiceSelection({
             hasKeys: hasKey,
           }]}
           delay={120}
-          comingSoon
           onClick={() => onSelect('code')}
         />
         <ModeCard

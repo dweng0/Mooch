@@ -10,6 +10,7 @@ import WindowPicker from './components/WindowPicker'
 import StatusIndicator from './components/StatusIndicator'
 import CaptureVoiceModal from './components/CaptureVoiceModal'
 import MockInterviewScreen from './components/MockInterviewScreen'
+import CodeInterviewScreen from './components/CodeInterviewScreen'
 import { AudioRecorder } from './services/recorder'
 import { LiveInterviewService } from './services/liveInterview'
 import { PassiveListenService } from './services/passiveListen'
@@ -859,6 +860,20 @@ export default function App() {
     return (
       <>
         <MockInterviewScreen
+          onBack={() => setAppView('select')}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
+    )
+  }
+
+  // ── Code Interview Screen ─────────────────────────────────────────────────
+
+  if (appView === 'code') {
+    return (
+      <>
+        <CodeInterviewScreen
           onBack={() => setAppView('select')}
         />
         {exitButton}

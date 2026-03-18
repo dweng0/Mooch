@@ -182,5 +182,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   interviewDeleteAllSessions: (): Promise<void> => {
     return ipcRenderer.invoke('interview-delete-all-sessions')
-  }
+  },
+
+  // ── Bridge API (Chrome extension integration) ────────────────────────────
+  bridgeStart: (): Promise<{ ok: boolean }> => {
+    return ipcRenderer.invoke('bridge-start')
+  },
+  bridgeStop: (): Promise<{ ok: boolean }> => {
+    return ipcRenderer.invoke('bridge-stop')
+  },
+  bridgeStatus: (): Promise<{ running: boolean; connected: boolean; lastSeen: number; code?: string; pageTitle?: string; language?: string | null }> => {
+    return ipcRenderer.invoke('bridge-status')
+  },
+  bridgeHintHistory: (): Promise<Array<{ hint: string; timestamp: number; pageTitle?: string; language?: string | null }>> => {
+    return ipcRenderer.invoke('bridge-hint-history')
+  },
+  onBridgeExtensionUpdate: (callback: (state: any) => void) => {
+    const handler = (_event: any, state: any) => callback(state)
+    ipcRenderer.on('bridge-extension-update', handler)
+    return () => { ipcRenderer.removeListener('bridge-extension-update', handler) }
+  },
+  onBridgeHintGenerated: (callback: (entry: any) => void) => {
+    const handler = (_event: any, entry: any) => callback(entry)
+    ipcRenderer.on('bridge-hint-generated', handler)
+    return () => { ipcRenderer.removeListener('bridge-hint-generated', handler) }
+  },
 })

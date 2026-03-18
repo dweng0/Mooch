@@ -129,6 +129,60 @@ System: a tool we call mooch, that helps users during interview by listening and
             When When the site opens and they are on the page with the code
             Then Then the llm should be able to identify the code, and provide hints and tips
 
+    Feature: code interview mode
+
+        Scenario: launch code interview mode from home screen
+            Given the user is on the Mooch home screen
+            When they click the Code Interview card
+            Then the app should start the local bridge API server on port 62544
+            And navigate to the code interview waiting screen
+
+        Scenario: show waiting state until extension connects
+            Given the code interview mode is active and the bridge API server is running
+            When no extension has connected yet
+            Then the screen should display "Waiting for Mooch Helper extension..."
+            And show a link to the GitHub repo or Chrome Web Store to install the extension
+            And show an animated connection indicator
+
+        Scenario: detect extension connection
+            Given the code interview waiting screen is displayed
+            When the Chrome extension sends a GET /health request to the bridge API
+            Then the waiting screen should update to show "Connected" status
+            And transition to the live code interview dashboard
+
+        Scenario: live code interview dashboard
+            Given the extension is connected and sending code updates
+            When the dashboard is displayed
+            Then it should show the current problem title from the extension
+            And show the detected programming language
+            And show a live preview of the extracted code
+            And display a scrollable history of generated hints
+
+        Scenario: display extension hint requests in real time
+            Given the dashboard is active and the extension sends a POST /api/hint request
+            When the LLM generates a response
+            Then the hint should appear on the dashboard in real time
+            And be added to the hint history list
+
+        Scenario: enrich hints with interview session context
+            Given the user started code interview mode from within an active mock interview session
+            When the extension requests a hint
+            Then the LLM prompt should include the job description and resume from the active session
+            And the dashboard should show which interview session is providing context
+
+        Scenario: handle extension disconnect gracefully
+            Given the extension is connected and the dashboard is active
+            When the extension stops responding (e.g. browser closed or extension disabled)
+            Then the dashboard should revert to the waiting state after a timeout
+            And display a message that the connection was lost
+            And preserve the hint history from the session
+
+        Scenario: stop code interview mode
+            Given the code interview dashboard or waiting screen is active
+            When the user clicks the back button or exits code interview mode
+            Then the bridge API server should stop
+            And the app should return to the home screen
+
     Feature: local API for chrome extension integration
 
         Contract: Mooch Local Bridge API
