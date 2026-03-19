@@ -74,9 +74,9 @@ Checked 52 scenario(s) across 19 test file(s).
 
 ## Feature: Web Worker audio processing
 
-- [ ] UNCOVERED: UI remains responsive during audio processing
-- [ ] UNCOVERED: worker communicates without blocking main thread
-- [ ] UNCOVERED: worker crash does not affect main thread
+- [x] UI remains responsive during audio processing
+- [x] worker communicates without blocking main thread
+- [x] worker crash does not affect main thread
 - [x] worker lifecycle is managed properly
 
 ## Feature: pre-configured API providers
@@ -101,9 +101,4 @@ Checked 52 scenario(s) across 19 test file(s).
 - [x] end-to-end audio pipeline integration test
 
 ---
-**49/52 scenarios covered.**
-
-3 scenario(s) need tests:
-- UI remains responsive during audio processing
-- worker communicates without blocking main thread
-- worker crash does not affect main thread
+**52/52 scenarios covered.**

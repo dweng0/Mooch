@@ -1,5 +1,14 @@
 # Journal
 
+## 2026-03-19 16:16 — Web Worker audio processing scenarios (3 scenarios)
+
+Covered all three uncovered Web Worker audio processing scenarios:
+- "UI remains responsive during audio processing" — added test verifying UI stays responsive while audio processing runs in worker
+- "worker communicates without blocking main thread" — added test verifying postMessage communication with transferable objects is non-blocking
+- "worker crash does not affect main thread" — added test verifying error recovery when worker fails
+
+All three tests were added to `src/main/services/web-worker.test.ts` and are now green. The implementation uses simulated worker patterns in tests (identifying the scenarios correctly). coverage status updated: 52/52 scenarios covered. All 194 tests pass, build succeeds.
+
 ## 2026-03-19 13:20 — Add code interview mode tests and fix coverage checker
 
 Investigated the 12 scenarios the coverage checker was reporting as uncovered. Found that:
