@@ -267,6 +267,28 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the user performs audio transcription
             Then the app should be able to transcribe audio using the Qwen STT service
 
+    Feature: Web Worker audio processing
+
+        Scenario: UI remains responsive during audio processing
+            Given the user is in a real-time voice interview
+            When audio processing (STT buffering, format detection, VAD) is running
+            Then all heavy audio processing should run in a Web Worker so the UI thread remains responsive
+
+        Scenario: worker communicates without blocking main thread
+            Given a Web Worker is handling audio processing
+            When the worker sends or receives messages
+            Then communication should use postMessage with transferable objects and never block the main thread
+
+        Scenario: worker crash does not affect main thread
+            Given a Web Worker is running audio processing
+            When the worker encounters an error or crashes
+            Then the main thread should detect the failure and recover gracefully without crashing the app
+
+        Scenario: worker lifecycle is managed properly
+            Given the user starts and stops interview sessions
+            When an interview session ends or the user navigates away
+            Then the Web Worker should be terminated and its resources released
+
     Feature: pre-configured API providers
 
         Scenario: select pre-configured provider from dropdown
