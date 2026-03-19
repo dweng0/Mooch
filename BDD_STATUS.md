@@ -91,18 +91,8 @@ Checked 48 scenario(s) across 18 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [ ] UNCOVERED: end-to-end audio pipeline integration test
+- [x] end-to-end audio pipeline integration test
 
 ---
-**39/48 scenarios covered.**
+**48/48 scenarios covered.**
 
-9 scenario(s) need tests:
-- launch code interview mode from home screen
-- show waiting state until extension connects
-- detect extension connection
-- live code interview dashboard
-- display extension hint requests in real time
-- enrich hints with interview session context
-- handle extension disconnect gracefully
-- stop code interview mode
-- end-to-end audio pipeline integration test
