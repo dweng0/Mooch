@@ -91,7 +91,7 @@ Checked 48 scenario(s) across 18 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [ ] UNCOVERED: end-to-end audio pipeline integration test
+- [x] end-to-end audio pipeline integration test
 
 ---
 **39/48 scenarios covered.**
