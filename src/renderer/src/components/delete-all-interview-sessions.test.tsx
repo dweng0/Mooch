@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import React from 'react'
+import userEvent from '@testing-library/user-event'
 
 // Mock the localInterview service
 vi.mock('../services/localInterview', () => ({
@@ -27,7 +28,12 @@ global.window = {
     interviewSynthesize: vi.fn(),
     interviewGetAudio: vi.fn(),
   },
-}
+  navigator: {
+    mediaDevices: {
+      getUserMedia: vi.fn(),
+    },
+  },
+} as any
 
 import MockInterviewScreen from './MockInterviewScreen'
 import type { InterviewSessionMetadata } from '../../../shared/types'
@@ -69,7 +75,9 @@ describe('delete all interview sessions', () => {
 
     ;(global.window.electronAPI.interviewListSessions as any).mockResolvedValue(mockSessions)
 
-    render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    await act(async () => {
+      render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
@@ -92,13 +100,17 @@ describe('delete all interview sessions', () => {
 
     ;(global.window.electronAPI.interviewListSessions as any).mockResolvedValue(mockSessions)
 
-    render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    await act(async () => {
+      render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Click Delete All Sessions button
     const deleteAllButton = screen.getByText('Delete All Sessions')
-    deleteAllButton.click()
+    await act(async () => {
+      userEvent.click(deleteAllButton)
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
@@ -132,19 +144,25 @@ describe('delete all interview sessions', () => {
       .mockResolvedValueOnce([]) // After deletion
     ;(global.window.electronAPI.interviewDeleteAllSessions as any).mockResolvedValue(undefined)
 
-    render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    await act(async () => {
+      render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Click Delete All Sessions button
     const deleteAllButton = screen.getByText('Delete All Sessions')
-    deleteAllButton.click()
+    await act(async () => {
+      userEvent.click(deleteAllButton)
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Click Confirm Delete All button
     const confirmButton = screen.getByText('Confirm Delete All')
-    confirmButton.click()
+    await act(async () => {
+      userEvent.click(confirmButton)
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 100))
 
@@ -170,19 +188,25 @@ describe('delete all interview sessions', () => {
 
     ;(global.window.electronAPI.interviewListSessions as any).mockResolvedValue(mockSessions)
 
-    render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    await act(async () => {
+      render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Click Delete All Sessions button
     const deleteAllButton = screen.getByText('Delete All Sessions')
-    deleteAllButton.click()
+    await act(async () => {
+      userEvent.click(deleteAllButton)
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Click Cancel button
     const cancelButton = screen.getByText('Cancel')
-    cancelButton.click()
+    await act(async () => {
+      userEvent.click(cancelButton)
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 
@@ -197,7 +221,9 @@ describe('delete all interview sessions', () => {
   it('should not show delete all button when no sessions exist', async () => {
     ;(global.window.electronAPI.interviewListSessions as any).mockResolvedValue([])
 
-    render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    await act(async () => {
+      render(React.createElement(MockInterviewScreen, { onBack: mockOnBack }))
+    })
 
     await new Promise((resolve) => setTimeout(resolve, 50))
 

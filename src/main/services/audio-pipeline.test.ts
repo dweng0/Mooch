@@ -288,11 +288,15 @@ describe('audio pipeline integration tests', () => {
       expect(pipelineMetrics.llmDuration).toBeGreaterThan(0)
       expect(pipelineMetrics.ttsDuration).toBeGreaterThan(0)
       expect(pipelineMetrics.totalDuration).toBeGreaterThan(0)
-      expect(pipelineMetrics.totalDuration).toBe(
-        pipelineMetrics.sttDuration + 
+      
+      // Verify totalDuration is approximately the sum of individual durations
+      // Use.toBeCloseTo with 0 decimal places to account for timing overhead
+      const sumOfDurations = pipelineMetrics.sttDuration + 
         pipelineMetrics.llmDuration + 
         pipelineMetrics.ttsDuration
-      )
+      
+      expect(pipelineMetrics.totalDuration).toBeGreaterThanOrEqual(sumOfDurations)
+      expect(pipelineMetrics.totalDuration).toBeLessThanOrEqual(sumOfDurations + 5)
     })
 
     it('saves intermediate pipeline results to session directory', async () => {
