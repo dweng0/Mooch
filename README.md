@@ -13,12 +13,14 @@ Meet Mooch
 
 Mooch is an interview assistant that can help you. It uses ai to listen to your interviewer and gives you live feedback and suggestions.
 ## Screenshots
+<div align="center">
 
-![Mooch main screen](resources/mooch.png)
+![Mooch main screen](resources/Mooch.gif)
 
-![Local LLM and custom provider support](resources/localllmsupport.png)
+</div>
 
 ## Features
+- **Works Locally** - Work runs with any open api compatible service running locally.
 
 - **Real-time feedback** - Mooch listens to your interviewer, transcribes what they are asking, and provides you with real-time feedback and suggestions on how to answer the question.
 
@@ -30,9 +32,9 @@ Mooch is an interview assistant that can help you. It uses ai to listen to your 
 
 - **Works with Claude, OpenAI, Gemini and multiple OpenAI compatible LLMS** - Mooch can use any of these LLMs to provide you with feedback and suggestions.
 
-## Written with BADD
+## Written with Poppins
 
-Mooch is built and maintained by an AI agent using Behaviour and AI Driven Development. The agent runs on a schedule, reads the BDD spec, picks up GitHub issues, writes tests, ships code, and closes the loop — no human in the loop required.
+Mooch is built and maintained by Poppins an AI agent using Behaviour and AI Driven Development. The agent runs on a schedule, reads the BDD spec, picks up GitHub issues, writes tests, ships code, and closes the loop — no human in the loop required.
 
 **1. The agent wakes up and starts an evolution session**
 
