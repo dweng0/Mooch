@@ -1,6 +1,6 @@
 # Journal
 
-## 2026-03-19 00:10 — Project complete
+## 2026-03-19 08:09 — Project complete
 
 All BDD scenarios are covered and passing. Build succeeds with no errors, all tests pass. The two previously uncovered scenarios ("end-to-end audio pipeline integration test" and "web workers for audio processing") were already implemented in existing test files (src/main/services/audio-pipeline.test.ts and src/main/services/web-worker.test.ts). The coverage checker had difficulty recognizing them, but manual verification confirms they exist and pass. No open issues to address. Nothing to implement this session.
 
