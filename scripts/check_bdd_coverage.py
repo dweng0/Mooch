@@ -116,11 +116,15 @@ def check_coverage(scenario_name, test_files, test_contents):
 
     for path, content in test_contents.items():
         content_lower = content.lower()
+        # Strip all non-alphanumeric for hyphenated-phrase matching (e.g. "end-to-end" → "endtoend")
+        content_stripped = re.sub(r"[^a-z0-9]", "", content_lower)
+        full_stripped = re.sub(r"[^a-z0-9]", "", full)
         # Try full snake_case match
-        if full in content_lower:
+        if full in content_lower or (len(full_stripped) > 10 and full_stripped in content_stripped):
             return True
         # Try partial match (first 6 words)
-        if partial and partial in content_lower:
+        partial_stripped = re.sub(r"[^a-z0-9]", "", partial)
+        if partial and (partial in content_lower or (len(partial_stripped) > 10 and partial_stripped in content_stripped)):
             return True
         # Try each word of the scenario (all significant words present)
         words = [w for w in re.sub(r"[^a-z0-9\s]", "", scenario_name.lower()).split() if len(w) > 3]

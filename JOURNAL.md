@@ -1,5 +1,15 @@
 # Journal
 
+## 2026-03-19 13:20 — Add code interview mode tests and fix coverage checker
+
+Investigated the 12 scenarios the coverage checker was reporting as uncovered. Found that:
+
+- **Code interview mode (8 scenarios)**: `CodeInterviewScreen.tsx` was fully implemented but had zero test files. Added `code-interview-mode.test.tsx` with 19 tests covering all 8 scenarios (launch, waiting state, extension connection, live dashboard, real-time hints, session context enrichment, graceful disconnect, stop/back). All pass.
+- **end-to-end audio pipeline integration test**: Tests already existed in `audio-pipeline.test.ts` but the coverage checker failed to detect them because it stripped hyphens from the scenario name ("end-to-end" → "endtoend") but searched raw file content which kept "end-to-end". Fixed `check_bdd_coverage.py` to also compare fully-stripped versions of both sides.
+- **3 Web Worker audio processing scenarios** (UI remains responsive, worker communicates without blocking main thread, worker crash does not affect main thread): Genuinely uncovered — `web-worker.test.ts` covers the separate "web workers for audio processing" feature but not these three. These remain as the true gap.
+
+Coverage moved from 40/52 → 49/52. Only 3 scenarios remain uncovered and they have no implementation yet.
+
 ## 2026-03-19 08:09 — Project complete
 
 All BDD scenarios are covered and passing. Build succeeds with no errors, all tests pass. The two previously uncovered scenarios ("end-to-end audio pipeline integration test" and "web workers for audio processing") were already implemented in existing test files (src/main/services/audio-pipeline.test.ts and src/main/services/web-worker.test.ts). The coverage checker had difficulty recognizing them, but manual verification confirms they exist and pass. No open issues to address. Nothing to implement this session.

@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 48 scenario(s) across 18 test file(s).
+Checked 52 scenario(s) across 19 test file(s).
 
 
 ## Feature: remove login
@@ -47,14 +47,14 @@ Checked 48 scenario(s) across 18 test file(s).
 
 ## Feature: code interview mode
 
-- [ ] UNCOVERED: launch code interview mode from home screen
-- [ ] UNCOVERED: show waiting state until extension connects
-- [ ] UNCOVERED: detect extension connection
-- [ ] UNCOVERED: live code interview dashboard
-- [ ] UNCOVERED: display extension hint requests in real time
-- [ ] UNCOVERED: enrich hints with interview session context
-- [ ] UNCOVERED: handle extension disconnect gracefully
-- [ ] UNCOVERED: stop code interview mode
+- [x] launch code interview mode from home screen
+- [x] show waiting state until extension connects
+- [x] detect extension connection
+- [x] live code interview dashboard
+- [x] display extension hint requests in real time
+- [x] enrich hints with interview session context
+- [x] handle extension disconnect gracefully
+- [x] stop code interview mode
 
 ## Feature: local API for chrome extension integration
 
@@ -71,6 +71,13 @@ Checked 48 scenario(s) across 18 test file(s).
 - [x] test custom provider connectivity
 - [x] preferred STT provider with fallback
 - [x] Qwen API key supports STT transcription
+
+## Feature: Web Worker audio processing
+
+- [ ] UNCOVERED: UI remains responsive during audio processing
+- [ ] UNCOVERED: worker communicates without blocking main thread
+- [ ] UNCOVERED: worker crash does not affect main thread
+- [x] worker lifecycle is managed properly
 
 ## Feature: pre-configured API providers
 
@@ -91,18 +98,12 @@ Checked 48 scenario(s) across 18 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [ ] UNCOVERED: end-to-end audio pipeline integration test
+- [x] end-to-end audio pipeline integration test
 
 ---
-**39/48 scenarios covered.**
+**49/52 scenarios covered.**
 
-9 scenario(s) need tests:
-- launch code interview mode from home screen
-- show waiting state until extension connects
-- detect extension connection
-- live code interview dashboard
-- display extension hint requests in real time
-- enrich hints with interview session context
-- handle extension disconnect gracefully
-- stop code interview mode
-- end-to-end audio pipeline integration test
+3 scenario(s) need tests:
+- UI remains responsive during audio processing
+- worker communicates without blocking main thread
+- worker crash does not affect main thread
