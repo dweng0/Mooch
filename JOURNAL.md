@@ -1,5 +1,24 @@
 # Journal
 
+## 2026-03-21 21:00 — Enhance Qwen model selection with regional API endpoints and manual input
+
+### What was done
+- Added IPC handler `list-qwen-models` to fetch available models from DashScope API with regional support
+- Implemented region selection dropdown (International, China, USA) in Settings screen
+- Updated SettingsScreen component to fetch models dynamically from selected region's endpoint
+- Added manual model input field allowing users to enter custom model names
+- Provided model suggestions as clickable buttons for convenience
+- Added refresh button to fetch latest models from API
+- Implemented fallback to default models if API call fails
+- Updated preload script and shared types to expose new functionality
+- Added error handling and loading states for better UX
+
+### Files touched
+- `src/main/index.ts` - Added `list-qwen-models` IPC handler with regional endpoint support
+- `src/shared/types.ts` - Added `listQwenModels` method to ElectronAPI interface
+- `src/preload/index.ts` - Exposed `listQwenModels` in context bridge
+- `src/renderer/src/components/SettingsScreen.tsx` - Enhanced Qwen model selection UI with region dropdown, manual input, and model suggestions
+
 ## 2026-03-21 14:30 — Wire up starlight-typedoc for auto-generated API docs
 
 ### What was done

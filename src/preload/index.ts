@@ -122,6 +122,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setQwenModel: (model: string): Promise<void> => {
     return ipcRenderer.invoke('set-qwen-model', model)
   },
+  /** Lists available models from the Qwen provider. */
+  listQwenModels: (region?: string): Promise<string[]> => {
+    return ipcRenderer.invoke('list-qwen-models', region)
+  },
   /** Saves a custom OpenAI-compatible provider configuration. */
   setCustomProvider: (config: CustomProviderConfig): Promise<void> => {
     return ipcRenderer.invoke('set-custom-provider', config)

@@ -159,6 +159,58 @@ ipcMain.handle('set-qwen-model', async (_event, model: string) => {
   saveApiKeys(keys)
 })
 
+ipcMain.handle('list-qwen-models', async (_event, region: string = 'intl') => {
+  try {
+    const keys = loadApiKeys()
+    if (!keys.qwenApiKey) {
+      return []
+    }
+    
+    // Determine the appropriate endpoint based on the region
+    let baseUrl: string
+    switch (region) {
+      case 'china':
+        baseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+        break
+      case 'usa':
+        baseUrl = 'https://dashscope-us-east-1.aliyuncs.com/compatible-mode/v1'
+        break
+      case 'intl':
+      default:
+        baseUrl = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+        break
+    }
+    
+    // Try the OpenAI-compatible endpoint for models
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: {
+        'Authorization': `Bearer ${keys.qwenApiKey}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch Qwen models from ${baseUrl}: ${response.status} ${response.statusText}`)
+      // Return an empty array - the frontend will show default models
+      return []
+    }
+    
+    const data = await response.json()
+    // Check if the response has the expected structure
+    if (data.data && Array.isArray(data.data)) {
+      return data.data.map((m: any) => m.id).filter(Boolean)
+    } else {
+      // If the response doesn't have the expected structure, return an empty array
+      console.warn('Unexpected response structure when fetching Qwen models:', data)
+      return []
+    }
+  } catch (error) {
+    console.error('Error fetching Qwen models:', error)
+    // Return an empty array - the frontend will show default models
+    return []
+  }
+})
+
 ipcMain.handle('set-custom-provider', async (_event, config: CustomProviderConfig) => {
   const keys = loadApiKeys()
   keys.customProvider = config

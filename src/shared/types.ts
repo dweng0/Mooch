@@ -163,6 +163,7 @@ export interface ElectronAPI {
   clearLocalStt: () => Promise<void>
   testLocalStt: (url: string, model?: string) => Promise<{ ok: boolean; message: string }>
   setQwenModel: (model: string) => Promise<void>
+  listQwenModels: (region?: string) => Promise<string[]>
   // Custom provider
   setCustomProvider: (config: CustomProviderConfig) => Promise<void>
   clearCustomProvider: () => Promise<void>

@@ -39,7 +39,8 @@ const PROVIDER_KEY_MAP: Record<Provider, keyof UserApiKeys> = {
   qwen: 'qwenApiKey',
 }
 
-const QWEN_MODELS = [
+// Qwen models will be fetched dynamically
+const DEFAULT_QWEN_MODELS = [
   { value: 'qwen-max', label: 'Qwen Max (best quality)' },
   { value: 'qwen-plus', label: 'Qwen Plus (balanced)' },
   { value: 'qwen-turbo', label: 'Qwen Turbo (fast)' },
@@ -90,6 +91,9 @@ export default function SettingsScreen({
     qwen: false,
   })
   const [qwenModel, setQwenModel] = useState('qwen-max')
+  const [qwenRegion, setQwenRegion] = useState('intl') // Default to international
+  const [qwenModels, setQwenModels] = useState<{ value: string; label: string }[]>(DEFAULT_QWEN_MODELS)
+  const [fetchingQwenModels, setFetchingQwenModels] = useState(false)
   const [customInput, setCustomInput] = useState<CustomProviderConfig>(EMPTY_CUSTOM)
   const [customSaving, setCustomSaving] = useState(false)
   const [customVisible, setCustomVisible] = useState(false)
@@ -149,8 +153,44 @@ export default function SettingsScreen({
         )
         setPreferredProvider(first ?? null)
       }
+      
+      // Fetch Qwen models if API key is available
+      if (keys.qwenApiKey) {
+        fetchQwenModels();
+      }
     })
   }, [])
+
+  const fetchQwenModels = async () => {
+    setFetchingQwenModels(true);
+    try {
+      const modelIds = await window.electronAPI.listQwenModels(qwenRegion);
+      if (modelIds.length > 0) {
+        // Format the models for the dropdown
+        const formattedModels = modelIds.map(id => ({
+          value: id,
+          label: id // You could enhance this with more descriptive labels if needed
+        }));
+        
+        // If the current model is not in the fetched list, add it to the list
+        if (!modelIds.includes(qwenModel) && qwenModel.trim() !== '') {
+          // Add the current model to the beginning of the list
+          setQwenModels([{ value: qwenModel, label: `${qwenModel} (current)` }, ...formattedModels]);
+        } else {
+          setQwenModels(formattedModels);
+        }
+      } else {
+        // Fallback to default models if API call fails
+        setQwenModels(DEFAULT_QWEN_MODELS);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Qwen models:', error);
+      // Fallback to default models if API call fails
+      setQwenModels(DEFAULT_QWEN_MODELS);
+    } finally {
+      setFetchingQwenModels(false);
+    }
+  };
 
   const handlePreferredProviderChange = (provider: Provider | 'custom') => {
     setPreferredProvider(provider)
@@ -173,6 +213,11 @@ export default function SettingsScreen({
     try {
       await window.electronAPI.setApiKey(provider, value)
       setApiKeys(prev => ({ ...prev, [`${provider}ApiKey`]: value }))
+      
+      // Fetch Qwen models if Qwen API key was saved
+      if (provider === 'qwen') {
+        await fetchQwenModels();
+      }
     } finally {
       setSaving(prev => ({ ...prev, [provider]: false }))
     }
@@ -197,6 +242,11 @@ export default function SettingsScreen({
         setPreferredProvider(next)
         if (next) localStorage.setItem(BYOK_STORAGE_KEY, next)
         else localStorage.removeItem(BYOK_STORAGE_KEY)
+      }
+      
+      // Reset to default models if Qwen API key was cleared
+      if (provider === 'qwen') {
+        setQwenModels(DEFAULT_QWEN_MODELS);
       }
     } finally {
       setSaving(prev => ({ ...prev, [provider]: false }))
@@ -596,18 +646,68 @@ export default function SettingsScreen({
                 </div>
                 {provider.key === 'qwen' && hasKeySet('qwen') && (
                   <div className="px-3 pb-3">
-                    <select
-                      value={qwenModel}
-                      onChange={async (e) => {
-                        setQwenModel(e.target.value)
-                        await window.electronAPI.setQwenModel(e.target.value)
-                      }}
-                      className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
-                    >
-                      {QWEN_MODELS.map(m => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={qwenRegion}
+                          onChange={(e) => setQwenRegion(e.target.value)}
+                          className="bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                          <option value="intl">International (Singapore)</option>
+                          <option value="china">China</option>
+                          <option value="usa">USA</option>
+                        </select>
+                        <button
+                          onClick={fetchQwenModels}
+                          disabled={fetchingQwenModels}
+                          className="px-2 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 text-gray-700 text-xs rounded-md transition-colors cursor-pointer flex items-center"
+                          title="Refresh model list"
+                        >
+                          {fetchingQwenModels ? (
+                            <span className="w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            '🔄'
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={qwenModel}
+                          onChange={(e) => setQwenModel(e.target.value)}
+                          onBlur={async (e) => {
+                            // Save the model when the input loses focus
+                            await window.electronAPI.setQwenModel(e.target.value)
+                          }}
+                          placeholder="Enter model name (e.g., qwen-max)"
+                          className="flex-1 bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      {qwenModels.length > 0 && (
+                        <div className="pt-1">
+                          <p className="text-xs text-gray-500 mb-1">Available models:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {qwenModels.map(m => (
+                              <button
+                                key={m.value}
+                                type="button"
+                                onClick={async () => {
+                                  setQwenModel(m.value);
+                                  await window.electronAPI.setQwenModel(m.value);
+                                }}
+                                className={`text-xs px-2 py-1 rounded border ${
+                                  qwenModel === m.value
+                                    ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

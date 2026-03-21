@@ -1,6 +1,7 @@
 # Journal Index
 
 <!-- One line per session. Newest at the top. -->
+| 2026-03-21 | 21:00 | 52/52 | enhance Qwen model selection with regional API endpoints and manual input |
 | 2026-03-21 | 14:30 | 52/52 | wire up starlight-typedoc for auto-generated API docs (33 pages) |
 | 2026-03-21 | 14:15 | 52/52 | JSDoc coverage for all exports + rename BAADD to Poppins |
 | 2026-03-21 | 13:57 | 52/52 | add Starlight documentation site with GitHub Pages deployment |
