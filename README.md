@@ -3,6 +3,7 @@
 <img src="mooch.svg" width="180" alt="Mooch the bunny"/>
 
 Meet Mooch
+
 </div>
 
 [![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)
