@@ -1,6 +1,7 @@
 # Journal Index
 
 <!-- One line per session. Newest at the top. -->
+| 2026-03-21 | 13:57 | 52/52 | add Starlight documentation site with GitHub Pages deployment |
 | 2026-03-19 | 16:16 | 52/52 | cover 3 Web Worker audio processing scenarios |
 | 2026-03-19 | 13:20 | 49/52 | add code interview mode tests (8 scenarios); fix coverage checker for end-to-end detection |
 | 12 | 2026-03-17 | 21:55 | 34/34 | Day 12: cover 4 BDD scenarios (web workers + audio pipeline) |

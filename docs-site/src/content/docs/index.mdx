@@ -1,0 +1,35 @@
+---
+title: Mooch
+description: AI-powered live interview assistant
+template: splash
+hero:
+  tagline: Your AI-powered interview copilot. Get real-time help during mock interviews, code challenges, and technical screens.
+  actions:
+    - text: Get Started
+      link: /Mooch/getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/dweng0/Mooch
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+	<Card title="Mock Interviews" icon="microphone">
+		Practice with AI-driven voice interviews using your job description and resume for context.
+	</Card>
+	<Card title="Code Interview Mode" icon="laptop">
+		Get real-time hints during coding challenges via the Chrome extension bridge.
+	</Card>
+	<Card title="Multi-Provider Support" icon="setting">
+		Works with Anthropic, OpenAI-compatible APIs, Ollama, LM Studio, Qwen, and more.
+	</Card>
+	<Card title="Built with BAADD" icon="rocket">
+		Developed using Behaviour and AI Driven Development — every feature traces to a BDD scenario.
+	</Card>
+</CardGrid>
