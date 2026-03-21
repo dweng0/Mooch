@@ -1,9 +1,9 @@
 ---
-title: BAADD Framework
+title: Poppins Framework
 description: How Mooch is developed using Behaviour and AI Driven Development
 ---
 
-Mooch is built using **BAADD** (Behaviour and AI Driven Development) — a framework where an AI agent builds and maintains the project driven entirely by BDD specifications.
+Mooch is built using **Poppins** (Behaviour and AI Driven Development) — a framework where an AI agent builds and maintains the project driven entirely by BDD specifications.
 
 ## How It Works
 

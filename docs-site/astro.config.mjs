@@ -37,7 +37,7 @@ export default defineConfig({
 				{
 					label: 'Development',
 					items: [
-						{ label: 'BAADD Framework', slug: 'development/baadd' },
+						{ label: 'Poppins Framework', slug: 'development/baadd' },
 						{ label: 'Contributing', slug: 'development/contributing' },
 					],
 				},

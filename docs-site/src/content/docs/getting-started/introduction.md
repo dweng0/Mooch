@@ -13,7 +13,7 @@ Mooch is an AI-powered interview assistant built as an Electron desktop app. It 
 
 ## How It's Built
 
-Mooch is developed using **BAADD** (Behaviour and AI Driven Development). Every feature is specified as a BDD scenario in `BDD.md`, and an AI agent implements them test-first. This means every feature has test coverage by design.
+Mooch is developed using **Poppins** (Behaviour and AI Driven Development). Every feature is specified as a BDD scenario in `BDD.md`, and an AI agent implements them test-first. This means every feature has test coverage by design.
 
 ## Tech Stack
 

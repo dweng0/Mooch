@@ -8,7 +8,7 @@ Meet Mooch
 
 [![Evolution](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml/badge.svg)](https://github.com/dweng0/Mooch/actions/workflows/evolve.yml)
 [![Download](https://img.shields.io/github/v/release/dweng0/Mooch?label=Download&logo=github)](https://github.com/dweng0/Mooch/releases/latest)
-[![BAADD](baadd.svg)](https://github.com/dweng0/BAADD)
+[![Poppins](baadd.svg)](https://github.com/dweng0/BAADD)
 
 
 
@@ -39,7 +39,7 @@ Mooch is built and maintained by Poppins an AI agent using Behaviour and AI Driv
 
 **1. The agent wakes up and starts an evolution session**
 
-![BAADD agent starting an evolution session](resources/cleanupshop.png)
+![Poppins agent starting an evolution session](resources/cleanupshop.png)
 
 **2. It reads open issues and turns them into BDD scenarios**
 
@@ -53,4 +53,4 @@ Mooch is built and maintained by Poppins an AI agent using Behaviour and AI Driv
 
 ![Agent responds to issues](resources/responds-to-messages.png)
 
-## Built with BAADD: **B**ehaviour-**A**nd **A**I **D**riven **D**evelopment
+## Built with Poppins: **B**ehaviour-**A**nd **A**I **D**riven **D**evelopment

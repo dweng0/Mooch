@@ -342,3 +342,20 @@ System: a tool we call mooch, that helps users during interview by listening and
             When tested end-to-end with mock providers
             Then the integration test suite should verify the complete flow from audio input through LLM processing to TTS output
 
+    Feature: JSDoc documentation coverage
+
+        Scenario: all exported functions have JSDoc comments
+            Given the project source code in src/
+            When checking all exported functions, classes, interfaces, and type aliases
+            Then every export should have a JSDoc comment with at least a description
+
+        Scenario: JSDoc comments include parameter descriptions
+            Given an exported function with parameters
+            When the function has a JSDoc comment
+            Then the comment should include @param tags describing each parameter
+
+        Scenario: JSDoc comments include return descriptions
+            Given an exported function that returns a value
+            When the function has a JSDoc comment
+            Then the comment should include a @returns tag describing the return value
+

@@ -6,10 +6,10 @@ Set up a full documentation site using Astro Starlight, deployed via GitHub Acti
 
 ### What was done
 - Scaffolded a Starlight (Astro) project in `docs-site/`
-- Created 10 documentation pages covering: introduction, installation, mock interviews, code interview mode, Chrome extension, providers, Bridge API reference, architecture, BAADD framework, and contributing
+- Created 10 documentation pages covering: introduction, installation, mock interviews, code interview mode, Chrome extension, providers, Bridge API reference, architecture, Poppins framework, and contributing
 - Configured `astro.config.mjs` with site URL, base path (`/Mooch`), and organized sidebar navigation
 - Created `.github/workflows/docs.yml` for actions-based GitHub Pages deployment (triggers on push to main when `docs-site/**` changes)
-- Landing page uses Starlight's splash template with feature cards highlighting mock interviews, code interview mode, multi-provider support, and BAADD
+- Landing page uses Starlight's splash template with feature cards highlighting mock interviews, code interview mode, multi-provider support, and Poppins
 - Bridge API reference page documents all endpoints with request/response schemas from the BDD contract
 - Site builds successfully with Pagefind search index and sitemap
 

@@ -21,7 +21,7 @@ npm test
 ## Project Structure
 
 - `src/` — Application source code (Electron main, preload, renderer)
-- `scripts/` — BAADD framework scripts (evolve loop, BDD coverage checker)
+- `scripts/` — Poppins framework scripts (evolve loop, BDD coverage checker)
 - `docs/` — Landing page
 - `docs-site/` — This documentation site (Starlight/Astro)
 
