@@ -7,6 +7,7 @@ interface Props {
   onCancel: () => void
 }
 
+/** Modal dialog that lets the user record a voice message or skip, then submit the audio buffer. */
 export default function CaptureVoiceModal({ onSubmit, onCancel }: Props) {
   const [isRecording, setIsRecording] = useState(false)
   const [hasRecording, setHasRecording] = useState(false)

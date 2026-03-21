@@ -1,5 +1,6 @@
 import type { TTSProvider } from '../../shared/types'
 
+/** Configuration for a text-to-speech provider. */
 export interface TTSConfig {
   provider: TTSProvider
   apiKey?: string
@@ -10,16 +11,22 @@ export interface TTSConfig {
   pitch?: number
 }
 
+/** Response from a TTS synthesis request containing the audio data. */
 export interface TTSResponse {
   audioUrl?: string
   audioBuffer?: Buffer
   mimeType: string
 }
 
+/** Manages text-to-speech synthesis across multiple TTS providers. */
 export class TTSProviderManager {
   private config: TTSConfig | null = null
   private cachedLocalVoice: string | null = null
 
+  /**
+   * Sets the active TTS provider configuration.
+   * @param config - The TTS configuration to use.
+   */
   setConfig(config: TTSConfig): void {
     if (!config.provider) {
       throw new Error('TTS provider is required')
@@ -28,10 +35,19 @@ export class TTSProviderManager {
     this.cachedLocalVoice = null
   }
 
+  /**
+   * Returns the current TTS provider configuration.
+   * @returns The active TTS config, or null if not configured.
+   */
   getConfig(): TTSConfig | null {
     return this.config
   }
 
+  /**
+   * Synthesizes text to speech using the configured provider.
+   * @param text - The text to convert to speech.
+   * @returns The synthesized audio response.
+   */
   async synthesize(text: string): Promise<TTSResponse> {
     if (!this.config) {
       throw new Error('TTS provider not configured')
@@ -309,6 +325,10 @@ export class TTSProviderManager {
     return { audioBuffer, mimeType: contentType }
   }
 
+  /**
+   * Tests the TTS provider connection by synthesizing a short test phrase.
+   * @returns True if the provider is reachable and working, false otherwise.
+   */
   async testConnection(): Promise<boolean> {
     if (!this.config) {
       return false
@@ -324,4 +344,5 @@ export class TTSProviderManager {
   }
 }
 
+/** Singleton TTS provider manager instance used across the application. */
 export const ttsManager = new TTSProviderManager()

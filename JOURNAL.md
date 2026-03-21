@@ -1,5 +1,18 @@
 # Journal
 
+## 2026-03-21 14:15 — JSDoc coverage + BAADD→Poppins rename
+
+### What was done
+- Renamed BAADD to Poppins across CLAUDE.md, README.md, JOURNAL.md, and all docs-site pages
+- Added JSDoc comments to ~130 exported functions, classes, interfaces, type aliases, and class methods across the entire `src/` directory (main, renderer, preload)
+- Added 3 new BDD scenarios under "Feature: JSDoc documentation coverage" to BDD.md
+- Build passes, all 194 tests pass
+
+### Files touched
+- `src/main/config.ts`, `src/main/services/ai-provider.ts`, `src/main/services/api-client.ts`, `src/main/services/claude.ts`, `src/main/services/gemini.ts`, `src/main/services/qwen.ts`, `src/main/services/openai-compat.ts`, `src/main/services/transcribe.ts`, `src/main/services/whisper.ts`, `src/main/services/tts-provider.ts`, `src/main/services/interview-session.ts`, `src/main/services/interview-orchestrator.ts`, `src/main/services/local-bridge-api.ts`
+- `src/renderer/src/services/recorder.ts`, `src/renderer/src/services/liveInterview.ts`, `src/renderer/src/App.tsx`, and 14 component files
+- `src/preload/index.ts` — all 60 electronAPI methods documented
+
 ## 2026-03-21 13:57 — Added Starlight documentation site
 
 Set up a full documentation site using Astro Starlight, deployed via GitHub Actions to GitHub Pages.

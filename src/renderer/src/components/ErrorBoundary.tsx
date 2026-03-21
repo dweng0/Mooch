@@ -9,6 +9,7 @@ interface State {
   retryCount: number
 }
 
+/** Catches rendering errors in child components and displays a recovery UI with retry or restart options. */
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, retryCount: 0 }
 

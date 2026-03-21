@@ -10,6 +10,7 @@ const DISCONNECTED_INTERVAL_MS = 30_000
 const CONNECTED_INITIAL_MS = 60_000
 const CONNECTED_MAX_MS = 60 * 60_000 // 1 hour
 
+/** Displays a colored dot and label indicating the API server health status, with automatic polling and backoff. */
 export default function StatusIndicator({ apiUrl }: Props) {
   const [status, setStatus] = useState<HealthStatus>('checking')
 

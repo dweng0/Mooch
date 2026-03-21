@@ -3,6 +3,12 @@ import { buildSystemPrompt } from '../../../config/systemPrompt'
 import type { UserContext } from '../../shared/types'
 import { loadApiKeys } from './api-keys'
 
+/**
+ * Generates an interview answer using the Anthropic Claude API.
+ * @param question - The interview question to answer.
+ * @param context - User context including CV, job description, and manual context.
+ * @returns The generated answer text.
+ */
 export async function getClaudeAnswer(question: string, context: UserContext): Promise<string> {
   const apiKey = loadApiKeys().anthropicApiKey
   if (!apiKey) {
@@ -28,6 +34,12 @@ export async function getClaudeAnswer(question: string, context: UserContext): P
   throw new Error('Unexpected response format from Claude')
 }
 
+/**
+ * Analyzes a code screenshot image using the Anthropic Claude vision API.
+ * @param imageBase64 - Base64-encoded PNG image of the code.
+ * @param context - Optional context to guide the analysis.
+ * @returns The AI-generated explanation of the code.
+ */
 export async function analyzeCodeSnapshot(imageBase64: string, context?: string): Promise<string> {
   const apiKey = loadApiKeys().anthropicApiKey
   if (!apiKey) {

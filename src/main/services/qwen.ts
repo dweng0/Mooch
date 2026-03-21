@@ -14,6 +14,12 @@ function getClient(): OpenAI {
   return new OpenAI({ apiKey, baseURL: DASHSCOPE_BASE_URL })
 }
 
+/**
+ * Generates an interview answer using the Qwen (DashScope) API.
+ * @param question - The interview question to answer.
+ * @param context - User context including CV, job description, and manual context.
+ * @returns The generated answer text.
+ */
 export async function getQwenAnswer(question: string, context: UserContext): Promise<string> {
   const client = getClient()
   const keys = loadApiKeys()
@@ -30,6 +36,12 @@ export async function getQwenAnswer(question: string, context: UserContext): Pro
   return response.choices[0]?.message?.content ?? ''
 }
 
+/**
+ * Analyzes a code screenshot image using the Qwen vision-language model.
+ * @param imageBase64 - Base64-encoded PNG image of the code.
+ * @param context - Optional context to guide the analysis.
+ * @returns The AI-generated explanation of the code.
+ */
 export async function analyzeCodeSnapshotQwen(imageBase64: string, context?: string): Promise<string> {
   const client = getClient()
   const keys = loadApiKeys()

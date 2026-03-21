@@ -32,6 +32,7 @@ const HYPE_PHRASES = [
   "Go show them what you're made of!",
 ]
 
+/** The available interview mode types: general Q&A, code challenge, or mock interview. */
 export type InterviewMode = 'general' | 'code' | 'mock'
 
 interface Props {
@@ -71,6 +72,7 @@ function hasAnyTts(apiKeys?: UserApiKeys): boolean {
   return !!(apiKeys.cosyvoiceApiKey || apiKeys.localTtsUrl)
 }
 
+/** Configuration for a status badge shown on an interview mode card. */
 export type BadgeSpec = {
   tooltipId: string
   /** shown when hasKeys=true */
@@ -84,6 +86,7 @@ export type BadgeSpec = {
   hasKeys: boolean
 }
 
+/** Main menu screen that displays interview mode cards (General, Code, Mock) with API key status badges. */
 export default function ServiceSelection({
   onSelect,
   onSettings,

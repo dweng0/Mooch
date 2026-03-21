@@ -5,6 +5,10 @@ import { getGeminiAnswer } from './gemini'
 import { getQwenAnswer } from './qwen'
 import { getCustomAnswer } from './openai-compat'
 
+/**
+ * Returns the list of AI providers that have valid API keys configured.
+ * @returns An array of available AI provider identifiers.
+ */
 export function getAvailableProviders(): AIProvider[] {
   const keys = loadApiKeys()
   const providers: AIProvider[] = []
@@ -16,6 +20,13 @@ export function getAvailableProviders(): AIProvider[] {
   return providers
 }
 
+/**
+ * Routes a question to the specified AI provider and returns the generated answer.
+ * @param question - The interview question to answer.
+ * @param provider - The AI provider to use for generating the answer.
+ * @param context - User context including CV, job description, and manual context.
+ * @returns The generated answer text.
+ */
 export async function getAnswer(question: string, provider: AIProvider, context: UserContext): Promise<string> {
   switch (provider) {
     case 'claude':

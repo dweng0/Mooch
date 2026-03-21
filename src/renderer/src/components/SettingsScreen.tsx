@@ -57,6 +57,7 @@ const PRECONFIGURED_PROVIDERS: Record<string, { label: string; baseUrl: string }
 
 const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '', label: '', sttEnabled: false, sttModel: '' }
 
+/** Settings screen for managing API keys, context documents, and custom provider configuration. */
 export default function SettingsScreen({
   onBack,
   cvName,

@@ -9,6 +9,7 @@ const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/
 const DEFAULT_MODEL = 'qwen-max'
 const MAX_HISTORY_ENTRIES = 30
 
+/** Configuration required to start an interview session. */
 export interface InterviewConfig {
   sessionId: string
   llmProvider: AIProvider
@@ -23,6 +24,7 @@ function getRandomVoice(): string {
   return TTS_VOICES[Math.floor(Math.random() * TTS_VOICES.length)]
 }
 
+/** Orchestrates real-time voice interviews, managing LLM interactions, TTS, and session state. */
 export class InterviewOrchestrator {
   private currentSessionId: string | null = null
   private sessionManager: InterviewSessionManager
@@ -31,11 +33,20 @@ export class InterviewOrchestrator {
   private currentTurn: number = 0
   private conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 
+  /**
+   * Creates a new interview orchestrator.
+   * @param sessionManager - The session manager for persisting interview data.
+   * @param ttsManager - The TTS provider manager for speech synthesis.
+   */
   constructor(sessionManager: InterviewSessionManager, ttsManager: TTSProviderManager) {
     this.sessionManager = sessionManager
     this.ttsManager = ttsManager
   }
 
+  /**
+   * Initializes a new real-time voice interview session with the given configuration.
+   * @param config - The interview configuration including session ID, LLM provider, and TTS settings.
+   */
   async startRealTimeVoiceInterview(config: InterviewConfig): Promise<void> {
     this.config = config
     this.currentSessionId = config.sessionId
@@ -62,6 +73,12 @@ export class InterviewOrchestrator {
     }
   }
 
+  /**
+   * Processes a user's response, generates feedback and the next interview question.
+   * @param userText - The transcribed text of the user's spoken response.
+   * @param audioPath - Optional path to the saved audio file.
+   * @returns The interview turn data including the next question and feedback.
+   */
   async processUserResponse(userText: string, audioPath?: string): Promise<InterviewTurn> {
     if (!this.config || !this.currentSessionId) {
       throw new Error('Interview not started')
@@ -128,10 +145,18 @@ export class InterviewOrchestrator {
     }
   }
 
+  /**
+   * Returns the current active session ID.
+   * @returns The session ID, or null if no interview is active.
+   */
   getSessionId(): string | null {
     return this.currentSessionId
   }
 
+  /**
+   * Saves the TTS-generated question audio for the current turn.
+   * @param audioBuffer - The raw audio data to save.
+   */
   async saveQuestionAudio(audioBuffer: Buffer): Promise<void> {
     if (!this.currentSessionId) {
       console.warn('[Interview] No active session, cannot save question audio')
@@ -147,6 +172,10 @@ export class InterviewOrchestrator {
     }
   }
 
+  /**
+   * Saves the user's recorded audio for the current turn.
+   * @param audioBuffer - The raw audio data to save.
+   */
   async saveUserAudio(audioBuffer: Buffer): Promise<void> {
     if (!this.currentSessionId) {
       console.warn('[Interview] No active session, cannot save user audio')
@@ -163,6 +192,10 @@ export class InterviewOrchestrator {
   }
 
 
+  /**
+   * Ends the current interview session and resets orchestrator state.
+   * @param isComplete - Whether the interview completed normally (defaults to true).
+   */
   async endInterview(isComplete: boolean = true): Promise<void> {
     if (!this.currentSessionId) {
       throw new Error('No active interview')
@@ -179,6 +212,11 @@ export class InterviewOrchestrator {
     this.config = null
   }
 
+  /**
+   * Generates an AI-powered summary of the interview with ratings, strengths, and improvement areas.
+   * @param sessionId - The session to generate a summary for.
+   * @returns The interview summary with average rating and feedback areas.
+   */
   async generateSummary(sessionId: string): Promise<InterviewSummary> {
     const session = await this.sessionManager.getSession(sessionId)
     if (!session) throw new Error('Session not found')
@@ -222,6 +260,10 @@ export class InterviewOrchestrator {
     return summary
   }
 
+  /**
+   * Generates the opening interview question based on the job description and resume.
+   * @returns The opening question text.
+   */
   async generateOpener(): Promise<string> {
     if (!this.config) {
       throw new Error('Interview not configured')
@@ -408,10 +450,18 @@ export class InterviewOrchestrator {
     return transcript
   }
 
+  /**
+   * Returns the current turn number in the interview.
+   * @returns The current turn number.
+   */
   getCurrentTurn(): number {
     return this.currentTurn
   }
 
+  /**
+   * Returns a copy of the conversation history.
+   * @returns An array of conversation messages with role and content.
+   */
   getConversationHistory(): Array<{ role: 'user' | 'assistant'; content: string }> {
     return [...this.conversationHistory]
   }

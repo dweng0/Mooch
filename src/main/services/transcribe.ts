@@ -18,6 +18,11 @@ if (ffmpegStatic) {
 const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 const DASHSCOPE_WSS_URL = 'wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference'
 
+/**
+ * Transcribes audio using the best available STT provider, with automatic fallback.
+ * @param audioBuffer - Raw audio data to transcribe.
+ * @returns The transcribed text.
+ */
 export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
   const keys = loadApiKeys()
   console.log('[STT] Starting transcription...')

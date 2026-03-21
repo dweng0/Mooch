@@ -31,6 +31,7 @@ type AuthState = 'loading' | 'logged-out' | 'no-subscription' | 'active'
 type AppView = 'select' | 'settings' | InterviewMode
 type CodeSnapshotState = 'idle' | 'selecting-window' | 'awaiting-voice' | 'analyzing'
 
+/** Root application component that manages auth state, recording, transcription, and screen routing. */
 export default function App() {
 
   // ── Auth state ─────────────────────────────────────────────────────────────

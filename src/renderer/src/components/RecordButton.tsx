@@ -6,6 +6,7 @@ interface RecordButtonProps {
   onToggle: () => void
 }
 
+/** Toggle button that switches between Record and Stop states with visual feedback. */
 export default function RecordButton({ isRecording, disabled, onToggle }: RecordButtonProps) {
   return (
     <button

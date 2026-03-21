@@ -13,6 +13,7 @@ interface SpeechRecognitionLike extends EventTarget {
   onend: (() => void) | null
 }
 
+/** Provides real-time speech recognition and text-to-speech for live interview mode using the Web Speech API. */
 export class LiveInterviewService {
   private recognition: SpeechRecognitionLike | null = null
   private silenceTimer: ReturnType<typeof setTimeout> | null = null
@@ -23,14 +24,24 @@ export class LiveInterviewService {
   private onInterimCb: OnInterimCallback | null = null
   private onQuestionCb: OnQuestionCallback | null = null
 
+  /**
+   * Creates a new LiveInterviewService instance.
+   * @param silenceDelay - Milliseconds of silence before accumulated speech is emitted as a question.
+   */
   constructor(silenceDelay = 2000) {
     this.silenceDelay = silenceDelay
   }
 
+  /** Whether the Web Speech API is available in the current browser environment. */
   get isAvailable(): boolean {
     return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
   }
 
+  /**
+   * Begins continuous speech recognition and invokes callbacks for interim text and finalized questions.
+   * @param onInterim - Called with the current interim transcript as speech is recognized.
+   * @param onQuestion - Called with the finalized question text after a silence period.
+   */
   start(onInterim: OnInterimCallback, onQuestion: OnQuestionCallback): void {
     if (this.isActive) return
     this.onInterimCb = onInterim
@@ -62,6 +73,7 @@ export class LiveInterviewService {
     }
   }
 
+  /** Fully stops recognition and clears all callbacks. */
   stop(): void {
     console.log('[LiveInterview] Stopping service')
     this.isActive = false
@@ -76,6 +88,11 @@ export class LiveInterviewService {
     }, 100)
   }
 
+  /**
+   * Speaks the given text aloud using the browser's speech synthesis.
+   * @param text - The text to speak.
+   * @param onEnd - Optional callback invoked when speech finishes.
+   */
   speak(text: string, onEnd?: () => void): void {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
@@ -86,6 +103,7 @@ export class LiveInterviewService {
     window.speechSynthesis.speak(utterance)
   }
 
+  /** Cancels any ongoing speech synthesis. */
   stopSpeaking(): void {
     window.speechSynthesis.cancel()
   }

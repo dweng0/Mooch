@@ -3,6 +3,12 @@ import { buildSystemPrompt } from '../../../config/systemPrompt'
 import type { UserContext } from '../../shared/types'
 import { loadApiKeys } from './api-keys'
 
+/**
+ * Generates an interview answer using the Google Gemini API.
+ * @param question - The interview question to answer.
+ * @param context - User context including CV, job description, and manual context.
+ * @returns The generated answer text.
+ */
 export async function getGeminiAnswer(question: string, context: UserContext): Promise<string> {
   const apiKey = loadApiKeys().geminiApiKey
   if (!apiKey) {

@@ -5,6 +5,7 @@ interface TranscriptPanelProps {
   status: string
 }
 
+/** Displays the current audio transcript or a transcribing status indicator. */
 export default function TranscriptPanel({ transcript, status }: TranscriptPanelProps) {
   return (
     <div className="flex-none px-4 py-3 border-b border-gray-200">

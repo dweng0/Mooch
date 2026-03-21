@@ -1,3 +1,4 @@
+/** Renders the animated Mochi rabbit SVG logo with ear wiggle, head rotation, and eye blink animations. */
 export default function MochiLogo({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="-10 -10 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>

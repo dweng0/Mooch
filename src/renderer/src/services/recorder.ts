@@ -1,9 +1,15 @@
 import type { AudioSource } from '../../../shared/types'
 
+/** Manages audio recording from microphone or system audio sources using the MediaRecorder API. */
 export class AudioRecorder {
   private mediaRecorder: MediaRecorder | null = null
   private chunks: Blob[] = []
 
+  /**
+   * Starts recording audio from the specified source.
+   * @param source - The audio source to record from ('microphone' or 'system').
+   * @returns A promise that resolves when recording has started.
+   */
   async start(source: AudioSource): Promise<void> {
     console.log(`[AudioRecorder] start() called with source: "${source}"`)
     console.log(`[AudioRecorder] About to call ${source === 'microphone' ? 'getMicStream' : 'getSystemAudioStream'}`)
@@ -46,6 +52,10 @@ export class AudioRecorder {
     console.log('[AudioRecorder] MediaRecorder started')
   }
 
+  /**
+   * Stops the current recording and returns the captured audio data.
+   * @returns A promise that resolves with the recorded audio as an ArrayBuffer.
+   */
   stop(): Promise<ArrayBuffer> {
     console.log('[AudioRecorder] stop() called')
     return new Promise((resolve, reject) => {
@@ -76,10 +86,15 @@ export class AudioRecorder {
     })
   }
 
+  /** Whether the recorder is currently capturing audio. */
   get isRecording(): boolean {
     return this.mediaRecorder?.state === 'recording'
   }
 
+  /**
+   * Requests microphone access and returns the audio stream.
+   * @returns A promise that resolves with the microphone MediaStream.
+   */
   private async getMicStream(): Promise<MediaStream> {
     console.log('[AudioRecorder] getMicStream() - Requesting microphone access via getUserMedia (no screen access needed)')
     console.log('[AudioRecorder] Checking navigator.mediaDevices availability:', {
@@ -115,6 +130,10 @@ export class AudioRecorder {
     }
   }
 
+  /**
+   * Captures system audio via Electron's desktop capturer.
+   * @returns A promise that resolves with an audio-only MediaStream from the desktop source.
+   */
   private async getSystemAudioStream(): Promise<MediaStream> {
     console.log('[AudioRecorder] getSystemAudioStream() called - this will request screen access!')
     try {

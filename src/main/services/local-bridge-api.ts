@@ -16,6 +16,7 @@ const PROVIDER_TYPES: Record<string, string> = {
   custom: 'openai-compatible',
 }
 
+/** Tracks the connection state and current context of the browser extension. */
 export interface ExtensionState {
   connected: boolean
   lastSeen: number
@@ -24,6 +25,7 @@ export interface ExtensionState {
   language?: string | null
 }
 
+/** A generated hint entry with the AI answer and explanation for a coding problem. */
 export interface BridgeHintEntry {
   answer: string
   explanation: string
@@ -32,6 +34,7 @@ export interface BridgeHintEntry {
   language?: string | null
 }
 
+/** Local HTTP API server that bridges the browser extension with the Electron app's AI providers. */
 export class LocalBridgeApi {
   private server: http.Server | null = null
   private activeSession: string | null = null
@@ -40,26 +43,49 @@ export class LocalBridgeApi {
   private onExtensionUpdate?: (state: ExtensionState) => void
   private onHintGenerated?: (entry: BridgeHintEntry) => void
 
+  /**
+   * Sets the active interview session ID for contextual hint generation.
+   * @param sessionId - The session ID, or null to clear.
+   */
   setActiveSession(sessionId: string | null): void {
     this.activeSession = sessionId
   }
 
+  /**
+   * Returns a copy of the current browser extension connection state.
+   * @returns The current extension state.
+   */
   getExtensionState(): ExtensionState {
     return { ...this.extensionState }
   }
 
+  /**
+   * Returns a copy of the hint history log.
+   * @returns An array of previously generated hint entries.
+   */
   getHintHistory(): BridgeHintEntry[] {
     return [...this.hintHistory]
   }
 
+  /**
+   * Registers a callback to be invoked when the extension state changes.
+   * @param cb - The callback function receiving the updated extension state.
+   */
   setOnExtensionUpdate(cb: (state: ExtensionState) => void): void {
     this.onExtensionUpdate = cb
   }
 
+  /**
+   * Registers a callback to be invoked when a new hint is generated.
+   * @param cb - The callback function receiving the generated hint entry.
+   */
   setOnHintGenerated(cb: (entry: BridgeHintEntry) => void): void {
     this.onHintGenerated = cb
   }
 
+  /**
+   * Starts the local HTTP server on localhost:62544.
+   */
   async start(): Promise<void> {
     if (this.server) return
 
@@ -76,6 +102,9 @@ export class LocalBridgeApi {
     })
   }
 
+  /**
+   * Stops the local HTTP server.
+   */
   async stop(): Promise<void> {
     if (!this.server) return
     return new Promise((resolve) => {

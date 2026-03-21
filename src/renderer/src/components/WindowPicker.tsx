@@ -7,6 +7,7 @@ interface WindowPickerProps {
   onCancel: () => void
 }
 
+/** Full-screen modal that displays available desktop windows as a thumbnail grid for the user to select. */
 export default function WindowPicker({ windows, onSelect, onCancel }: WindowPickerProps) {
   console.log(`[WindowPicker] Rendering with ${windows.length} windows`)
 

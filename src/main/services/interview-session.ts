@@ -5,6 +5,7 @@ import type { InterviewSession, InterviewSessionMetadata, InterviewFeedback, Int
 
 const SESSIONS_DIR = path.join(os.homedir(), '.mooch', 'interview-sessions')
 
+/** Manages persistent storage and retrieval of interview sessions on disk. */
 export class InterviewSessionManager {
   constructor() {
     this.ensureSessionsDirectory()
@@ -24,6 +25,12 @@ export class InterviewSessionManager {
     return new Date().toISOString().replace(/[:.]/g, '-')
   }
 
+  /**
+   * Creates a new interview session with its directory structure and metadata.
+   * @param jobDescription - The job description for the interview.
+   * @param resume - The candidate's resume text.
+   * @returns The metadata for the newly created session.
+   */
   async createSession(jobDescription: string, resume: string): Promise<InterviewSessionMetadata> {
     const sessionId = this.createSessionId()
     const sessionPath = this.getSessionPath(sessionId)
@@ -55,6 +62,10 @@ export class InterviewSessionManager {
     return metadata
   }
 
+  /**
+   * Lists all saved interview sessions sorted by creation date (newest first).
+   * @returns An array of session metadata objects.
+   */
   async listSessions(): Promise<InterviewSessionMetadata[]> {
     this.ensureSessionsDirectory()
 
@@ -83,6 +94,11 @@ export class InterviewSessionManager {
     return sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }
 
+  /**
+   * Loads a complete interview session including transcript, feedback, and summary.
+   * @param sessionId - The unique session identifier.
+   * @returns The full session data, or null if not found.
+   */
   async getSession(sessionId: string): Promise<InterviewSession | null> {
     const sessionPath = this.getSessionPath(sessionId)
 
@@ -130,6 +146,11 @@ export class InterviewSessionManager {
     }
   }
 
+  /**
+   * Saves feedback for a specific turn in an interview session.
+   * @param sessionId - The session to save feedback for.
+   * @param feedback - The feedback data including rating and comments.
+   */
   async saveFeedback(sessionId: string, feedback: InterviewFeedback): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     const feedbackPath = path.join(sessionPath, 'feedback', `turn-${feedback.turn}.json`)
@@ -144,6 +165,11 @@ export class InterviewSessionManager {
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
+  /**
+   * Saves the overall interview summary and caches the average rating in metadata.
+   * @param sessionId - The session to save the summary for.
+   * @param summary - The interview summary with ratings and areas of improvement.
+   */
   async saveSummary(sessionId: string, summary: InterviewSummary): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     fs.writeFileSync(path.join(sessionPath, 'summary.json'), JSON.stringify(summary, null, 2))
@@ -154,6 +180,11 @@ export class InterviewSessionManager {
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
+  /**
+   * Saves or updates the interview transcript markdown file.
+   * @param sessionId - The session to save the transcript for.
+   * @param transcript - The full transcript content in markdown format.
+   */
   async saveTranscript(sessionId: string, transcript: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     const transcriptPath = path.join(sessionPath, 'transcript.md')
@@ -167,6 +198,13 @@ export class InterviewSessionManager {
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
+  /**
+   * Saves a user's audio recording for a specific interview turn.
+   * @param sessionId - The session to save audio for.
+   * @param turn - The turn number.
+   * @param audioBuffer - The raw audio data to save.
+   * @returns The file path where the audio was saved.
+   */
   async saveAudio(sessionId: string, turn: number, audioBuffer: Buffer): Promise<string> {
     const sessionPath = this.getSessionPath(sessionId)
     const audioPath = path.join(sessionPath, 'audio', `user-turn-${turn}.wav`)
@@ -176,6 +214,13 @@ export class InterviewSessionManager {
     return audioPath
   }
 
+  /**
+   * Saves the TTS-generated question audio for a specific interview turn.
+   * @param sessionId - The session to save audio for.
+   * @param turn - The turn number.
+   * @param audioBuffer - The raw audio data to save.
+   * @returns The file path where the audio was saved.
+   */
   async saveQuestionAudio(sessionId: string, turn: number, audioBuffer: Buffer): Promise<string> {
     const sessionPath = this.getSessionPath(sessionId)
     const audioPath = path.join(sessionPath, 'audio', `question-turn-${turn}.wav`)
@@ -185,6 +230,10 @@ export class InterviewSessionManager {
     return audioPath
   }
 
+  /**
+   * Marks an interview session as complete in its metadata.
+   * @param sessionId - The session to mark as complete.
+   */
   async markComplete(sessionId: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
     const metadataPath = path.join(sessionPath, 'session.json')
@@ -196,6 +245,10 @@ export class InterviewSessionManager {
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
+  /**
+   * Deletes an interview session and all its associated files.
+   * @param sessionId - The session to delete.
+   */
   async deleteSession(sessionId: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId)
 
@@ -205,6 +258,9 @@ export class InterviewSessionManager {
     }
   }
 
+  /**
+   * Deletes all saved interview sessions.
+   */
   async deleteAllSessions(): Promise<void> {
     console.log('[SessionManager] Starting delete all sessions')
     const sessions = await this.listSessions()
@@ -229,4 +285,5 @@ export class InterviewSessionManager {
   }
 }
 
+/** Singleton interview session manager instance used across the application. */
 export const sessionManager = new InterviewSessionManager()

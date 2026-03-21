@@ -32,6 +32,7 @@ function PulsingDots() {
   )
 }
 
+/** Full mock interview experience with voice-based Q&A, session management, and post-interview review. */
 export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps) {
   const [view, setView] = useState<MockScreenView>('sessions')
   const [status, setStatus] = useState<InterviewStatus>('idle')

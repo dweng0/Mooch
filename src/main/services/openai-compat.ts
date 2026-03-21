@@ -2,6 +2,13 @@ import OpenAI from 'openai'
 import { buildSystemPrompt } from '../../../config/systemPrompt'
 import type { UserContext, CustomProviderConfig } from '../../shared/types'
 
+/**
+ * Generates an interview answer using a custom OpenAI-compatible API provider.
+ * @param question - The interview question to answer.
+ * @param context - User context including CV, job description, and manual context.
+ * @param config - Configuration for the custom provider (base URL, model, API key).
+ * @returns The generated answer text.
+ */
 export async function getCustomAnswer(
   question: string,
   context: UserContext,
@@ -25,6 +32,13 @@ export async function getCustomAnswer(
   return response.choices[0]?.message?.content ?? ''
 }
 
+/**
+ * Analyzes a code screenshot image using a custom OpenAI-compatible vision API.
+ * @param imageBase64 - Base64-encoded PNG image of the code.
+ * @param config - Configuration for the custom provider.
+ * @param context - Optional context to guide the analysis.
+ * @returns The AI-generated explanation of the code.
+ */
 export async function analyzeCodeSnapshotCustom(
   imageBase64: string,
   config: CustomProviderConfig,
@@ -59,6 +73,11 @@ export async function analyzeCodeSnapshotCustom(
   return response.choices[0]?.message?.content ?? ''
 }
 
+/**
+ * Tests connectivity and capabilities of a custom OpenAI-compatible provider.
+ * @param config - Configuration for the custom provider to test.
+ * @returns An object indicating whether reasoning (chat completions) and STT (audio transcription) are available.
+ */
 export async function testCustomProvider(
   config: CustomProviderConfig
 ): Promise<{ reasoning: boolean; stt: boolean }> {

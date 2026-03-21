@@ -16,6 +16,7 @@ interface AnswerPanelProps {
   passiveProcessing?: boolean
 }
 
+/** Displays the current AI-generated answer and a scrollable history of previous answers. */
 export default function AnswerPanel({ answer, answerHistory, status, textSize, passiveProcessing }: AnswerPanelProps) {
   const sizeClass = SIZE_CLASSES[textSize]
 

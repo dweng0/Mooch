@@ -79,6 +79,7 @@ async function request<T>(
 // Copilot API calls
 // ---------------------------------------------------------------------------
 
+/** Represents the user's subscription status and usage limits from the backend. */
 export interface SubscriptionStatus {
   isActive: boolean
   subscriptionStatus: string | null
@@ -91,6 +92,10 @@ export interface SubscriptionStatus {
   hasCodeSnapshot: boolean
 }
 
+/**
+ * Fetches the current user's subscription status and available providers from the backend.
+ * @returns The subscription status response including usage limits and available providers.
+ */
 export async function fetchSubscriptionStatus(): Promise<ApiResponse<SubscriptionStatus>> {
   const apiKeys = loadApiKeys()
   // Build query string with API keys if they exist
@@ -107,6 +112,11 @@ export async function fetchSubscriptionStatus(): Promise<ApiResponse<Subscriptio
   return request<SubscriptionStatus>('GET', path)
 }
 
+/**
+ * Sends audio data to the backend API for speech-to-text transcription.
+ * @param audioBuffer - Raw audio data to transcribe.
+ * @returns The transcribed text.
+ */
 export async function transcribeAudio(audioBuffer: ArrayBuffer): Promise<string> {
   const base64 = Buffer.from(audioBuffer).toString('base64')
   const apiKeys = loadApiKeys()
@@ -121,6 +131,13 @@ export async function transcribeAudio(audioBuffer: ArrayBuffer): Promise<string>
   return result.data.transcript
 }
 
+/**
+ * Sends a question to the backend API for AI-generated answer using the specified provider.
+ * @param question - The interview question to answer.
+ * @param provider - The AI provider to use.
+ * @param context - User context including CV and job description.
+ * @returns The generated answer text.
+ */
 export async function getAnswer(
   question: string,
   provider: AIProvider,
@@ -140,6 +157,12 @@ export async function getAnswer(
   return result.data.answer
 }
 
+/**
+ * Sends a code screenshot to the backend API for AI-powered analysis.
+ * @param imageBase64 - Base64-encoded PNG image of the code.
+ * @param context - Optional context to guide the analysis.
+ * @returns The AI-generated explanation of the code.
+ */
 export async function analyzeCodeSnapshot(imageBase64: string, context?: string): Promise<string> {
   const apiKeys = loadApiKeys()
   const result = await request<{ explanation: string }>('POST', '/api/copilot/code-snapshot', {

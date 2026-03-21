@@ -19,6 +19,7 @@ const EXTENSION_REPO_URL = 'https://github.com/dweng0/moochiepoo'
 const POLL_INTERVAL = 3000
 const DISCONNECT_TIMEOUT = 15000
 
+/** Code interview screen that connects to the Mooch Helper browser extension to provide hints for coding challenges. */
 export default function CodeInterviewScreen({ onBack }: Props) {
   const [status, setStatus] = useState<ConnectionStatus>('starting')
   const [extensionState, setExtensionState] = useState<{

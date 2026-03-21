@@ -9,6 +9,7 @@ interface ContextPanelProps {
   onManualContextChange: (value: string) => void
 }
 
+/** Renders controls for loading a CV, job description, and entering manual context text. */
 export default function ContextPanel({
   cvName,
   jobDescName,

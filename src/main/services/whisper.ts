@@ -1,6 +1,11 @@
 import OpenAI from 'openai'
 import { loadApiKeys } from './api-keys'
 
+/**
+ * Transcribes audio using the OpenAI Whisper API.
+ * @param audioBuffer - Raw audio data to transcribe.
+ * @returns The transcribed text.
+ */
 export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
   const apiKey = loadApiKeys().openaiApiKey
   if (!apiKey) {

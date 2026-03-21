@@ -24,6 +24,7 @@ function detectProvider(key: string): ByokProvider | null {
   return null
 }
 
+/** Screen that lets the user subscribe to a plan or enter their own API key (BYOK) with provider auto-detection. */
 export default function SubscribeScreen({ onRefresh, onApiKeySet }: Props) {
   const [apiKey, setApiKey] = useState('')
   const [provider, setProvider] = useState<ByokProvider>('anthropic')
