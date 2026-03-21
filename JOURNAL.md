@@ -1,5 +1,15 @@
 # Journal
 
+## 2026-03-21 14:30 — Wire up starlight-typedoc for auto-generated API docs
+
+### What was done
+- Installed `starlight-typedoc`, `typedoc`, and `typedoc-plugin-markdown` in docs-site
+- Created `docs-site/tsconfig.typedoc.json` for TypeDoc (excludes test files, covers shared/main/preload)
+- Configured `astro.config.mjs` with starlightTypeDoc plugin pointing to key entry points: shared types, ai-provider, interview-session, interview-orchestrator, local-bridge-api, tts-provider
+- Auto-generates 33 API reference pages including all interfaces, classes, type aliases, and functions with JSDoc descriptions
+- API docs appear in sidebar under auto-generated "API" section between Reference and Development
+- Site builds successfully: 45 total pages with Pagefind search index
+
 ## 2026-03-21 14:15 — JSDoc coverage + BAADD→Poppins rename
 
 ### What was done

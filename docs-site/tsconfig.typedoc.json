@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@shared/*": ["../src/shared/*"]
+    }
+  },
+  "include": [
+    "../src/shared/**/*",
+    "../src/main/services/**/*",
+    "../src/preload/**/*"
+  ],
+  "exclude": [
+    "../src/**/*.test.*",
+    "../src/**/*.spec.*"
+  ]
+}
