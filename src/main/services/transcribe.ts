@@ -90,13 +90,24 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
     } catch (error) {
       lastError = error as Error
       console.error(`[STT] ✗ Failed with ${provider.type}:`, error instanceof Error ? error.message : String(error))
+      
+      // If this is a token limit error, we should stop trying other providers since they might face the same issue
+      if (error.message && (error.message.includes('limit') || error.message.includes('429'))) {
+        throw error;
+      }
       continue
     }
   }
 
   // All providers failed
   console.error('[STT] All providers failed')
-  if (lastError) throw lastError
+  if (lastError) {
+    // Check if the error indicates a token limit issue
+    if (lastError.message && (lastError.message.includes('limit') || lastError.message.includes('429'))) {
+      throw new Error('Token limit exceeded. Please check your API usage and billing.');
+    }
+    throw lastError;
+  }
   throw new Error('Transcription requires an OpenAI, Gemini, or Qwen API key. Add one in Settings.')
 }
 
@@ -104,13 +115,32 @@ async function transcribeWithWhisper(audioBuffer: Buffer, apiKey: string): Promi
   const openai = new OpenAI({ apiKey })
   const file = new File([audioBuffer], 'recording.webm', { type: 'audio/webm' })
 
-  const response = await openai.audio.transcriptions.create({
-    model: 'whisper-1',
-    file,
-    response_format: 'text'
-  })
+  try {
+    const response = await openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file,
+      response_format: 'text'
+    })
 
-  return response as unknown as string
+    return response as unknown as string
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.status === 429) {
+      throw new Error('Token limit exceeded. Please check your OpenAI API usage and billing.')
+    } else if (error.status === 401) {
+      throw new Error('Invalid API key. Please check your OpenAI API key in Settings.')
+    } else if (error.status === 403) {
+      throw new Error('Access forbidden. Please check your OpenAI API key permissions.')
+    } else if (error.status === 500) {
+      throw new Error('OpenAI server error. Please try again later.')
+    } else if (error.status === 503) {
+      throw new Error('OpenAI service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with OpenAI Whisper API'
+      throw new Error(`OpenAI Whisper API error: ${errorMessage}`)
+    }
+  }
 }
 
 async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<string> {
@@ -126,143 +156,162 @@ async function transcribeWithQwen(audioBuffer: Buffer, apiKey: string): Promise<
     throw new Error(msg)
   }
 
-  return new Promise((resolve, reject) => {
-    const taskId = randomUUID()
-    let fullText = ''
-    let ws: WebSocket | null = null
-    let resolved = false
-    let timeout: NodeJS.Timeout | null = null
+  try {
+    return new Promise((resolve, reject) => {
+      const taskId = randomUUID()
+      let fullText = ''
+      let ws: WebSocket | null = null
+      let resolved = false
+      let timeout: NodeJS.Timeout | null = null
 
-    const cleanup = () => {
-      if (timeout) clearTimeout(timeout)
-      if (ws) {
-        try {
-          ws.close()
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-
-    const handleError = (error: Error) => {
-      if (!resolved) {
-        resolved = true
-        cleanup()
-        reject(error)
-      }
-    }
-
-    const handleSuccess = (text: string) => {
-      if (!resolved) {
-        resolved = true
-        cleanup()
-        resolve(text)
-      }
-    }
-
-    try {
-      console.log('[Qwen] Connecting to DashScope WebSocket...')
-      ws = new WebSocket(DASHSCOPE_WSS_URL, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      })
-
-      ws.on('open', () => {
-        console.log('[Qwen] WebSocket connected, sending task...')
-        // Send run-task instruction
-        const runTask = {
-          header: {
-            action: 'run-task',
-            task_id: taskId,
-            streaming: 'duplex'
-          },
-          payload: {
-            task_group: 'audio',
-            task: 'asr',
-            function: 'recognition',
-            model: 'fun-asr-realtime-2025-11-07',
-            parameters: {
-              format: 'pcm',
-              sample_rate: 16000
-            },
-            input: {}
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout)
+        if (ws) {
+          try {
+            ws.close()
+          } catch (e) {
+            // ignore
           }
         }
-        ws!.send(JSON.stringify(runTask))
+      }
 
-        // Send PCM audio data
-        ws!.send(pcmBuffer)
-
-        // Send finish-task instruction
-        const finishTask = {
-          header: {
-            action: 'finish-task',
-            task_id: taskId,
-            streaming: 'duplex'
-          },
-          payload: {
-            input: {}
-          }
-        }
-        ws!.send(JSON.stringify(finishTask))
-      })
-
-      ws.on('message', (data: Buffer) => {
-        try {
-          // Try to parse as JSON (text message)
-          const message = JSON.parse(data.toString())
-          console.log(`[Qwen] Received event: ${message.header?.event}`)
-
-          if (message.header?.event === 'task-started') {
-            console.log('[Qwen] Task started successfully')
-          } else if (message.header?.event === 'result-generated') {
-            // Extract recognized text from result
-            console.log('[Qwen] Result payload:', JSON.stringify(message.payload, null, 2))
-            const text = message.payload?.output?.sentence?.text
-            if (text) {
-              console.log(`[Qwen] Transcribed: "${text}"`)
-              fullText += text
-            } else {
-              console.log('[Qwen] No text in result-generated event')
-            }
-          } else if (message.header?.event === 'task-finished') {
-            // Task finished, return collected text
-            console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
-            handleSuccess(fullText || 'No speech detected')
-          } else if (message.header?.event === 'task-failed') {
-            // Task failed - error is in header, not payload
-            const errorMsg = message.header?.error_message || message.payload?.error_message || 'Unknown error'
-            console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
-            if (process.env.DEBUG) {
-              console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
-            }
-            handleError(new Error(`Qwen task failed: ${errorMsg}`))
-          }
-        } catch (e) {
-          // Not JSON, ignore (could be binary data)
-        }
-      })
-
-      ws.on('error', (error: Error) => {
-        handleError(new Error(`Qwen WSS connection error: ${error.message}`))
-      })
-
-      ws.on('close', () => {
-        // If not already resolved, assume incomplete
+      const handleError = (error: Error) => {
         if (!resolved) {
-          handleSuccess(fullText || 'No speech detected')
+          resolved = true
+          cleanup()
+          reject(error)
         }
-      })
+      }
 
-      // Timeout after 30 seconds
-      timeout = setTimeout(() => {
-        handleError(new Error('Qwen transcription timeout'))
-      }, 30000)
-    } catch (error) {
-      handleError(error instanceof Error ? error : new Error(String(error)))
+      const handleSuccess = (text: string) => {
+        if (!resolved) {
+          resolved = true
+          cleanup()
+          resolve(text)
+        }
+      }
+
+      try {
+        console.log('[Qwen] Connecting to DashScope WebSocket...')
+        ws = new WebSocket(DASHSCOPE_WSS_URL, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          }
+        })
+
+        ws.on('open', () => {
+          console.log('[Qwen] WebSocket connected, sending task...')
+          // Send run-task instruction
+          const runTask = {
+            header: {
+              action: 'run-task',
+              task_id: taskId,
+              streaming: 'duplex'
+            },
+            payload: {
+              task_group: 'audio',
+              task: 'asr',
+              function: 'recognition',
+              model: 'fun-asr-realtime-2025-11-07',
+              parameters: {
+                format: 'pcm',
+                sample_rate: 16000
+              },
+              input: {}
+            }
+          }
+          ws!.send(JSON.stringify(runTask))
+
+          // Send PCM audio data
+          ws!.send(pcmBuffer)
+
+          // Send finish-task instruction
+          const finishTask = {
+            header: {
+              action: 'finish-task',
+              task_id: taskId,
+              streaming: 'duplex'
+            },
+            payload: {
+              input: {}
+            }
+          }
+          ws!.send(JSON.stringify(finishTask))
+        })
+
+        ws.on('message', (data: Buffer) => {
+          try {
+            // Try to parse as JSON (text message)
+            const message = JSON.parse(data.toString())
+            console.log(`[Qwen] Received event: ${message.header?.event}`)
+
+            if (message.header?.event === 'task-started') {
+              console.log('[Qwen] Task started successfully')
+            } else if (message.header?.event === 'result-generated') {
+              // Extract recognized text from result
+              console.log('[Qwen] Result payload:', JSON.stringify(message.payload, null, 2))
+              const text = message.payload?.output?.sentence?.text
+              if (text) {
+                console.log(`[Qwen] Transcribed: "${text}"`)
+                fullText += text
+              } else {
+                console.log('[Qwen] No text in result-generated event')
+              }
+            } else if (message.header?.event === 'task-finished') {
+              // Task finished, return collected text
+              console.log(`[Qwen] Task finished, final text: "${fullText || 'No speech detected'}"`)
+              handleSuccess(fullText || 'No speech detected')
+            } else if (message.header?.event === 'task-failed') {
+              // Task failed - error is in header, not payload
+              const errorMsg = message.header?.error_message || message.payload?.error_message || 'Unknown error'
+              console.error(`[Qwen] ✗ Task failed: ${errorMsg}`)
+              if (process.env.DEBUG) {
+                console.error('[Qwen] Full task-failed payload:', JSON.stringify(message, null, 2))
+              }
+              handleError(new Error(`Qwen task failed: ${errorMsg}`))
+            }
+          } catch (e) {
+            // Not JSON, ignore (could be binary data)
+          }
+        })
+
+        ws.on('error', (error: Error) => {
+          handleError(new Error(`Qwen WSS connection error: ${error.message}`))
+        })
+
+        ws.on('close', () => {
+          // If not already resolved, assume incomplete
+          if (!resolved) {
+            handleSuccess(fullText || 'No speech detected')
+          }
+        })
+
+        // Timeout after 30 seconds
+        timeout = setTimeout(() => {
+          handleError(new Error('Qwen transcription timeout'))
+        }, 30000)
+      } catch (error) {
+        handleError(error instanceof Error ? error : new Error(String(error)))
+      }
+    })
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.message && error.message.includes('429')) {
+      throw new Error('Token limit exceeded. Please check your Qwen API usage and billing.')
+    } else if (error.message && error.message.includes('401')) {
+      throw new Error('Invalid API key. Please check your Qwen API key in Settings.')
+    } else if (error.message && error.message.includes('403')) {
+      throw new Error('Access forbidden. Please check your Qwen API key permissions.')
+    } else if (error.message && error.message.includes('500')) {
+      throw new Error('Qwen server error. Please try again later.')
+    } else if (error.message && error.message.includes('503')) {
+      throw new Error('Qwen service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with Qwen API'
+      throw new Error(`Qwen API error: ${errorMessage}`)
     }
-  })
+  }
 }
 
 async function convertWebmToPcm(audioBuffer: Buffer): Promise<Buffer> {
@@ -375,28 +424,66 @@ async function transcribeWithCustom(audioBuffer: Buffer, config: CustomProviderC
   const { ext, mime } = detectAudioExtension(audioBuffer)
   const file = new File([audioBuffer], `recording.${ext}`, { type: mime })
 
-  const response = await client.audio.transcriptions.create({
-    model: config.sttModel || 'whisper-1',
-    file,
-    response_format: 'text'
-  })
+  try {
+    const response = await client.audio.transcriptions.create({
+      model: config.sttModel || 'whisper-1',
+      file,
+      response_format: 'text'
+    })
 
-  return response as unknown as string
+    return response as unknown as string
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.status === 429) {
+      throw new Error('Token limit exceeded. Please check your custom provider API usage and billing.')
+    } else if (error.status === 401) {
+      throw new Error('Invalid API key. Please check your custom provider API key in Settings.')
+    } else if (error.status === 403) {
+      throw new Error('Access forbidden. Please check your custom provider API key permissions.')
+    } else if (error.status === 500) {
+      throw new Error('Custom provider server error. Please try again later.')
+    } else if (error.status === 503) {
+      throw new Error('Custom provider service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with custom provider API'
+      throw new Error(`Custom provider API error: ${errorMessage}`)
+    }
+  }
 }
 
 async function transcribeWithGemini(audioBuffer: Buffer, apiKey: string): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: 'audio/webm',
-        data: audioBuffer.toString('base64')
-      }
-    },
-    'Transcribe this audio exactly as spoken. Return only the transcription, nothing else.'
-  ])
+  try {
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'audio/webm',
+          data: audioBuffer.toString('base64')
+        }
+      },
+      'Transcribe this audio exactly as spoken. Return only the transcription, nothing else.'
+    ])
 
-  return result.response.text()
+    return result.response.text()
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.message && error.message.includes('quota')) {
+      throw new Error('Token limit exceeded. Please check your Gemini API usage and billing.')
+    } else if (error.message && error.message.includes('API key')) {
+      throw new Error('Invalid API key. Please check your Gemini API key in Settings.')
+    } else if (error.status === 403) {
+      throw new Error('Access forbidden. Please check your Gemini API key permissions.')
+    } else if (error.status === 500) {
+      throw new Error('Gemini server error. Please try again later.')
+    } else if (error.status === 503) {
+      throw new Error('Gemini service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with Gemini API'
+      throw new Error(`Gemini API error: ${errorMessage}`)
+    }
+  }
 }

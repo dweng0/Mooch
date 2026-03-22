@@ -124,13 +124,10 @@ export interface AuthStatus {
 
 export interface ElectronAPI {
   // Auth
-  login: (email: string, password: string) => Promise<AuthStatus | null>
-  logout: () => Promise<void>
   getAuthStatus: () => Promise<AuthStatus>
   openSubscribe: () => Promise<void>
   openManageSubscription: () => Promise<void>
   openExternalUrl: (url: string) => Promise<void>
-  openOAuth: (provider: OAuthProvider) => Promise<void>
   onOAuthSuccess: (callback: (user: OAuthUser) => void) => () => void
   onAuthStatusUpdate: (callback: (status: AuthStatus) => void) => () => void
   // Copilot

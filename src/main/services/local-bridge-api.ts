@@ -4,7 +4,7 @@ import { getAvailableProviders, getAnswer } from './ai-provider'
 import { loadApiKeys } from './api-keys'
 import type { AIProvider } from '../../shared/types'
 
-const PORT = 62544
+const DEFAULT_PORT = 62544
 const HOST = '127.0.0.1'
 
 // Map provider names to their type for the /api/providers response
@@ -84,7 +84,7 @@ export class LocalBridgeApi {
   }
 
   /**
-   * Starts the local HTTP server on localhost:62544.
+   * Starts the local HTTP server on localhost, trying alternative ports if the default is in use.
    */
   async start(): Promise<void> {
     if (this.server) return
@@ -93,12 +93,35 @@ export class LocalBridgeApi {
       this.handleRequest(req, res)
     })
 
+    // Try starting on the default port, then try alternatives if it's in use
+    const portsToTry = [DEFAULT_PORT, DEFAULT_PORT + 1, DEFAULT_PORT + 2, DEFAULT_PORT + 3, DEFAULT_PORT + 4]
+    
     return new Promise((resolve, reject) => {
-      this.server!.listen(PORT, HOST, () => {
-        console.log(`[Bridge API] Listening on ${HOST}:${PORT}`)
-        resolve()
-      })
-      this.server!.on('error', reject)
+      const tryNextPort = (portIndex: number) => {
+        if (portIndex >= portsToTry.length) {
+          // All ports tried, reject with error
+          reject(new Error(`Could not start Bridge API server on any of the attempted ports: ${portsToTry.join(', ')}`))
+          return
+        }
+
+        const port = portsToTry[portIndex]
+        
+        this.server!.once('error', (err: NodeJS.ErrnoException) => {
+          if (err.code === 'EADDRINUSE') {
+            console.log(`[Bridge API] Port ${port} already in use, trying next port...`)
+            tryNextPort(portIndex + 1)
+          } else {
+            reject(err)
+          }
+        })
+
+        this.server!.listen(port, HOST, () => {
+          console.log(`[Bridge API] Listening on ${HOST}:${port}`)
+          resolve()
+        })
+      }
+
+      tryNextPort(0)
     })
   }
 
@@ -285,3 +308,6 @@ export class LocalBridgeApi {
     })
   }
 }
+
+// Export the default port for external reference if needed
+export { DEFAULT_PORT };

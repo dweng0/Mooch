@@ -37,19 +37,19 @@ export default class ErrorBoundary extends Component<Props, State> {
     const isFirstFailure = this.state.retryCount === 0
 
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 bg-gray-900/85 rounded-2xl backdrop-blur-sm border border-white/10 shadow-2xl px-6 text-center">
-        <p className="text-sm text-gray-300">Something went wrong.</p>
+      <div className="h-full flex flex-col items-center justify-center gap-4 bg-white rounded-2xl backdrop-blur-sm border border-gray-200 shadow-xl px-6 text-center">
+        <p className="text-sm text-gray-600">Something went wrong.</p>
         {isFirstFailure ? (
           <button
             onClick={this.handleReset}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded-lg transition-colors cursor-pointer"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg transition-colors cursor-pointer"
           >
             Go back
           </button>
         ) : (
           <button
             onClick={this.handleRestart}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded-lg transition-colors cursor-pointer"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg transition-colors cursor-pointer"
           >
             Restart app
           </button>

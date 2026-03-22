@@ -17,21 +17,40 @@ export async function getClaudeAnswer(question: string, context: UserContext): P
 
   const client = new Anthropic({ apiKey })
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6-20250929',
-    max_tokens: 1024,
-    system: buildSystemPrompt(context),
-    messages: [
-      { role: 'user', content: `Interview question: "${question}"\n\nProvide a concise, impressive answer.` }
-    ]
-  })
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6-20250929',
+      max_tokens: 1024,
+      system: buildSystemPrompt(context),
+      messages: [
+        { role: 'user', content: `Interview question: "${question}"\n\nProvide a concise, impressive answer.` }
+      ]
+    })
 
-  const block = response.content[0]
-  if (block.type === 'text') {
-    return block.text
+    const block = response.content[0]
+    if (block.type === 'text') {
+      return block.text
+    }
+
+    throw new Error('Unexpected response format from Claude')
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.status === 429) {
+      throw new Error('Token limit exceeded. Please check your Anthropic API usage and billing.')
+    } else if (error.status === 401) {
+      throw new Error('Invalid API key. Please check your Anthropic API key in Settings.')
+    } else if (error.status === 403) {
+      throw new Error('Access forbidden. Please check your Anthropic API key permissions.')
+    } else if (error.status === 500) {
+      throw new Error('Anthropic server error. Please try again later.')
+    } else if (error.status === 503) {
+      throw new Error('Anthropic service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with Claude API'
+      throw new Error(`Claude API error: ${errorMessage}`)
+    }
   }
-
-  throw new Error('Unexpected response format from Claude')
 }
 
 /**

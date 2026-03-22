@@ -250,23 +250,6 @@ export default function App() {
     };
   }, [authState]);
 
-  const handleLogin = async (email: string, password: string) => {
-    const status = await window.electronAPI.login(email, password)
-    if (!status) throw new Error('Login failed — could not reach server')
-    if (!status.isActive) {
-      setAuthState('no-subscription')
-    } else {
-      setProviders(status.availableProviders ?? [])
-      const first = status.availableProviders?.[0]
-      if (first) setSelectedProvider(first)
-      setTranscriptionsUsed(status.transcriptionsUsed ?? 0)
-      setTranscriptionLimit(status.transcriptionLimit ?? null)
-      setSnapshotsUsed(status.snapshotsUsed ?? 0)
-      setSnapshotLimit(status.snapshotLimit ?? null)
-      setHasCodeSnapshot(status.hasCodeSnapshot ?? false)
-      setAuthState('active')
-    }
-  }
 
   // Called from SubscribeScreen when user saves their own API key
   const handleApiKeySet = async () => {

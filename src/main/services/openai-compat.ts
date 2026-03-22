@@ -20,16 +20,35 @@ export async function getCustomAnswer(
     dangerouslyAllowBrowser: true,
   })
 
-  const response = await client.chat.completions.create({
-    model: config.model,
-    max_tokens: 1024,
-    messages: [
-      { role: 'system', content: buildSystemPrompt(context) },
-      { role: 'user', content: `Interview question: "${question}"\n\nProvide a concise, impressive answer.` }
-    ]
-  })
+  try {
+    const response = await client.chat.completions.create({
+      model: config.model,
+      max_tokens: 1024,
+      messages: [
+        { role: 'system', content: buildSystemPrompt(context) },
+        { role: 'user', content: `Interview question: "${question}"\n\nProvide a concise, impressive answer.` }
+      ]
+    })
 
-  return response.choices[0]?.message?.content ?? ''
+    return response.choices[0]?.message?.content ?? ''
+  } catch (error: any) {
+    // Check for specific error conditions and provide clearer messages
+    if (error.status === 429) {
+      throw new Error('Token limit exceeded. Please check your custom provider API usage and billing.')
+    } else if (error.status === 401) {
+      throw new Error('Invalid API key. Please check your custom provider API key in Settings.')
+    } else if (error.status === 403) {
+      throw new Error('Access forbidden. Please check your custom provider API key permissions.')
+    } else if (error.status === 500) {
+      throw new Error('Custom provider server error. Please try again later.')
+    } else if (error.status === 503) {
+      throw new Error('Custom provider service temporarily unavailable. Please try again later.')
+    } else {
+      // For other errors, include the original message if available
+      const errorMessage = error.message || 'Unknown error occurred with custom provider API'
+      throw new Error(`Custom provider API error: ${errorMessage}`)
+    }
+  }
 }
 
 /**

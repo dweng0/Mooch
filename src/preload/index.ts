@@ -4,14 +4,6 @@ import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserA
 /** IPC bridge between the renderer process and the main process, exposed as window.electronAPI. */
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  /** Authenticates a user with email and password. */
-  login: (email: string, password: string): Promise<AuthStatus | null> => {
-    return ipcRenderer.invoke('login', email, password)
-  },
-  /** Logs out the current user. */
-  logout: (): Promise<void> => {
-    return ipcRenderer.invoke('logout')
-  },
   /** Returns the current authentication status. */
   getAuthStatus: (): Promise<AuthStatus> => {
     return ipcRenderer.invoke('get-auth-status')
@@ -27,10 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** Opens an external URL in the default browser. */
   openExternalUrl: (url: string): Promise<void> => {
     return ipcRenderer.invoke('open-external-url', url)
-  },
-  /** Initiates an OAuth login flow for the given provider. */
-  openOAuth: (provider: OAuthProvider): Promise<void> => {
-    return ipcRenderer.invoke('open-oauth', provider)
   },
 
   // ── Copilot ───────────────────────────────────────────────────────────────
@@ -183,13 +171,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('hotkey-record-stop', callback) }
   },
 
-  // ── OAuth events (via WebSocket) ──────────────────────────────────────────
-  /** Registers a callback for successful OAuth authentication events. */
+  /** Registers a callback for OAuth success events. */
   onOAuthSuccess: (callback: (user: OAuthUser) => void) => {
     const handler = (_event: any, user: OAuthUser) => callback(user)
     ipcRenderer.on('oauth:success', handler)
     return () => { ipcRenderer.removeListener('oauth:success', handler) }
   },
+
   /** Registers a callback for auth status update events. */
   onAuthStatusUpdate: (callback: (status: AuthStatus) => void) => {
     const handler = (_event: any, status: AuthStatus) => callback(status)
