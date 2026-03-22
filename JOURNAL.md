@@ -1,14 +1,26 @@
 # Journal
 
-## 2026-03-22 08:04 — (auto-generated)
+## 2026-03-22 — Fix onOAuthSuccess crash, API error handling, and UX improvements
 
-Session commits: no commits made.
+### What was done
+- **Fixed app crash**: `window.electronAPI.onOAuthSuccess` was missing from the preload bridge and `ElectronAPI` type after legacy auth methods were removed — restored it so the App component loads without hitting the ErrorBoundary
+- **Removed legacy auth methods**: Removed `login()`, `logout()`, and `openOAuth()` from preload bridge, shared types, and `App.tsx` (replaced by OAuth/WebSocket flow)
+- **Added API error handling**: Wrapped all AI provider calls (Claude, Gemini, OpenAI-compat, Qwen) and transcription functions in try/catch with user-friendly error messages for 401, 403, 429, 500, 503 status codes
+- **Bridge API port fallback**: Renamed `PORT` to `DEFAULT_PORT` and added logic to try up to 5 consecutive ports if the default (62544) is already in use
+- **ErrorBoundary light theme**: Switched from dark theme (gray-900 bg) to light theme (white bg, gray text)
+- **Transcription token limit short-circuit**: If a provider returns a 429/limit error during transcription, stop trying other providers immediately instead of cycling through all of them
 
-
-## 2026-03-22 00:09 — (auto-generated)
-
-Session commits: no commits made.
-
+### Files touched
+- `src/preload/index.ts` — restored `onOAuthSuccess`, removed `login`/`logout`/`openOAuth`
+- `src/shared/types.ts` — restored `onOAuthSuccess` in `ElectronAPI` interface, removed legacy method types
+- `src/renderer/src/App.tsx` — removed `handleLogin` function
+- `src/main/services/claude.ts` — added try/catch with status-specific error messages
+- `src/main/services/gemini.ts` — added try/catch with status-specific error messages
+- `src/main/services/openai-compat.ts` — added try/catch with status-specific error messages
+- `src/main/services/qwen.ts` — added try/catch with status-specific error messages
+- `src/main/services/transcribe.ts` — added error handling for Whisper, Gemini, Qwen, and custom STT; added token limit short-circuit
+- `src/main/services/local-bridge-api.ts` — port fallback logic (try 5 ports)
+- `src/renderer/src/components/ErrorBoundary.tsx` — light theme styling
 
 ## 2026-03-21 21:00 — Enhance Qwen model selection with regional API endpoints and manual input
 
