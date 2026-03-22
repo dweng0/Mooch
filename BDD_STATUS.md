@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 52 scenario(s) across 19 test file(s).
+Checked 55 scenario(s) across 19 test file(s).
 
 
 ## Feature: remove login
@@ -100,5 +100,16 @@ Checked 52 scenario(s) across 19 test file(s).
 
 - [x] end-to-end audio pipeline integration test
 
+## Feature: JSDoc documentation coverage
+
+- [ ] UNCOVERED: all exported functions have JSDoc comments
+- [ ] UNCOVERED: JSDoc comments include parameter descriptions
+- [ ] UNCOVERED: JSDoc comments include return descriptions
+
 ---
-**52/52 scenarios covered.**
+**52/55 scenarios covered.**
+
+3 scenario(s) need tests:
+- all exported functions have JSDoc comments
+- JSDoc comments include parameter descriptions
+- JSDoc comments include return descriptions
