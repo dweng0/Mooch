@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 55 scenario(s) across 19 test file(s).
+Checked 59 scenario(s) across 20 test file(s).
 
 
 ## Feature: remove login
@@ -98,7 +98,7 @@ Checked 55 scenario(s) across 19 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [x] end-to-end audio pipeline integration test
+- [ ] UNCOVERED: end-to-end audio pipeline integration test
 
 ## Feature: JSDoc documentation coverage
 
@@ -106,10 +106,21 @@ Checked 55 scenario(s) across 19 test file(s).
 - [ ] UNCOVERED: JSDoc comments include parameter descriptions
 - [ ] UNCOVERED: JSDoc comments include return descriptions
 
----
-**52/55 scenarios covered.**
+## Feature: audio device selection
 
-3 scenario(s) need tests:
+- [x] enumerate available audio input and output devices in settings
+- [ ] UNCOVERED: persist selected audio devices to settings JSON
+- [ ] UNCOVERED: use selected microphone when recording
+- [ ] UNCOVERED: use selected speaker for TTS playback
+
+---
+**52/59 scenarios covered.**
+
+7 scenario(s) need tests:
+- end-to-end audio pipeline integration test
 - all exported functions have JSDoc comments
 - JSDoc comments include parameter descriptions
 - JSDoc comments include return descriptions
+- persist selected audio devices to settings JSON
+- use selected microphone when recording
+- use selected speaker for TTS playback
