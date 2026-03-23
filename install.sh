@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="dweng0/BAADD"
+REPO="dweng0/POPPINS"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}"
 API_BASE="https://api.github.com/repos/${REPO}"
-MANIFEST_FILE=".baadd"
+MANIFEST_FILE=".poppins"
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 VERSION=""
@@ -17,9 +17,9 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo "Usage: install.sh [--update] [--version vX.Y.Z]"
       echo ""
-      echo "  (no args)          Init a new BAADD project in the current directory"
-      echo "  --update           Update framework files in an existing BAADD project"
-      echo "  --version vX.Y.Z   Pin to a specific BAADD version (default: latest)"
+      echo "  (no args)          Init a new poppins project in the current directory"
+      echo "  --update           Update framework files in an existing poppins project"
+      echo "  --version vX.Y.Z   Pin to a specific poppins version (default: latest)"
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -32,7 +32,7 @@ fi
 
 # ── Resolve version ───────────────────────────────────────────────────────────
 if [[ -z "$VERSION" ]]; then
-  echo "Fetching latest BAADD version..."
+  echo "Fetching latest poppins version..."
   VERSION=$(curl -fsSL "${API_BASE}/releases/latest" \
     -H "Accept: application/vnd.github+json" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
@@ -48,6 +48,9 @@ download() {
   curl -fsSL "${RAW}/${file}" -o "$file"
   echo "  $file"
 }
+
+# Files that should never overwrite a user's existing copy
+NO_CLOBBER_FILES=("BDD_STATUS.md" "BDD.md")
 
 read_manifest_files() {
   python3 -c "import json; [print(f) for f in json.load(open('${MANIFEST_FILE}'))['files']]"
@@ -70,21 +73,21 @@ if [[ "$FORCE_UPDATE" == true ]]; then
   CURRENT=$(python3 -c "import json; print(json.load(open('${MANIFEST_FILE}'))['version'])" 2>/dev/null || echo "unknown")
 
   if [[ "$CURRENT" == "$VERSION" ]]; then
-    echo "Already on BAADD ${VERSION}. Nothing to do."
+    echo "Already on poppins ${VERSION}. Nothing to do."
     exit 0
   fi
 
-  echo "Updating BAADD: ${CURRENT} → ${VERSION}"
+  echo "Updating poppins: ${CURRENT} → ${VERSION}"
   echo ""
 
   # Archive existing journals before overwriting
   if [[ -f "JOURNAL.md" ]]; then
-    cp JOURNAL.md "JOURNAL_archive_v${CURRENT}.md"
-    echo "  Archived JOURNAL.md → JOURNAL_archive_v${CURRENT}.md"
+    cp JOURNAL.md "JOURNAL_archive_${CURRENT}.md"
+    echo "  Archived JOURNAL.md → JOURNAL_archive_${CURRENT}.md"
   fi
   if [[ -f "JOURNAL_INDEX.md" ]]; then
-    cp JOURNAL_INDEX.md "JOURNAL_INDEX_archive_v${CURRENT}.md"
-    echo "  Archived JOURNAL_INDEX.md → JOURNAL_INDEX_archive_v${CURRENT}.md"
+    cp JOURNAL_INDEX.md "JOURNAL_INDEX_archive_${CURRENT}.md"
+    echo "  Archived JOURNAL_INDEX.md → JOURNAL_INDEX_archive_${CURRENT}.md"
   fi
   echo ""
 
@@ -92,25 +95,33 @@ if [[ "$FORCE_UPDATE" == true ]]; then
   download "$MANIFEST_FILE"
 
   while IFS= read -r file; do
-    download "$file"
+    skip=false
+    for nc in "${NO_CLOBBER_FILES[@]}"; do
+      if [[ "$file" == "$nc" && -f "$file" ]]; then
+        echo "  $file already exists — skipped"
+        skip=true
+        break
+      fi
+    done
+    [[ "$skip" == true ]] || download "$file"
   done < <(read_manifest_files)
 
   stamp_version
   chmod +x scripts/*.sh
 
   echo ""
-  echo "BAADD updated to ${VERSION}."
+  echo "poppins updated to ${VERSION}."
   echo "Previous journals archived as:"
-  if [[ -f "JOURNAL_archive_v${CURRENT}.md" ]]; then
-    echo "  - JOURNAL_archive_v${CURRENT}.md"
+  if [[ -f "JOURNAL_archive_${CURRENT}.md" ]]; then
+    echo "  - JOURNAL_archive_${CURRENT}.md"
   fi
-  if [[ -f "JOURNAL_INDEX_archive_v${CURRENT}.md" ]]; then
-    echo "  - JOURNAL_INDEX_archive_v${CURRENT}.md"
+  if [[ -f "JOURNAL_INDEX_archive_${CURRENT}.md" ]]; then
+    echo "  - JOURNAL_INDEX_archive_${CURRENT}.md"
   fi
 
 # ── Init mode ─────────────────────────────────────────────────────────────────
 else
-  echo "Initializing BAADD ${VERSION}..."
+  echo "Initializing poppins ${VERSION}..."
   echo ""
 
   # Download manifest first — it defines what else to get
@@ -119,7 +130,15 @@ else
 
   # Download all framework files
   while IFS= read -r file; do
-    download "$file"
+    skip=false
+    for nc in "${NO_CLOBBER_FILES[@]}"; do
+      if [[ "$file" == "$nc" && -f "$file" ]]; then
+        echo "  $file already exists — skipped"
+        skip=true
+        break
+      fi
+    done
+    [[ "$skip" == true ]] || download "$file"
   done < <(read_manifest_files)
 
   # Create BDD.md from template if not already present
@@ -139,7 +158,7 @@ else
   chmod +x scripts/*.sh
 
   echo ""
-  echo "BAADD ${VERSION} ready."
+  echo "poppins ${VERSION} ready."
   echo ""
   echo "Next steps:"
   echo "  1. Edit BDD.md — describe your project's features and scenarios"

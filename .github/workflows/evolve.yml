@@ -72,13 +72,17 @@ jobs:
         id: attempt1
         continue-on-error: true
         env:
-          # Provider priority: Anthropic > Kimi > Alibaba > OpenAI > Groq
+          # Provider priority: Anthropic > Kimi > Alibaba > OpenAI > Groq > Custom > Ollama
           # Set whichever key(s) you have in your repo secrets — the agent picks the first available.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MOONSHOT_API_KEY:  ${{ secrets.MOONSHOT_API_KEY }}
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          # Custom OpenAI-compatible endpoint (e.g. vLLM, LM Studio, local proxy)
+          CUSTOM_API_KEY:    ${{ secrets.CUSTOM_API_KEY }}
+          CUSTOM_BASE_URL:   ${{ secrets.CUSTOM_BASE_URL }}
+          CUSTOM_MODEL:      ${{ secrets.CUSTOM_MODEL }}
           # Optional: override the model for the selected provider
           MODEL:             ${{ secrets.BAADD_MODEL }}
           REPO: ${{ github.repository }}
@@ -102,6 +106,9 @@ jobs:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          CUSTOM_API_KEY:    ${{ secrets.CUSTOM_API_KEY }}
+          CUSTOM_BASE_URL:   ${{ secrets.CUSTOM_BASE_URL }}
+          CUSTOM_MODEL:      ${{ secrets.CUSTOM_MODEL }}
           MODEL:             ${{ secrets.BAADD_MODEL }}
           REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,6 +129,9 @@ jobs:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          CUSTOM_API_KEY:    ${{ secrets.CUSTOM_API_KEY }}
+          CUSTOM_BASE_URL:   ${{ secrets.CUSTOM_BASE_URL }}
+          CUSTOM_MODEL:      ${{ secrets.CUSTOM_MODEL }}
           MODEL:             ${{ secrets.BAADD_MODEL }}
           REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -359,3 +359,29 @@ System: a tool we call mooch, that helps users during interview by listening and
             When the function has a JSDoc comment
             Then the comment should include a @returns tag describing the return value
 
+    Feature: audio device selection
+
+        Scenario: enumerate available audio input and output devices in settings
+            Given the user is in the settings screen
+            When the audio device section is displayed
+            Then the app should list all available microphones (audio input devices) in a dropdown
+            And list all available speakers/output devices in a separate dropdown
+            And both lists should be populated using navigator.mediaDevices.enumerateDevices()
+
+        Scenario: persist selected audio devices to settings JSON
+            Given the user has selected a microphone and/or speaker from the dropdowns
+            When the user saves the settings
+            Then the selected deviceId values should be stored in the app's settings JSON under audioInputDeviceId and audioOutputDeviceId
+
+        Scenario: use selected microphone when recording
+            Given the user has a preferred microphone configured in settings
+            When the app starts recording audio (e.g. during a voice interview)
+            Then it should pass the stored audioInputDeviceId as a constraint to getUserMedia instead of using the OS default
+            And fall back to the default device if the stored device is no longer available
+
+        Scenario: use selected speaker for TTS playback
+            Given the user has a preferred output device configured in settings
+            When the app plays back TTS audio
+            Then it should route audio to the stored audioOutputDeviceId using HTMLMediaElement.setSinkId()
+            And fall back to the default output device if the stored device is no longer available
+

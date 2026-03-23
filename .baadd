@@ -1,5 +1,5 @@
 {
-  "version": "v1.4.2",
+  "version": "v1.5.0",
   "files": [
     "install.sh",
     "IDENTITY.md",
@@ -18,6 +18,11 @@
     "skills/evolve/SKILL.md",
     "skills/communicate/SKILL.md",
     "skills/research/SKILL.md",
-    "skills/self-assess/SKILL.md"
+    "skills/self-assess/SKILL.md",
+    "JOURNAL.md",
+    "JOURNAL_INDEX.md",
+    "LEARNINGS.md",
+    "BDD_STATUS.md",
+    "ISSUES_TODAY.md"
   ]
 }

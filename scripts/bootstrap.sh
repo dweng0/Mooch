@@ -26,7 +26,7 @@ echo "  Test:      $TEST_CMD"
 echo ""
 
 REPO="${REPO:-$(git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]//' | sed 's/\.git$//' || echo 'unknown/repo')}"
-MODEL="${MODEL:-claude-haiku-4-5-20251001}"
+MODEL="${MODEL:-${CUSTOM_MODEL:-claude-haiku-4-5-20251001}}"
 DATE=$(date +%Y-%m-%d)
 SESSION_TIME=$(date +%H:%M)
 

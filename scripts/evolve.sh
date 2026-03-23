@@ -6,9 +6,16 @@
 #   ANTHROPIC_API_KEY=sk-... ./scripts/evolve.sh
 #
 # Environment:
-#   ANTHROPIC_API_KEY  — required
+#   ANTHROPIC_API_KEY  — Anthropic key (or set one of the other provider keys below)
+#   MOONSHOT_API_KEY   — Kimi/Moonshot key
+#   DASHSCOPE_API_KEY  — Alibaba/Qwen key
+#   OPENAI_API_KEY     — OpenAI key
+#   GROQ_API_KEY       — Groq key
+#   CUSTOM_API_KEY     — API key for a custom OpenAI-compatible endpoint (optional if no auth needed)
+#   CUSTOM_BASE_URL    — Base URL for a custom OpenAI-compatible endpoint (e.g. http://localhost:8080/v1)
+#   CUSTOM_MODEL       — Model name to use with the custom endpoint
 #   REPO               — GitHub repo (default: read from git remote)
-#   MODEL              — LLM model (default: claude-haiku-4-5-20251001)
+#   MODEL              — Override LLM model for any provider (default: claude-haiku-4-5-20251001, or CUSTOM_MODEL)
 #   TIMEOUT            — Max session time in seconds (default: 3600)
 
 set -euo pipefail
@@ -30,7 +37,7 @@ fi
 eval "$(python3 scripts/parse_bdd_config.py BDD.md)"
 
 REPO="${REPO:-$(git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]//' | sed 's/\.git$//' || echo 'unknown/repo')}"
-MODEL="${MODEL:-claude-haiku-4-5-20251001}"
+MODEL="${MODEL:-${CUSTOM_MODEL:-claude-haiku-4-5-20251001}}"
 TIMEOUT="${TIMEOUT:-3600}"
 DATE=$(date +%Y-%m-%d)
 SESSION_TIME=$(date +%H:%M)
