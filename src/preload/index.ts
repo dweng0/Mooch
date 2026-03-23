@@ -126,6 +126,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setSttProvider: (provider: 'openai' | 'gemini' | 'qwen' | 'custom' | 'local' | null): Promise<void> => {
     return ipcRenderer.invoke('set-stt-provider', provider)
   },
+  /** Saves the preferred audio input or output device ID. */
+  setAudioDevice: (type: 'input' | 'output', deviceId: string): Promise<void> => {
+    return ipcRenderer.invoke('set-audio-device', type, deviceId)
+  },
   /** Configures a local TTS endpoint URL and optional model. */
   setLocalTts: (url: string, model?: string): Promise<void> => {
     return ipcRenderer.invoke('set-local-tts', url, model)

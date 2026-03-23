@@ -24,6 +24,7 @@ global.window.electronAPI = {
   interviewDeleteSession: vi.fn(),
   interviewSynthesize: vi.fn(),
   interviewGetAudio: vi.fn(),
+  getApiKeys: vi.fn().mockResolvedValue({}),
 } as any
 
 import MockInterviewScreen from './MockInterviewScreen'

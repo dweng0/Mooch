@@ -51,6 +51,7 @@ export default function App() {
   const loadApiKeyState = async () => {
     const keys = await window.electronAPI.getApiKeys()
     setLoadedApiKeys(keys)
+    audioInputDeviceIdRef.current = keys.audioInputDeviceId
 
     const derived: AIProvider[] = []
     if (keys.anthropicApiKey) derived.push('claude')
@@ -297,6 +298,7 @@ export default function App() {
 
   // ── Copilot state ──────────────────────────────────────────────────────────
   const recorderRef = useRef(new AudioRecorder())
+  const audioInputDeviceIdRef = useRef<string | undefined>(undefined)
   const [status, setStatus] = useState<AppStatus>('idle')
   const statusRef = useRef(status)
   statusRef.current = status
@@ -480,7 +482,7 @@ export default function App() {
       setAnswer('')
       const source = sourceOverride ?? audioSourceRef.current
       console.log('[startRecording] Starting with audioSource:', source)
-      await recorderRef.current.start(source)
+      await recorderRef.current.start(source, source === 'microphone' ? audioInputDeviceIdRef.current : undefined)
       console.log('[startRecording] Recording started successfully')
       setStatus('recording')
     } catch (err) {

@@ -55,6 +55,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [jobDescName, setJobDescName] = useState('')
   const [interviewProviders, setInterviewProviders] = useState<{ llm: string | null; tts: string | null; stt: string | null } | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const audioOutputDeviceIdRef = useRef<string | undefined>(undefined)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lineGraphRef = useRef<HTMLVideoElement>(null)
   const localServiceRef = useRef(new LocalInterviewService())
@@ -63,6 +64,9 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   // Load sessions on mount
   useEffect(() => {
     loadSessions()
+    window.electronAPI.getApiKeys().then(keys => {
+      audioOutputDeviceIdRef.current = keys.audioOutputDeviceId
+    }).catch(() => {})
 
     // Cleanup when component unmounts
     return () => {
@@ -186,6 +190,14 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
       const url = URL.createObjectURL(blob)
       if (audioRef.current) {
         audioRef.current.src = url
+        // Route audio to the user's preferred output device when available
+        if (audioOutputDeviceIdRef.current && typeof (audioRef.current as any).setSinkId === 'function') {
+          try {
+            await (audioRef.current as any).setSinkId(audioOutputDeviceIdRef.current)
+          } catch {
+            // Device no longer available — fall back to default output silently
+          }
+        }
         audioRef.current.play()
         await new Promise(resolve => {
           if (audioRef.current) audioRef.current.onended = resolve

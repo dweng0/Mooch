@@ -119,6 +119,28 @@ export default function SettingsScreen({
   const [localSttTestResult, setLocalSttTestResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([])
   const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedAudioInputDeviceId, setSelectedAudioInputDeviceId] = useState<string>('')
+  const [selectedAudioOutputDeviceId, setSelectedAudioOutputDeviceId] = useState<string>('')
+
+  // Handle microphone selection change
+  const handleMicrophoneChange = async (deviceId: string) => {
+    setSelectedAudioInputDeviceId(deviceId)
+    try {
+      await window.electronAPI.setAudioDevice('input', deviceId)
+    } catch (error) {
+      console.error('Failed to save microphone selection:', error)
+    }
+  }
+
+  // Handle speaker selection change
+  const handleSpeakerChange = async (deviceId: string) => {
+    setSelectedAudioOutputDeviceId(deviceId)
+    try {
+      await window.electronAPI.setAudioDevice('output', deviceId)
+    } catch (error) {
+      console.error('Failed to save speaker selection:', error)
+    }
+  }
 
   // Load API keys on mount
   useEffect(() => {
@@ -160,8 +182,43 @@ export default function SettingsScreen({
       if (keys.qwenApiKey) {
         fetchQwenModels();
       }
+      
+      // Load audio device settings
+      if (keys.audioInputDeviceId) {
+        setSelectedAudioInputDeviceId(keys.audioInputDeviceId)
+      }
+      if (keys.audioOutputDeviceId) {
+        setSelectedAudioOutputDeviceId(keys.audioOutputDeviceId)
+      }
+      
+      // Enumerate audio devices
+      enumerateAudioDevices()
     })
   }, [])
+  
+  const enumerateAudioDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const audioInputs = devices.filter(device => device.kind === 'audioinput')
+      const audioOutputs = devices.filter(device => device.kind === 'audiooutput')
+      
+      setAudioInputDevices(audioInputs)
+      setAudioOutputDevices(audioOutputs)
+      
+      // If no input device is selected, select the first one
+      if (!selectedAudioInputDeviceId && audioInputs.length > 0) {
+        setSelectedAudioInputDeviceId(audioInputs[0].deviceId)
+      }
+      
+      // If no output device is selected, select the first one
+      if (!selectedAudioOutputDeviceId && audioOutputs.length > 0) {
+        setSelectedAudioOutputDeviceId(audioOutputs[0].deviceId)
+      }
+    } catch (error) {
+      console.error('Failed to enumerate audio devices:', error)
+      // Handle permission denied or other errors gracefully
+    }
+  }
 
   // Enumerate audio devices on mount
   useEffect(() => {
@@ -1266,6 +1323,50 @@ export default function SettingsScreen({
             </div>
           ) : null
         })()}
+        
+        {/* Audio Device Selection */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Audio Devices</h3>
+          <div className="flex flex-col gap-3">
+            <div>
+              <label htmlFor="microphone" className="text-xs text-gray-500 mb-1 block">Microphone</label>
+              <select
+                id="microphone"
+                value={selectedAudioInputDeviceId}
+                onChange={(e) => handleMicrophoneChange(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {audioInputDevices.map(device => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Microphone ${device.deviceId.slice(0, 8)}…`}
+                  </option>
+                ))}
+                {audioInputDevices.length === 0 && (
+                  <option value="">No microphones found</option>
+                )}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="speaker" className="text-xs text-gray-500 mb-1 block">Speaker / Output</label>
+              <select
+                id="speaker"
+                value={selectedAudioOutputDeviceId}
+                onChange={(e) => handleSpeakerChange(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {audioOutputDevices.map(device => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Speaker ${device.deviceId.slice(0, 8)}…`}
+                  </option>
+                ))}
+                {audioOutputDevices.length === 0 && (
+                  <option value="">No speakers found</option>
+                )}
+              </select>
+            </div>
+            <p className="text-[10px] text-gray-400">Falls back to OS default if the selected device is unavailable.</p>
+          </div>
+        </div>
       </div>
     </div>
   )

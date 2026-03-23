@@ -304,6 +304,16 @@ ipcMain.handle('set-stt-provider', async (_event, provider: 'openai' | 'gemini' 
   saveApiKeys(keys)
 })
 
+ipcMain.handle('set-audio-device', async (_event, type: 'input' | 'output', deviceId: string) => {
+  const keys = loadApiKeys()
+  if (type === 'input') {
+    keys.audioInputDeviceId = deviceId
+  } else {
+    keys.audioOutputDeviceId = deviceId
+  }
+  saveApiKeys(keys)
+})
+
 ipcMain.handle('test-custom-provider', async (_event, config: CustomProviderConfig) => {
   return testCustomProvider(config)
 })

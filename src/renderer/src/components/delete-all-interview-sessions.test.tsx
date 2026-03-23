@@ -27,6 +27,7 @@ global.window = {
     interviewDeleteAllSessions: vi.fn(),
     interviewSynthesize: vi.fn(),
     interviewGetAudio: vi.fn(),
+    getApiKeys: vi.fn().mockResolvedValue({}),
   },
   navigator: {
     mediaDevices: {

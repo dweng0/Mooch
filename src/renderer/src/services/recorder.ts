@@ -8,13 +8,14 @@ export class AudioRecorder {
   /**
    * Starts recording audio from the specified source.
    * @param source - The audio source to record from ('microphone' or 'system').
+   * @param inputDeviceId - Optional preferred microphone device ID; falls back to OS default.
    * @returns A promise that resolves when recording has started.
    */
-  async start(source: AudioSource): Promise<void> {
-    console.log(`[AudioRecorder] start() called with source: "${source}"`)
+  async start(source: AudioSource, inputDeviceId?: string): Promise<void> {
+    console.log(`[AudioRecorder] start() called with source: "${source}", deviceId: "${inputDeviceId ?? 'default'}"`)
     console.log(`[AudioRecorder] About to call ${source === 'microphone' ? 'getMicStream' : 'getSystemAudioStream'}`)
     const stream =
-      source === 'microphone' ? await this.getMicStream() : await this.getSystemAudioStream()
+      source === 'microphone' ? await this.getMicStream(inputDeviceId) : await this.getSystemAudioStream()
 
     console.log('[AudioRecorder] Stream obtained:', {
       id: stream.id,
@@ -95,22 +96,38 @@ export class AudioRecorder {
    * Requests microphone access and returns the audio stream.
    * @returns A promise that resolves with the microphone MediaStream.
    */
-  private async getMicStream(): Promise<MediaStream> {
+  private async getMicStream(deviceId?: string): Promise<MediaStream> {
     console.log('[AudioRecorder] getMicStream() - Requesting microphone access via getUserMedia (no screen access needed)')
     console.log('[AudioRecorder] Checking navigator.mediaDevices availability:', {
       mediaDevices: !!navigator.mediaDevices,
       getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
     })
 
-    try {
-      console.log('[AudioRecorder] Calling navigator.mediaDevices.getUserMedia({ audio: true })')
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const tryGetStream = async (constraints: MediaStreamConstraints): Promise<MediaStream> => {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
       console.log('[AudioRecorder] ✓ Microphone stream obtained successfully!', {
         id: stream.id,
         active: stream.active,
         trackCount: stream.getTracks().length
       })
       return stream
+    }
+
+    try {
+      const audioConstraint = deviceId
+        ? { deviceId: { exact: deviceId } }
+        : true
+      console.log('[AudioRecorder] Calling getUserMedia with constraint:', audioConstraint)
+      try {
+        return await tryGetStream({ audio: audioConstraint })
+      } catch (deviceErr) {
+        if (deviceId) {
+          // Preferred device unavailable — fall back to OS default
+          console.warn('[AudioRecorder] Preferred device unavailable, falling back to default mic:', deviceErr)
+          return await tryGetStream({ audio: true })
+        }
+        throw deviceErr
+      }
     } catch (err) {
       console.error('[AudioRecorder] ✗ Failed to get microphone stream:', err)
       if (err instanceof DOMException) {
