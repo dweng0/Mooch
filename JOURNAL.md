@@ -1,25 +1,5 @@
 # Journal
 
-## 2026-03-23 16:17 — (auto-generated)
-
-Session commits: no commits made.
-
-
-## 2026-03-23 08:15 — (auto-generated)
-
-Session commits: no commits made.
-
-
-## 2026-03-23 00:11 — (auto-generated)
-
-Session commits: no commits made.
-
-
-## 2026-03-22 16:03 — (auto-generated)
-
-Session commits: no commits made.
-
-
 ## 2026-03-22 — Fix onOAuthSuccess crash, API error handling, and UX improvements
 
 ### What was done
