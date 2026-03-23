@@ -70,3 +70,4 @@
 | 2026-03-23 | 00:11 | 52/55 | no changes |
 | 2026-03-23 | 08:15 | 52/55 | no changes |
 | 2026-03-23 | 16:17 | 52/55 | no changes |
+| 2026-03-23 | 17:01 | 52/59 | enumerate available audio input and output devices in settings |
