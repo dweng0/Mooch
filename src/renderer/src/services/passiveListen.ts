@@ -44,15 +44,28 @@ export class PassiveListenService {
   private onStatusCb: OnStatusCb | null = null
   private onErrorCb: OnErrorCb | null = null
 
+  /**
+   * Indicates whether the passive listening service is currently running.
+   * @returns True if the service is active, false otherwise.
+   */
   get isRunning(): boolean {
     return this.isActive
   }
 
+  /**
+   * Sets the voice activity detection (VAD) threshold for speech detection.
+   * @param value - The new threshold value (0-255).
+   */
   setThreshold(value: number): void {
     this.SPEECH_THRESHOLD = value
     console.log(`[PassiveListen] VAD threshold updated to ${value}`)
   }
 
+  /**
+   * Starts the passive listening service with the specified callbacks.
+   * @param callbacks - Configuration object containing callback functions and audio source.
+   * @returns A promise that resolves when the service is successfully started.
+   */
   async start(callbacks: {
     onTranscript: OnTranscriptCb
     onDetected: OnDetectedCb
@@ -165,6 +178,9 @@ export class PassiveListenService {
     }
   }
 
+  /**
+   * Stops the passive listening service and performs cleanup.
+   */
   stop(): void {
     this.isActive = false
     this._cleanup()
@@ -316,110 +332,59 @@ export class PassiveListenService {
 
       console.log(`[PassiveListen] Processing ${chunks.length} chunks`)
       console.log(`[PassiveListen] Init chunk: ${this.initChunk?.size || 0} bytes`)
-      console.log(`[PassiveListen] Total blob size: ${blob.size} bytes`)
-      chunks.forEach((c, i) => {
-        console.log(`[PassiveListen] Chunk ${i}: ${c.size} bytes`)
-      })
+      console.log(`[PassiveListen] Total size: ${blob.size} bytes`)
 
-      if (blob.size < 2000) {
-        // Too small to be meaningful speech
-        console.log(`[PassiveListen] Blob too small (${blob.size} < 2000), skipping`)
-        return
-      }
+      const arrayBuffer = await blob.arrayBuffer()
+      const transcript = await window.electronAPI.transcribeAudio(arrayBuffer)
 
-      const buffer = await blob.arrayBuffer()
-      console.log(`[PassiveListen] Converted to ArrayBuffer: ${buffer.byteLength} bytes`)
-
-      // Log first 16 bytes to verify WebM header
-      const headerView = new Uint8Array(buffer, 0, 16)
-      console.log(`[PassiveListen] First 16 bytes: ${Array.from(headerView).map(b => b.toString(16).padStart(2, '0')).join(' ')}`)
-
-      console.log('[PassiveListen] Calling transcribeAudio...')
-      const text = await window.electronAPI.transcribeAudio(buffer)
-      console.log('[PassiveListen] Transcription returned:', text)
-
-      if (text.trim() && this.isActive) {
-        this.onTranscriptCb?.(text)
-        await this.onDetectedCb?.(text)
-      }
+      console.log(`[PassiveListen] Transcribed: "${transcript}"`)
+      this.onTranscriptCb?.(transcript)
+      await this.onDetectedCb?.(transcript)
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Transcription failed'
-      console.error('[PassiveListen] Processing error:', errMsg)
-      if (this.isActive) {
-        this.onErrorCb?.(errMsg)
-      }
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[PassiveListen] Transcription error:', msg)
+      this.onErrorCb?.(`Transcription failed: ${msg}`)
     } finally {
       this.processingSegment = false
-      if (this.isActive) {
-        this.onStatusCb?.('listening')
-      }
+      this.onStatusCb?.('listening')
     }
   }
 
   private _cleanup(): void {
     console.log('[PassiveListen] Cleaning up resources...')
-
-    if (this.silenceTimer) {
-      clearTimeout(this.silenceTimer)
-      this.silenceTimer = null
-    }
     if (this.vadInterval) {
       clearInterval(this.vadInterval)
       this.vadInterval = null
     }
-
-    // Stop MediaRecorder
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer)
+      this.silenceTimer = null
+    }
     if (this.mediaRecorder) {
-      if (this.mediaRecorder.state !== 'inactive') {
-        try {
+      try {
+        if (this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop()
-          console.log('[PassiveListen] MediaRecorder stopped')
-        } catch (err) {
-          console.warn('[PassiveListen] Error stopping MediaRecorder:', err)
         }
+      } catch (e) {
+        // ignore
       }
       this.mediaRecorder = null
     }
-
-    this.speechChunks = []
-    this.initChunk = null
-    this.isSpeaking = false
-    this.processingSegment = false
-
-    // Disconnect analyser
-    if (this.analyser) {
-      try {
-        this.analyser.disconnect()
-      } catch (err) {
-        console.warn('[PassiveListen] Error disconnecting analyser:', err)
-      }
-      this.analyser = null
-    }
-
-    // Close audio context
-    if (this.audioContext) {
-      try {
-        this.audioContext.close()
-        console.log('[PassiveListen] AudioContext closed')
-      } catch (err) {
-        console.warn('[PassiveListen] Error closing AudioContext:', err)
-      }
-      this.audioContext = null
-    }
-
-    // Stop all tracks
     if (this.stream) {
-      try {
-        this.stream.getTracks().forEach((track) => {
-          console.log(`[PassiveListen] Stopping track: ${track.kind}`)
-          track.stop()
-        })
-      } catch (err) {
-        console.warn('[PassiveListen] Error stopping tracks:', err)
-      }
+      this.stream.getTracks().forEach(track => {
+        track.stop()
+      })
       this.stream = null
     }
-
+    if (this.audioContext) {
+      this.audioContext.close().catch(console.error)
+      this.audioContext = null
+      this.analyser = null
+    }
+    this.initChunk = null
+    this.speechChunks = []
+    this.isSpeaking = false
+    this.speechStartTime = 0
     console.log('[PassiveListen] Cleanup complete')
   }
 }

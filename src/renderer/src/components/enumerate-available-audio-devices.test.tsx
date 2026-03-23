@@ -17,6 +17,9 @@ describe('enumerate available audio input and output devices in settings', () =>
       clearCustomProvider: vi.fn().mockResolvedValue(undefined),
       setSttProvider: vi.fn().mockResolvedValue(undefined),
       testCustomProvider: vi.fn().mockResolvedValue({ reasoning: true, stt: false }),
+      listQwenModels: vi.fn().mockResolvedValue([]),
+      listCustomProviderModels: vi.fn().mockResolvedValue([]),
+      setAudioDevice: vi.fn().mockResolvedValue(undefined),
     } as any
     
     // Mock navigator.mediaDevices.enumerateDevices

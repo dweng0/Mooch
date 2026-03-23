@@ -10,6 +10,7 @@ function getApiKeysPath(): string {
 /**
  * Persist user API keys to disk.
  * Encrypted via OS keychain when available; falls back to plain JSON otherwise.
+ * @param apiKeys - The API keys object to save.
  */
 export function saveApiKeys(apiKeys: UserApiKeys): void {
   const path = getApiKeysPath()
@@ -27,6 +28,7 @@ export function saveApiKeys(apiKeys: UserApiKeys): void {
 
 /**
  * Load the stored API keys, or return empty object if not present / unreadable.
+ * @returns The loaded API keys object, or an empty object if none exist.
  */
 export function loadApiKeys(): UserApiKeys {
   try {
@@ -61,6 +63,7 @@ export function clearApiKeys(): void {
 
 /**
  * Clear a specific API key.
+ * @param provider - The AI provider whose key should be cleared.
  */
 export function clearApiKey(provider: 'anthropic' | 'gemini' | 'openai' | 'qwen'): void {
   const keys = loadApiKeys()

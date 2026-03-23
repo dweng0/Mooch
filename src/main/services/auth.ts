@@ -11,6 +11,7 @@ function getSessionPath(): string {
 /**
  * Persist the raw Set-Cookie header string from the Wasp login response.
  * Encrypted at rest using the OS keychain via Electron safeStorage.
+ * @param cookieHeader - The raw Set-Cookie header string from the login response.
  */
 export function saveSession(cookieHeader: string): void {
   const path = getSessionPath()
@@ -22,6 +23,7 @@ export function saveSession(cookieHeader: string): void {
 /**
  * Save session token directly (for WebSocket auth flow).
  * Stores the raw session ID, consistent with loginWithEmail.
+ * @param sessionToken - The session token to save.
  */
 export function saveSessionToken(sessionToken: string): void {
   saveSession(sessionToken)
@@ -29,6 +31,7 @@ export function saveSessionToken(sessionToken: string): void {
 
 /**
  * Load the stored session cookie string, or null if not present / unreadable.
+ * @returns The loaded session cookie string, or null if not found or unreadable.
  */
 export function loadSession(): string | null {
   try {
@@ -67,6 +70,7 @@ function generatePairingCode(): string {
 
 /**
  * Get the current pairing code (if any)
+ * @returns The current pairing code, or null if not set.
  */
 export function getCurrentPairingCode(): string | null {
   return currentPairingCode
@@ -74,6 +78,8 @@ export function getCurrentPairingCode(): string | null {
 
 /**
  * Initialize WebSocket connection for OAuth notifications
+ * @param onAuthSuccess - Callback function to handle successful authentication.
+ * @param user - The user object from the authentication response.
  */
 export function initAuthWebSocket(onAuthSuccess: (sessionToken: string, user: any) => void): void {
   // Clean up existing connection
@@ -142,6 +148,8 @@ export function disconnectAuthWebSocket(): void {
 
 /**
  * Get the OAuth URL with pairing code for the given provider
+ * @param provider - The OAuth provider (google, github, or discord).
+ * @returns The OAuth URL with the pairing code as a query parameter.
  */
 export function getOAuthUrl(provider: 'google' | 'github' | 'discord'): string {
   if (!currentPairingCode) {

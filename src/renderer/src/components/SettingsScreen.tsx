@@ -951,46 +951,6 @@ export default function SettingsScreen({
           </p>
         </div>
 
-        {/* Audio Devices */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Audio Devices</h3>
-          <p className="text-[10px] text-gray-500 mb-3">
-            Select your preferred microphone and speaker for interviews.
-          </p>
-          
-          {/* Microphone (Input) Devices */}
-          <div className="mb-3">
-            <label className="text-xs text-gray-500 mb-2 block font-medium">Microphone</label>
-            {audioInputDevices.length > 0 ? (
-              <select className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500">
-                {audioInputDevices.map((device) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Microphone ${device.deviceId}`}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-xs text-gray-500 italic">No microphones found</div>
-            )}
-          </div>
-          
-          {/* Speaker (Output) Devices */}
-          <div>
-            <label className="text-xs text-gray-500 mb-2 block font-medium">Speaker</label>
-            {audioOutputDevices.length > 0 ? (
-              <select className="w-full bg-white text-gray-700 text-xs rounded-md px-2.5 py-2 border border-gray-200 outline-none focus:border-blue-500">
-                {audioOutputDevices.map((device) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Speaker ${device.deviceId}`}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-xs text-gray-500 italic">No speakers found</div>
-            )}
-          </div>
-        </div>
-
         {/* Custom / OpenAI-compatible provider */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Custom Provider</h3>

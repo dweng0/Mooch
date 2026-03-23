@@ -27,6 +27,12 @@ export class LocalInterviewService {
   private onFinalCb: OnFinalCallback | null = null
   private lastAudioBuffer: ArrayBuffer | null = null
 
+  /**
+   * Starts the local interview service in either active or passive mode.
+   * @param onInterim - Callback for interim transcription updates.
+   * @param onFinal - Callback for final transcribed text.
+   * @param options - Configuration options including audio source and mode.
+   */
   start(
     onInterim: OnInterimCallback,
     onFinal: OnFinalCallback,
@@ -93,6 +99,10 @@ export class LocalInterviewService {
       })
   }
 
+  /**
+   * Stops the local interview service and performs cleanup.
+   * @returns A promise that resolves when the service is fully stopped.
+   */
   async stop(): Promise<void> {
     if (!this.isActive) {
       console.log('[LocalInterview] Not active, nothing to stop')
@@ -142,6 +152,11 @@ export class LocalInterviewService {
     }
   }
 
+  /**
+   * Speaks the given text aloud using the browser's speech synthesis.
+   * @param text - The text to speak.
+   * @param onEnd - Optional callback invoked when speech finishes.
+   */
   speak(text: string, onEnd?: () => void): void {
     console.log('[LocalInterview] Using browser speech synthesis as fallback')
     window.speechSynthesis.cancel()
@@ -153,14 +168,24 @@ export class LocalInterviewService {
     window.speechSynthesis.speak(utterance)
   }
 
+  /**
+   * Cancels any ongoing speech synthesis.
+   */
   stopSpeaking(): void {
     window.speechSynthesis.cancel()
   }
 
+  /**
+   * Returns the last recorded audio buffer, or null if none available.
+   * @returns The last audio buffer or null.
+   */
   getLastAudioBuffer(): ArrayBuffer | null {
     return this.lastAudioBuffer
   }
 
+  /**
+   * Clears the stored last audio buffer.
+   */
   clearLastAudioBuffer(): void {
     this.lastAudioBuffer = null
   }
