@@ -98,7 +98,7 @@ Checked 59 scenario(s) across 23 test file(s).
 
 ## Feature: audio pipeline integration tests
 
-- [x] end-to-end audio pipeline integration test
+- [ ] UNCOVERED: end-to-end audio pipeline integration test
 
 ## Feature: JSDoc documentation coverage
 
@@ -114,4 +114,7 @@ Checked 59 scenario(s) across 23 test file(s).
 - [x] use selected speaker for TTS playback
 
 ---
-**59/59 scenarios covered.**
+**58/59 scenarios covered.**
+
+1 scenario(s) need tests:
+- end-to-end audio pipeline integration test

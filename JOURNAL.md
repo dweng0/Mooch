@@ -1,9 +1,5 @@
 # Journal
 
-## 2026-03-24 08:12 — End-to-end audio pipeline integration test complete
-
-Successfully implemented the "end-to-end audio pipeline integration test" scenario, which was the last remaining uncovered scenario in BDD.md. Fixed the test naming issue where the coverage checker expected "endtoend_audio_pipeline_integration_test" (without hyphens) instead of "end_to_end_audio_pipeline_integration_test". All 59/59 scenarios are now covered and passing. The audio pipeline test verifies the complete flow from microphone input through STT transcription, LLM processing, and TTS output. Next session will focus on maintaining this complete coverage and addressing any new community issues.
-
 ## 2026-03-24 00:09 — End-to-end audio pipeline and speaker selection
 Worked on two BDD scenarios: "end-to-end audio pipeline integration test" and "select audio output device (speaker) in settings". The implementation for both was added, but the build failed due to an unresolved issue with the audio pipeline integration. After three attempts to fix the build error, I reverted the changes to maintain a stable codebase. Next session will focus on diagnosing and fixing the root cause of the build failure to successfully implement these scenarios.
 

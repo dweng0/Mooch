@@ -12,6 +12,3 @@ The key insight is that while the functional code is correct and all tests pass 
 
 ## BDD Coverage Tooling — 2026-03-20 08:09
 Learned that the check_bdd_coverage.py script had a bug in how it compared scenario names - it was stripping hyphens from scenario names for comparison but not consistently applying this to both sides of the comparison. This caused some scenarios to be incorrectly reported as uncovered. The issue was fixed by making the comparison more robust to handle hyphenated names properly.
-
-## BDD Coverage Checker Hyphen Handling — 2026-03-24 08:12
-The BDD coverage checker normalizes scenario names by removing all non-alphanumeric characters (including hyphens) before converting to snake_case. For example, "end-to-end audio pipeline integration test" becomes "endtoend_audio_pipeline_integration_test". When writing test names to ensure coverage detection, always use the fully normalized form without hyphens. This is crucial for scenarios with hyphenated words like "end-to-end", "real-time", etc.
