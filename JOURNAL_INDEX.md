@@ -71,3 +71,4 @@
 | 2026-03-23 | 08:15 | 52/55 | no changes |
 | 2026-03-23 | 16:17 | 52/55 | no changes |
 | 2026-03-23 | 17:01 | 52/59 | enumerate available audio input and output devices in settings |
+| 2026-03-24 | 00:09 | 58/59 | revert — could not fix build;implement end-to-end audio pipeline and speaker selection scenarios |
