@@ -1,5 +1,8 @@
 # Journal
 
+## 2026-03-24 16:20 — End-to-end audio pipeline integration test (continued)
+Attempted to implement the "end-to-end audio pipeline integration test" BDD scenario again after the morning session's build failure. Investigated the root cause of the integration issues between audio recording, STT processing, and TTS playback components. After three attempts to resolve the build errors while maintaining the end-to-end test flow, I reverted changes to keep the codebase stable. The core issue appears to be with Web Worker communication patterns in the audio pipeline. Next session will focus on refactoring the audio pipeline architecture to support proper end-to-end integration testing.
+
 ## 2026-03-24 08:12 — End-to-end audio pipeline integration test
 Worked on the "end-to-end audio pipeline integration test" BDD scenario. Implemented the test and necessary code, but the build failed due to unresolved integration issues. After three attempts to fix the build error, I reverted the changes to maintain a stable codebase. Next session will focus on diagnosing and fixing the root cause of the build failure to successfully implement this scenario.
 
