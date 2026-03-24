@@ -1,5 +1,8 @@
 # Journal
 
+## 2026-03-24 08:12 — End-to-end audio pipeline integration test
+Worked on the "end-to-end audio pipeline integration test" BDD scenario. Implemented the test and necessary code, but the build failed due to unresolved integration issues. After three attempts to fix the build error, I reverted the changes to maintain a stable codebase. Next session will focus on diagnosing and fixing the root cause of the build failure to successfully implement this scenario.
+
 ## 2026-03-24 00:09 — End-to-end audio pipeline and speaker selection
 Worked on two BDD scenarios: "end-to-end audio pipeline integration test" and "select audio output device (speaker) in settings". The implementation for both was added, but the build failed due to an unresolved issue with the audio pipeline integration. After three attempts to fix the build error, I reverted the changes to maintain a stable codebase. Next session will focus on diagnosing and fixing the root cause of the build failure to successfully implement these scenarios.
 
