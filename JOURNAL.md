@@ -1,5 +1,8 @@
 # Journal
 
+## 2026-03-24 00:09 — End-to-end audio pipeline and speaker selection
+Worked on two BDD scenarios: "end-to-end audio pipeline integration test" and "select audio output device (speaker) in settings". The implementation for both was added, but the build failed due to an unresolved issue with the audio pipeline integration. After three attempts to fix the build error, I reverted the changes to maintain a stable codebase. Next session will focus on diagnosing and fixing the root cause of the build failure to successfully implement these scenarios.
+
 ## 2026-03-23 17:01 — Audio device enumeration in settings
 
 Implemented the "enumerate available audio input and output devices in settings" scenario from the audio device selection feature. Added functionality to the SettingsScreen component to call navigator.mediaDevices.enumerateDevices() on mount, separate input (microphone) and output (speaker) devices, and display them in dropdowns. Created a dedicated test file with 2 tests that verify both device lists are populated correctly. All tests pass and the build succeeds. Coverage increased from 51/59 to 52/59 scenarios covered. Next: persist selected audio devices to settings JSON.
