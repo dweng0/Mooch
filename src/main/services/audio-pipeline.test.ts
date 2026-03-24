@@ -5,8 +5,8 @@ import os from 'os'
 import type { TTSConfig } from './tts-provider'
 
 /**
- * Scenario: end-to-end audio pipeline integration test
- * Test name: endtoend_audio_pipeline_integration_test
+ * Test coverage for scenario:
+ * - end-to-end audio pipeline integration test
  * 
  * Tests the complete flow:
  *   audio input (WAV/WebM)
@@ -16,7 +16,7 @@ import type { TTSConfig } from './tts-provider'
  *   → Output audio file
  */
 
-describe('end-to-end audio pipeline integration test', () => {
+describe('audio pipeline integration tests', () => {
   let testDir: string
 
   beforeEach(() => {
@@ -29,6 +29,8 @@ describe('end-to-end audio pipeline integration test', () => {
       fs.rmSync(testDir, { recursive: true })
     }
   })
+
+  describe('end-to-end audio pipeline integration test', () => {
     it('verifies complete audio pipeline from input to output', async () => {
       // This test verifies the data flow through all pipeline stages
       // by testing with mock data that simulates the complete flow
@@ -315,7 +317,6 @@ describe('end-to-end audio pipeline integration test', () => {
       // Stage 2: Save transcription
       const transcriptPath = path.join(sessionDir, 'transcript.md')
       fs.appendFileSync(transcriptPath, '# Interview Transcript\n\n')
-      fs.appendFileSync(transcriptPath, `## Turn 1\n\nUser: I have experience with React and Node.js\n\n`)
       fs.appendFileSync(transcriptPath, '**User**: What are the requirements?\n\n')
       fs.appendFileSync(transcriptPath, '**AI**: Based on your resume...\n\n')
 
@@ -456,4 +457,5 @@ describe('end-to-end audio pipeline integration test', () => {
       // Verify buffer has content
       expect(writePosition).toBeGreaterThan(0)
     })
+  })
 })

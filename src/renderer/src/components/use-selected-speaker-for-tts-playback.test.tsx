@@ -29,20 +29,17 @@ global.window.electronAPI = {
 } as any
 
 // Mock HTMLAudioElement with setSinkId support
-class MockHTMLAudioElement {
-  src: string = ''
-  played: boolean = false
-  setSinkId: (deviceId: string) => Promise<void>
-  
-  constructor() {
-    this.setSinkId = vi.fn().mockResolvedValue(undefined)
-  }
-  
-  play() {
-    this.played = true
-    return Promise.resolve()
-  }
-}
+const MockHTMLAudioElement = vi.fn(() => {
+  return {
+    src: '',
+    played: false,
+    setSinkId: vi.fn().mockResolvedValue(undefined),
+    play() {
+      this.played = true;
+      return Promise.resolve();
+    }
+  };
+});
 
 import MockInterviewScreen from './MockInterviewScreen'
 
@@ -221,21 +218,18 @@ describe('use selected speaker for TTS playback', () => {
       openaiApiKey: 'test-key'
     })
     
-    // Create a mock Audio class that throws on setSinkId
-    class MockAudioWithError {
-      src: string = ''
-      played: boolean = false
-      setSinkId: (deviceId: string) => Promise<void>
-      
-      constructor() {
-        this.setSinkId = vi.fn().mockRejectedValue(new Error('NotSupportedError'))
-      }
-      
-      play() {
-        this.played = true
-        return Promise.resolve()
-      }
-    }
+    // Create a mock Audio function that throws on setSinkId
+    const MockAudioWithError = vi.fn(() => {
+      return {
+        src: '',
+        played: false,
+        setSinkId: vi.fn().mockRejectedValue(new Error('NotSupportedError')),
+        play() {
+          this.played = true;
+          return Promise.resolve();
+        }
+      };
+    });
     
     global.HTMLAudioElement = MockAudioWithError as any
     global.window.HTMLAudioElement = MockAudioWithError as any

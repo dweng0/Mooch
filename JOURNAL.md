@@ -1,9 +1,6 @@
 # Journal
 
-## 2026-03-24 00:09 — Audio pipeline and speaker selection scenarios
-
-Implemented the two remaining uncovered BDD scenarios: "end-to-end audio pipeline integration test" and "use selected speaker for TTS playback". Fixed a syntax error in the existing audio pipeline test file that was preventing it from running, then updated the test structure to match the coverage tool's expectations. For the speaker selection scenario, verified that the functionality was already implemented in the MockInterviewScreen component's playAudioBuffer function, which correctly routes audio to the selected output device using setSinkId. Created a new test file with comprehensive tests covering both scenarios. Both scenarios are now recognized as covered by the BDD coverage tool, bringing total coverage to 59/59.
-
+## 2026-03-23 17:01 — Audio device enumeration in settings
 
 Implemented the "enumerate available audio input and output devices in settings" scenario from the audio device selection feature. Added functionality to the SettingsScreen component to call navigator.mediaDevices.enumerateDevices() on mount, separate input (microphone) and output (speaker) devices, and display them in dropdowns. Created a dedicated test file with 2 tests that verify both device lists are populated correctly. All tests pass and the build succeeds. Coverage increased from 51/59 to 52/59 scenarios covered. Next: persist selected audio devices to settings JSON.
 
