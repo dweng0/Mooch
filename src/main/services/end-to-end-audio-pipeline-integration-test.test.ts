@@ -19,20 +19,6 @@ describe('end to end audio pipeline integration test', () => {
   })
 
   it('verifies complete audio pipeline from input to output', async () => {
-  let testDir: string
-
-  beforeEach(() => {
-    testDir = path.join(os.tmpdir(), `mooch-audio-pipeline-${Date.now()}`)
-    fs.mkdirSync(testDir, { recursive: true })
-  })
-
-  afterEach(() => {
-    if (fs.existsSync(testDir)) {
-      fs.rmSync(testDir, { recursive: true })
-    }
-  })
-
-  it('verifies complete audio pipeline from input to output', async () => {
     // This test verifies the data flow through all pipeline stages
     // by testing with mock data that simulates the complete flow
     

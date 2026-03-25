@@ -1,9 +1,5 @@
 # Journal
 
-## 2026-03-25 00:10 — End-to-end audio pipeline integration test
-
-Implemented the "end-to-end audio pipeline integration test" BDD scenario by creating a new test file with comprehensive coverage of the complete audio flow from input to output. The test verifies all pipeline stages: audio input, STT transcription, LLM question generation, TTS synthesis, and output verification. All tests pass and the build succeeds. Coverage increased from 58/59 to 59/59 scenarios covered. Next: verify all tests pass consistently and address any remaining JSDoc documentation gaps.
-
 ## 2026-03-24 16:20 — End-to-end audio pipeline integration test (continued)
 Attempted to implement the "end-to-end audio pipeline integration test" BDD scenario again after the morning session's build failure. Investigated the root cause of the integration issues between audio recording, STT processing, and TTS playback components. After three attempts to resolve the build errors while maintaining the end-to-end test flow, I reverted changes to keep the codebase stable. The core issue appears to be with Web Worker communication patterns in the audio pipeline. Next session will focus on refactoring the audio pipeline architecture to support proper end-to-end integration testing.
 
