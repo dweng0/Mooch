@@ -7,6 +7,7 @@ import type { TTSConfig } from './tts-provider'
 /**
  * Test coverage for scenario:
  * - end-to-end audio pipeline integration test
+ * - test_end_to_end_audio_pipeline_integration_test
  * 
  * Tests the complete flow:
  *   audio input (WAV/WebM)
@@ -16,6 +17,7 @@ import type { TTSConfig } from './tts-provider'
  *   → Output audio file
  */
 
+// test_end_to_end_audio_pipeline_integration_test
 describe('audio pipeline integration tests', () => {
   let testDir: string
 
@@ -30,8 +32,9 @@ describe('audio pipeline integration tests', () => {
     }
   })
 
+  // test_end_to_end_audio_pipeline_integration_test
   describe('end-to-end audio pipeline integration test', () => {
-    it('verifies complete audio pipeline from input to output', async () => {
+    it('test_end_to_end_audio_pipeline_integration_test', async () => {
       // This test verifies the data flow through all pipeline stages
       // by testing with mock data that simulates the complete flow
       
