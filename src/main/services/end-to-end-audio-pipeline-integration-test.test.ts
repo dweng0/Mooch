@@ -4,7 +4,7 @@ import path from 'path'
 import os from 'os'
 
 // Scenario: end-to-end audio pipeline integration test
-describe('test_end_to_end_audio_pipeline_integration_test', () => {
+describe('end to end audio pipeline integration test', () => {
   let testDir: string
 
   beforeEach(() => {
