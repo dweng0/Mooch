@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 59 scenario(s) across 23 test file(s).
+Checked 59 scenario(s) across 25 test file(s).
 
 
 ## Feature: remove login
