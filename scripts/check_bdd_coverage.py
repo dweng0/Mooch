@@ -116,6 +116,9 @@ def check_coverage(scenario_name, test_files, test_contents):
 
     for path, content in test_contents.items():
         content_lower = content.lower()
+        # Try raw scenario name (preserves original punctuation like hyphens)
+        if scenario_name.lower() in content_lower:
+            return True
         # Try full snake_case match
         if full in content_lower:
             return True

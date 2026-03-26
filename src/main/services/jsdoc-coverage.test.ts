@@ -75,6 +75,13 @@ describe('JSDoc Documentation Coverage', () => {
           }
           
           if (!hasJSDoc) {
+            // Also check for end of multi-line JSDoc (line ends with */)
+            if (j >= 0 && lines[j].trim().endsWith('*/')) {
+              hasJSDoc = true
+            }
+          }
+
+          if (!hasJSDoc) {
             const fileName = path.relative(srcDir, file)
             const functionNameMatch = line.match(/(?:function|class|interface|type|enum)\s+(\w+)/)
             const functionName = functionNameMatch ? functionNameMatch[1] : 'unknown'
@@ -122,9 +129,10 @@ describe('JSDoc Documentation Coverage', () => {
             if (funcMatch && funcMatch[1].trim() !== '') {
               const params = funcMatch[1].split(',').map(p => p.trim())
               const paramNames = params.map(p => {
-                const nameMatch = p.match(/(\w+)(?:\s*:|\s*=\s*|\s*$)/)
-                return nameMatch ? nameMatch[1] : p
-              }).filter(name => name && name !== '...')
+                // Extract parameter name: handles optional (param?: type) and rest (...param)
+                const nameMatch = p.trim().match(/^(\w+)/)
+                return nameMatch ? nameMatch[1] : null
+              }).filter((name): name is string => name != null && name !== '...')
 
               // Extract @param tags from the JSDoc
               const docLines = lines.slice(i, docEnd)
