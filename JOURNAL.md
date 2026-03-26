@@ -1,5 +1,19 @@
 # Journal
 
+## 2026-03-26 12:14 — Complete 59/59 BDD coverage
+
+Finally resolved the "end-to-end audio pipeline integration test" scenario and two other pre-existing test failures.
+
+**Root causes identified:**
+
+1. **Coverage checker (scripts/check_bdd_coverage.py)**: The scenario name "end-to-end audio pipeline integration test" was being normalized to "endtoend_audio_pipeline_integration_test" (hyphens stripped) before searching test files. But the test file contains the raw string with hyphens. Fixed by adding a raw (unnormalized) scenario name check first.
+
+2. **JSDoc test (jsdoc-coverage.test.ts)**: Two bugs: (a) multi-line JSDoc detection looked for `/**` as the previous line, but for multi-line blocks the last line is `*/` — fixed by also accepting lines ending with `*/`; (b) optional params like `context?: string` were matched by regex to extract `string` (the type) instead of `context` (the name) — fixed by using `/^(\w+)/` to extract the first word.
+
+3. **Speaker test (use-selected-speaker-for-tts-playback.test.tsx)**: The test mocked `global.HTMLAudioElement` as a constructor, but the component uses `<audio ref={audioRef}>` which creates elements via the DOM API, not `new HTMLAudioElement()`. Fixed by using `Object.defineProperty(HTMLAudioElement.prototype, 'setSinkId', ...)`. Also discovered `URL.createObjectURL` threw in happy-dom because the Blob mock in vitest.setup.ts doesn't match happy-dom's internal requirements — fixed by mocking `URL.createObjectURL` in the test.
+
+**Result:** All 208 tests pass, 59/59 scenarios covered.
+
 ## 2026-03-26 08:14 — End-to-end audio pipeline integration test (final attempt)
 Worked on the "end-to-end audio pipeline integration test" BDD scenario again after the previous session's revert. Attempted to fix BDD coverage while resolving the persistent build failures related to Web Worker communication in the audio pipeline. After three more attempts to implement the integration without breaking the build, I reverted all changes to maintain codebase stability. The fundamental architectural issue with the audio pipeline remains unresolved and requires a redesign before this scenario can be implemented.
 

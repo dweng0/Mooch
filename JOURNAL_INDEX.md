@@ -78,4 +78,5 @@
 | 2026-03-25 | 08:11 | 58/59 | revert — could not fix build;end-to-end audio pipeline integration test |
 | 2026-03-25 | 16:23 | 58/59 | revert — could not fix build;implement end-to-end audio pipeline integration test |
 | 2026-03-26 | 00:12 | 58/59 | revert — could not fix build;end-to-end audio pipeline integration test |
+| 2026-03-26 | 12:14 | 59/59 | complete 59/59 BDD coverage: fix coverage checker hyphen bug, JSDoc test multi-line/optional param bugs, speaker test prototype mock |
 | 2026-03-26 | 08:14 | 58/59 | revert — could not fix build;fix BDD coverage for end-to-end audio pipeline integration test |
