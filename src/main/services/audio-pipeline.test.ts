@@ -30,7 +30,7 @@ describe('audio pipeline integration tests', () => {
     }
   })
 
-  describe('endtoend_audio_pipeline_integration_test', () => {
+  describe('end-to-end audio pipeline integration test', () => {
     it('verifies complete audio pipeline from input to output', async () => {
       // This test verifies the data flow through all pipeline stages
       // by testing with mock data that simulates the complete flow
