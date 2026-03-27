@@ -187,6 +187,8 @@ export class LocalBridgeApi {
       this.handleProviders(res)
     } else if (method === 'POST' && url === '/api/hint') {
       this.readBody(req).then((body) => this.handleHint(res, body))
+    } else if (method === 'POST' && url === '/api/sync') {
+      this.readBody(req).then((body) => this.handleSync(res, body))
     } else if (method === 'POST' && url === '/api/analyze') {
       this.readBody(req).then((body) => this.handleAnalyze(res, body))
     } else {
@@ -218,65 +220,83 @@ export class LocalBridgeApi {
     this.json(res, 200, { providers })
   }
 
+  /**
+   * Generates a hint for the given code, fires onHintGenerated, and returns the result.
+   * Can be called directly from the main process as well as via the HTTP endpoint.
+   */
+  async generateHint(body: {
+    code: string
+    pageTitle?: string
+    language?: string | null
+    userContext?: string
+    metadata?: { difficulty?: string; tags?: string[]; constraints?: string }
+  }): Promise<{ answer: string; explanation: string }> {
+    const providers = getAvailableProviders()
+    if (providers.length === 0) throw new Error('no provider configured')
+
+    const { code, pageTitle, language, metadata, userContext } = body
+
+    let prompt = `You are a coding interview assistant. Given a coding challenge and the user's current code, provide:\n`
+    prompt += `1. A complete, correct solution to the problem\n`
+    prompt += `2. An explanation of why the solution works and the key insights\n\n`
+    prompt += `You MUST respond in this exact format:\n`
+    prompt += `---ANSWER---\n<the complete working code solution>\n---EXPLANATION---\n<explanation of why this works, key patterns used, time/space complexity>\n\n`
+    prompt += `Page: ${pageTitle || 'Unknown'}\n`
+    if (language) prompt += `Language: ${language}\n`
+    if (metadata?.difficulty) prompt += `Difficulty: ${metadata.difficulty}\n`
+    if (metadata?.tags) prompt += `Tags: ${metadata.tags.join(', ')}\n`
+    if (metadata?.constraints) prompt += `Constraints: ${metadata.constraints}\n`
+    if (userContext) prompt += `\nThe interviewer asked: ${userContext}\nTailor your answer to address this question while still providing a complete solution.\n`
+    prompt += `\nUser's current code:\n${code}\n`
+
+    const context: any = { cv: '', jobDescription: '', manualContext: '' }
+    if (this.activeSession) context.manualContext = `Active interview session: ${this.activeSession}`
+
+    const raw = await getAnswer(prompt, providers[0], context)
+
+    let answer = raw
+    let explanation = ''
+    const answerMatch = raw.indexOf('---ANSWER---')
+    const explMatch = raw.indexOf('---EXPLANATION---')
+    if (answerMatch !== -1 && explMatch !== -1) {
+      answer = raw.substring(answerMatch + '---ANSWER---'.length, explMatch).trim()
+      explanation = raw.substring(explMatch + '---EXPLANATION---'.length).trim()
+    }
+
+    this.extensionState = { ...this.extensionState, code, pageTitle: pageTitle || undefined, language: language || null }
+    const entry: BridgeHintEntry = { answer, explanation, timestamp: Date.now(), pageTitle, language }
+    this.hintHistory.unshift(entry)
+    this.onExtensionUpdate?.(this.extensionState)
+    this.onHintGenerated?.(entry)
+
+    return { answer, explanation }
+  }
+
   private async handleHint(res: http.ServerResponse, body: any): Promise<void> {
     const providers = getAvailableProviders()
     if (providers.length === 0) {
       this.json(res, 503, { error: 'no provider configured' })
       return
     }
-
     try {
-      const { code, pageTitle, language, metadata } = body
-
-      // Build prompt that asks for structured answer + explanation
-      let prompt = `You are a coding interview assistant. Given a coding challenge and the user's current code, provide:\n`
-      prompt += `1. A complete, correct solution to the problem\n`
-      prompt += `2. An explanation of why the solution works and the key insights\n\n`
-      prompt += `You MUST respond in this exact format:\n`
-      prompt += `---ANSWER---\n<the complete working code solution>\n---EXPLANATION---\n<explanation of why this works, key patterns used, time/space complexity>\n\n`
-      prompt += `Page: ${pageTitle || 'Unknown'}\n`
-      if (language) prompt += `Language: ${language}\n`
-      if (metadata?.difficulty) prompt += `Difficulty: ${metadata.difficulty}\n`
-      if (metadata?.tags) prompt += `Tags: ${metadata.tags.join(', ')}\n`
-      if (metadata?.constraints) prompt += `Constraints: ${metadata.constraints}\n`
-      prompt += `\nUser's current code:\n${code}\n`
-
-      // If there's an active interview session, append context
-      const context: any = { cv: '', jobDescription: '', manualContext: '' }
-      if (this.activeSession) {
-        const keys = loadApiKeys()
-        context.manualContext = `Active interview session: ${this.activeSession}`
-      }
-
-      const raw = await getAnswer(prompt, providers[0], context)
-
-      // Parse structured response
-      let answer = raw
-      let explanation = ''
-      const answerMatch = raw.indexOf('---ANSWER---')
-      const explMatch = raw.indexOf('---EXPLANATION---')
-      if (answerMatch !== -1 && explMatch !== -1) {
-        answer = raw.substring(answerMatch + '---ANSWER---'.length, explMatch).trim()
-        explanation = raw.substring(explMatch + '---EXPLANATION---'.length).trim()
-      }
-
-      // Track in extension state and hint history
-      this.extensionState = {
-        ...this.extensionState,
-        code,
-        pageTitle: pageTitle || undefined,
-        language: language || null,
-      }
-      const entry: BridgeHintEntry = { answer, explanation, timestamp: Date.now(), pageTitle, language }
-      this.hintHistory.unshift(entry)
-      this.onExtensionUpdate?.(this.extensionState)
-      this.onHintGenerated?.(entry)
-
+      const { answer, explanation } = await this.generateHint(body)
       this.json(res, 200, { hint: answer, answer, explanation })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       this.json(res, 500, { error: message })
     }
+  }
+
+  private handleSync(res: http.ServerResponse, body: any): void {
+    const { code, pageTitle, language } = body || {}
+    this.extensionState = {
+      ...this.extensionState,
+      code: code ?? this.extensionState.code,
+      pageTitle: pageTitle ?? this.extensionState.pageTitle,
+      language: language ?? this.extensionState.language,
+    }
+    this.onExtensionUpdate?.(this.extensionState)
+    this.json(res, 200, { ok: true })
   }
 
   private async handleAnalyze(res: http.ServerResponse, body: any): Promise<void> {

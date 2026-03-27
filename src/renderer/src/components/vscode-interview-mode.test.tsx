@@ -14,6 +14,7 @@ function makeElectronAPI(overrides = {}) {
     onBridgeExtensionUpdate: vi.fn().mockReturnValue(noop),
     onBridgeHintGenerated: vi.fn().mockReturnValue(noop),
     openExternalUrl: vi.fn(),
+    getAvailableProviders: vi.fn().mockResolvedValue(['claude']),
     ...overrides,
   }
 }
