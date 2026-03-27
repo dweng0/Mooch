@@ -103,19 +103,53 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
+  const handleSendContext = useCallback(async () => {
+    setQaError(null)
+    const snap = extensionStateRef.current
+    if (!snap.code) {
+      setQaError('No code available. Please open a file in VS Code.')
+      return
+    }
+    try {
+      setRecordStatus('thinking')
+      await window.electronAPI.bridgeGenerateHint({
+        code: snap.code,
+        pageTitle: snap.pageTitle,
+        language: snap.language,
+        userContext: transcript,
+        manualContext,
+      })
+      setRecordStatus('idle')
+    } catch (err) {
+      setQaError(err instanceof Error ? err.message : 'Something went wrong')
+      setRecordStatus('idle')
+    }
+  }, [transcript, manualContext])
+
   // Real-time updates — code panel only, never clears transcript
+  const prevCodeRef = useRef<string | undefined>()
+  
   useEffect(() => {
     const unsub1 = window.electronAPI.onBridgeExtensionUpdate((state: any) => {
       if (state.clientType === 'vscode-extension') {
         setStatus('connected')
         setExtensionState({ code: state.code, pageTitle: state.pageTitle, language: state.language, manualContext: state.manualContext })
+        
+        // Auto-send when code changes (first time or on sync)
+        if (state.code && state.code !== prevCodeRef.current) {
+          prevCodeRef.current = state.code
+          // Small delay to allow state to update
+          setTimeout(() => {
+            handleSendContext()
+          }, 100)
+        }
       }
     })
     const unsub2 = window.electronAPI.onBridgeHintGenerated((entry: HintEntry) => {
       setHintHistory(prev => [entry, ...prev])
     })
     return () => { unsub1(); unsub2() }
-  }, [])
+  }, [handleSendContext])
 
   useEffect(() => {
     if (status === 'connected') window.electronAPI.bridgeHintHistory().then(setHintHistory)
@@ -203,36 +237,13 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
       })
 
       setRecordStatus('idle')
-    } catch (err) {
-      setQaError(err instanceof Error ? err.message : 'Something went wrong')
-      setRecordStatus('idle')
-    }
-  }, [])
+     } catch (err) {
+       setQaError(err instanceof Error ? err.message : 'Something went wrong')
+       setRecordStatus('idle')
+     }
+   }, [])
 
-  const handleSendContext = useCallback(async () => {
-    setQaError(null)
-    const snap = extensionStateRef.current
-    if (!snap.code) {
-      setQaError('No code available. Please open a file in VS Code.')
-      return
-    }
-    try {
-      setRecordStatus('thinking')
-      await window.electronAPI.bridgeGenerateHint({
-        code: snap.code,
-        pageTitle: snap.pageTitle,
-        language: snap.language,
-        userContext: transcript,
-        manualContext,
-      })
-      setRecordStatus('idle')
-    } catch (err) {
-      setQaError(err instanceof Error ? err.message : 'Something went wrong')
-      setRecordStatus('idle')
-    }
-  }, [transcript, manualContext])
-
-  const handleBack = useCallback(() => {
+   const handleBack = useCallback(() => {
     passiveServiceRef.current.stop()
     window.electronAPI.bridgeStop()
     onBack()
