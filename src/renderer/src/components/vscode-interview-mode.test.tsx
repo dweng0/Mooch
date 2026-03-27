@@ -59,11 +59,16 @@ describe('vscode interview mode', () => {
   describe('VS Code extension connects to bridge', () => {
     it('transitions to connected status when VS Code extension sends update', async () => {
       let triggerExtensionUpdate: (state: any) => void = noop
+      let bridgeStatusCalled = false
       const onBridgeExtensionUpdate = vi.fn().mockImplementation((cb: any) => {
         triggerExtensionUpdate = cb
         return noop
       })
-      ;(global as any).window.electronAPI = makeElectronAPI({ onBridgeExtensionUpdate })
+      const bridgeStatus = vi.fn().mockImplementation(() => {
+        bridgeStatusCalled = true
+        return { connected: true, lastSeen: Date.now(), clientType: 'vscode-extension' }
+      })
+      ;(global as any).window.electronAPI = makeElectronAPI({ onBridgeExtensionUpdate, bridgeStatus })
 
       render(React.createElement(VsCodeInterviewScreen, { onBack: vi.fn() }))
 
@@ -110,17 +115,22 @@ describe('vscode interview mode', () => {
         triggerExtensionUpdate = cb
         return noop
       })
-      ;(global as any).window.electronAPI = makeElectronAPI({ onBridgeExtensionUpdate })
+      const bridgeStatus = vi.fn().mockResolvedValue({ connected: true, lastSeen: Date.now(), clientType: 'vscode-extension' })
+      ;(global as any).window.electronAPI = makeElectronAPI({ onBridgeExtensionUpdate, bridgeStatus })
 
       render(React.createElement(VsCodeInterviewScreen, { onBack: vi.fn() }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Waiting for Mooch VS Code extension...')).toBeTruthy()
+      })
 
       act(() => {
         triggerExtensionUpdate({ clientType: 'vscode-extension', code: 'def solve():', pageTitle: 'solution.py', language: 'Python' })
       })
 
       await waitFor(() => {
-        expect(screen.getByText('solution.py')).toBeTruthy()
-        expect(screen.getByText('Python')).toBeTruthy()
+        expect(screen.getAllByText('solution.py').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Python').length).toBeGreaterThan(0)
       })
     })
   })

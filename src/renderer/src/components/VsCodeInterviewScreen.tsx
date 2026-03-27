@@ -264,6 +264,25 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
           <>
             {qaError && <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{qaError}</div>}
 
+            {/* Current file header */}
+            <div className="flex-none px-4 py-2 bg-blue-50 border-b border-blue-100">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-blue-600 font-bold text-xs">
+                    {extensionState.pageTitle ? extensionState.pageTitle.split('.').pop()?.toUpperCase() : 'FILE'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-blue-900 truncate">
+                    {extensionState.pageTitle || 'No file open'}
+                  </p>
+                  {extensionState.language && (
+                    <p className="text-[10px] text-blue-600">{extensionState.language}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Transcript — context for the answer */}
             <div className="flex-none px-4 py-3 border-b border-gray-200">
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
