@@ -246,10 +246,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   /** Returns the current bridge connection status and metadata. */
   /** Generates a hint directly via the bridge (without going through the HTTP server). Fires onBridgeHintGenerated. */
-  bridgeGenerateHint: (body: { code: string; pageTitle?: string; language?: string | null; userContext?: string }): Promise<{ answer: string; explanation: string }> => {
+  bridgeGenerateHint: (body: { code: string; pageTitle?: string; language?: string | null; userContext?: string; manualContext?: string }): Promise<{ answer: string; explanation: string }> => {
     return ipcRenderer.invoke('bridge-generate-hint', body)
   },
-  bridgeStatus: (): Promise<{ running: boolean; connected: boolean; lastSeen: number; clientType: 'chrome-extension' | 'vscode-extension' | 'unknown'; code?: string; pageTitle?: string; language?: string | null }> => {
+  bridgeStatus: (): Promise<{ running: boolean; connected: boolean; lastSeen: number; clientType: 'chrome-extension' | 'vscode-extension' | 'unknown'; code?: string; pageTitle?: string; language?: string | null; manualContext?: string }> => {
     return ipcRenderer.invoke('bridge-status')
   },
   /** Returns the history of hints generated via the bridge. */

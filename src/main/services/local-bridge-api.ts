@@ -27,6 +27,7 @@ export interface ExtensionState {
   code?: string
   pageTitle?: string
   language?: string | null
+  manualContext?: string
 }
 
 /** A generated hint entry with the AI answer and explanation for a coding problem. */
@@ -229,12 +230,13 @@ export class LocalBridgeApi {
     pageTitle?: string
     language?: string | null
     userContext?: string
+    manualContext?: string
     metadata?: { difficulty?: string; tags?: string[]; constraints?: string }
   }): Promise<{ answer: string; explanation: string }> {
     const providers = getAvailableProviders()
     if (providers.length === 0) throw new Error('no provider configured')
 
-    const { code, pageTitle, language, metadata, userContext } = body
+    const { code, pageTitle, language, metadata, userContext, manualContext: ctx } = body
 
     let prompt = `You are a coding interview assistant. Given a coding challenge and the user's current code, provide:\n`
     prompt += `1. A complete, correct solution to the problem\n`
@@ -247,6 +249,7 @@ export class LocalBridgeApi {
     if (metadata?.tags) prompt += `Tags: ${metadata.tags.join(', ')}\n`
     if (metadata?.constraints) prompt += `Constraints: ${metadata.constraints}\n`
     if (userContext) prompt += `\nThe interviewer asked: ${userContext}\nTailor your answer to address this question while still providing a complete solution.\n`
+    if (ctx) prompt += `\nAdditional context from user: ${ctx}\n`
     prompt += `\nUser's current code:\n${code}\n`
 
     const context: any = { cv: '', jobDescription: '', manualContext: '' }
@@ -263,7 +266,7 @@ export class LocalBridgeApi {
       explanation = raw.substring(explMatch + '---EXPLANATION---'.length).trim()
     }
 
-    this.extensionState = { ...this.extensionState, code, pageTitle: pageTitle || undefined, language: language || null }
+    this.extensionState = { ...this.extensionState, code, pageTitle: pageTitle || undefined, language: language || null, manualContext: ctx }
     const entry: BridgeHintEntry = { answer, explanation, timestamp: Date.now(), pageTitle, language }
     this.hintHistory.unshift(entry)
     this.onExtensionUpdate?.(this.extensionState)
@@ -288,12 +291,13 @@ export class LocalBridgeApi {
   }
 
   private handleSync(res: http.ServerResponse, body: any): void {
-    const { code, pageTitle, language } = body || {}
+    const { code, pageTitle, language, manualContext } = body || {}
     this.extensionState = {
       ...this.extensionState,
       code: code ?? this.extensionState.code,
       pageTitle: pageTitle ?? this.extensionState.pageTitle,
       language: language ?? this.extensionState.language,
+      manualContext: manualContext ?? this.extensionState.manualContext,
     }
     this.onExtensionUpdate?.(this.extensionState)
     this.json(res, 200, { ok: true })

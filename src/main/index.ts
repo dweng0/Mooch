@@ -120,7 +120,7 @@ ipcMain.handle('bridge-hint-history', async () => {
 })
 
 ipcMain.handle('bridge-generate-hint', async (_event, body: {
-  code: string; pageTitle?: string; language?: string | null; userContext?: string
+  code: string; pageTitle?: string; language?: string | null; userContext?: string; manualContext?: string
 }) => {
   if (!bridgeApi) throw new Error('Bridge is not running')
   return bridgeApi.generateHint(body)

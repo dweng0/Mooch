@@ -1,5 +1,19 @@
 # Journal
 
+## 2026-03-27 13:30 — Add manual context input box to VS Code interview mode
+
+Added a manual context input box to the VS Code interview mode screen. Users can now enter custom instructions or additional context that will be included in AI hint generation.
+
+**Changes:**
+- Added `manualContext` state to `VsCodeInterviewScreen.tsx` with a textarea input field
+- Updated `ExtensionState` interface in `local-bridge-api.ts` to include optional `manualContext` field
+- Modified `generateHint()` to accept and include `manualContext` in the AI prompt
+- Updated `handleSync()` to persist manual context across code syncs
+- Updated preload API types in `index.ts` to include `manualContext` in `bridgeGenerateHint` and `bridgeStatus`
+- Updated main process IPC handler in `main/index.ts` to pass `manualContext` through
+
+The manual context appears as a new input section in the VS Code interview mode UI, below the transcript and above the suggested answer. When provided, it's appended to the AI prompt with the label "Additional context from user:".
+
 ## 2026-03-27 08:12 — Project complete
 All BDD scenarios are covered and passing. No open issues. Nothing to implement this session. Exiting.
 

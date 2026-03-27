@@ -54,6 +54,7 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
   const [passiveSource, setPassiveSource] = useState<'microphone' | 'system'>('system')
   const [qaHistory, setQaHistory] = useState<QASnapshot[]>([])
   const [qaError, setQaError] = useState<string | null>(null)
+  const [manualContext, setManualContext] = useState('')
 
   const missCountRef = useRef(0)
   const recorderRef = useRef(new AudioRecorder())
@@ -151,6 +152,7 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
             pageTitle: snap.pageTitle,
             language: snap.language,
             userContext: text,
+            manualContext,
           })
         } catch (err) {
           setQaError(err instanceof Error ? err.message : 'Something went wrong')
@@ -198,6 +200,7 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
         pageTitle: snap.pageTitle,
         language: snap.language,
         userContext: question,
+        manualContext,
       })
 
       setRecordStatus('idle')
@@ -275,6 +278,29 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
                   <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
                 ) : (
                   <p className="text-sm text-gray-500 italic">Press Ask to record an interviewer question — it'll be used as context for the answer</p>
+                )}
+              </div>
+            </div>
+
+            {/* Manual Context Input */}
+            <div className="flex-none px-4 py-3 border-b border-gray-200">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
+                <div className="flex flex-col items-center mb-3">
+                  <div className="h-8 w-8 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-xs">+</span>
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-800 mt-2">Manual Context</h2>
+                </div>
+                <textarea
+                  value={manualContext}
+                  onChange={(e) => setManualContext(e.target.value)}
+                  placeholder="Add any additional context or instructions for the interviewer..."
+                  className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] placeholder-gray-400"
+                />
+                {manualContext && (
+                  <p className="text-[10px] text-gray-500 mt-2 text-right">
+                    Context will be included in the answer generation
+                  </p>
                 )}
               </div>
             </div>
