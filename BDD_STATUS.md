@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 59 scenario(s) across 25 test file(s).
+Checked 62 scenario(s) across 27 test file(s).
 
 
 ## Feature: remove login
@@ -55,6 +55,12 @@ Checked 59 scenario(s) across 25 test file(s).
 - [x] enrich hints with interview session context
 - [x] handle extension disconnect gracefully
 - [x] stop code interview mode
+
+## Feature: VS Code code interview mode
+
+- [x] code interview sub-menu navigation
+- [x] launch VS Code interview mode
+- [x] VS Code extension connects to bridge
 
 ## Feature: local API for chrome extension integration
 
@@ -114,4 +120,4 @@ Checked 59 scenario(s) across 25 test file(s).
 - [x] use selected speaker for TTS playback
 
 ---
-**59/59 scenarios covered.**
+**62/62 scenarios covered.**

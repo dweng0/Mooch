@@ -229,7 +229,7 @@ export default function ServiceSelection({
   )
 }
 
-function ModeCard({
+export function ModeCard({
   title,
   videoSrc,
   borderColor,

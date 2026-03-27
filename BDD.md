@@ -183,6 +183,28 @@ System: a tool we call mooch, that helps users during interview by listening and
             Then the bridge API server should stop
             And the app should return to the home screen
 
+    Feature: VS Code code interview mode
+
+        Scenario: code interview sub-menu navigation
+            Given the user clicks Code Interview on the home screen
+            Then a sub-menu should appear with two options: Browser Based and VS Code Based
+            When the user clicks Browser Based
+            Then the Chrome extension waiting screen should open
+            When the user clicks VS Code Based
+            Then the VS Code extension waiting screen should open
+
+        Scenario: launch VS Code interview mode
+            Given the user selects VS Code Based from the code interview sub-menu
+            Then the bridge API server should start
+            And a waiting screen should appear with VS Code-specific instructions
+            And a link to install the VS Code extension should be shown
+
+        Scenario: VS Code extension connects to bridge
+            Given the VS Code interview waiting screen is active
+            When the Mooch VS Code extension sends a request with X-Mooch-Client: vscode-extension
+            Then the screen should transition to connected status
+            And the file name and language from VS Code should be displayed
+
     Feature: local API for chrome extension integration
 
         Contract: Mooch Local Bridge API

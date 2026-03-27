@@ -89,7 +89,7 @@ describe('code interview mode', () => {
       })
 
       act(() => {
-        triggerExtensionUpdate({ code: 'function foo() {}', pageTitle: 'Two Sum', language: 'JavaScript' })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: 'function foo() {}', pageTitle: 'Two Sum', language: 'JavaScript' })
       })
 
       await waitFor(() => {
@@ -108,7 +108,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: 'test', pageTitle: 'Two Sum', language: 'Python' })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: 'test', pageTitle: 'Two Sum', language: 'Python' })
       })
 
       await waitFor(() => {
@@ -131,7 +131,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: 'function foo() {}', pageTitle: 'Two Sum - LeetCode', language: 'JavaScript' })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: 'function foo() {}', pageTitle: 'Two Sum - LeetCode', language: 'JavaScript' })
       })
 
       await waitFor(() => {
@@ -151,7 +151,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: 'def two_sum(nums, target):', pageTitle: 'Two Sum', language: 'Python' })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: 'def two_sum(nums, target):', pageTitle: 'Two Sum', language: 'Python' })
       })
 
       await waitFor(() => {
@@ -169,7 +169,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: '', pageTitle: 'Two Sum', language: null })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: '', pageTitle: 'Two Sum', language: null })
         triggerHintGenerated({ answer: 'Use a hash map', explanation: 'O(n) time', timestamp: Date.now() })
       })
 
@@ -192,7 +192,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: '', pageTitle: 'Problem', language: null })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: '', pageTitle: 'Problem', language: null })
       })
 
       act(() => {
@@ -214,7 +214,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: '', pageTitle: 'Problem', language: null })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: '', pageTitle: 'Problem', language: null })
         triggerHintGenerated({ answer: 'First hint', explanation: 'exp1', timestamp: Date.now() - 1000 })
         triggerHintGenerated({ answer: 'Second hint', explanation: 'exp2', timestamp: Date.now() })
       })
@@ -234,7 +234,7 @@ describe('code interview mode', () => {
         { answer: 'Context-enriched hint', explanation: 'From active session', timestamp: Date.now() - 60000 }
       ]
       const bridgeHintHistory = vi.fn().mockResolvedValue(existingHints)
-      const bridgeStatus = vi.fn().mockResolvedValue({ connected: true, lastSeen: Date.now() })
+      const bridgeStatus = vi.fn().mockResolvedValue({ connected: true, lastSeen: Date.now(), clientType: 'chrome-extension' })
       ;(global as any).window.electronAPI = makeElectronAPI({ bridgeHintHistory, bridgeStatus })
 
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
@@ -246,7 +246,7 @@ describe('code interview mode', () => {
 
     it('calls bridgeHintHistory to retrieve session-enriched hints on connect', async () => {
       const bridgeHintHistory = vi.fn().mockResolvedValue([])
-      const bridgeStatus = vi.fn().mockResolvedValue({ connected: true, lastSeen: Date.now() })
+      const bridgeStatus = vi.fn().mockResolvedValue({ connected: true, lastSeen: Date.now(), clientType: 'chrome-extension' })
       ;(global as any).window.electronAPI = makeElectronAPI({ bridgeHintHistory, bridgeStatus })
 
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
@@ -280,7 +280,7 @@ describe('code interview mode', () => {
       // Trigger connection — status becomes 'connected', the effect fires poll()
       // which sees stale data and transitions to 'disconnected'
       act(() => {
-        triggerExtensionUpdate({ code: '', pageTitle: 'Problem', language: null })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: '', pageTitle: 'Problem', language: null })
       })
 
       await waitFor(() => {
@@ -299,7 +299,7 @@ describe('code interview mode', () => {
       render(React.createElement(CodeInterviewScreen, { onBack: vi.fn() }))
 
       act(() => {
-        triggerExtensionUpdate({ code: '', pageTitle: 'Problem', language: null })
+        triggerExtensionUpdate({ clientType: 'chrome-extension', code: '', pageTitle: 'Problem', language: null })
         triggerHintGenerated({ answer: 'Preserved hint after disconnect', explanation: 'Still visible', timestamp: Date.now() })
       })
 

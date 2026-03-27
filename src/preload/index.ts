@@ -245,7 +245,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('bridge-stop')
   },
   /** Returns the current bridge connection status and metadata. */
-  bridgeStatus: (): Promise<{ running: boolean; connected: boolean; lastSeen: number; code?: string; pageTitle?: string; language?: string | null }> => {
+  bridgeStatus: (): Promise<{ running: boolean; connected: boolean; lastSeen: number; clientType: 'chrome-extension' | 'vscode-extension' | 'unknown'; code?: string; pageTitle?: string; language?: string | null }> => {
     return ipcRenderer.invoke('bridge-status')
   },
   /** Returns the history of hints generated via the bridge. */

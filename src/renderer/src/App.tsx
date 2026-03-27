@@ -11,6 +11,8 @@ import StatusIndicator from './components/StatusIndicator'
 import CaptureVoiceModal from './components/CaptureVoiceModal'
 import MockInterviewScreen from './components/MockInterviewScreen'
 import CodeInterviewScreen from './components/CodeInterviewScreen'
+import CodeInterviewModeSelect from './components/CodeInterviewModeSelect'
+import VsCodeInterviewScreen from './components/VsCodeInterviewScreen'
 import { AudioRecorder } from './services/recorder'
 import { LiveInterviewService } from './services/liveInterview'
 import { PassiveListenService } from './services/passiveListen'
@@ -28,7 +30,7 @@ type AppStatus = 'idle' | 'recording' | 'transcribing' | 'thinking'
 type MockStatus = 'off' | 'listening' | 'thinking' | 'speaking'
 type PassiveStatus = 'off' | 'listening' | 'processing'
 type AuthState = 'loading' | 'logged-out' | 'no-subscription' | 'active'
-type AppView = 'select' | 'settings' | InterviewMode
+type AppView = 'select' | 'settings' | 'code-select' | 'code-vscode' | InterviewMode
 type CodeSnapshotState = 'idle' | 'selecting-window' | 'awaiting-voice' | 'analyzing'
 
 /** Root application component that manages auth state, recording, transcription, and screen routing. */
@@ -714,7 +716,12 @@ export default function App() {
     setAnswer('')
     setAnswerHistory([])
     setError('')
-    setAppView(mode)
+    // Code interview shows a sub-menu first to choose browser vs VS Code
+    if (mode === 'code') {
+      setAppView('code-select')
+    } else {
+      setAppView(mode)
+    }
   }, [])
 
   const handleBackToSelect = useCallback(() => {
@@ -854,13 +861,43 @@ export default function App() {
     )
   }
 
-  // ── Code Interview Screen ─────────────────────────────────────────────────
+  // ── Code Interview Sub-menu ───────────────────────────────────────────────
+
+  if (appView === 'code-select') {
+    return (
+      <>
+        <CodeInterviewModeSelect
+          onBack={() => setAppView('select')}
+          onBrowserBased={() => setAppView('code')}
+          onVsCodeBased={() => setAppView('code-vscode')}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
+    )
+  }
+
+  // ── Code Interview Screen (browser extension) ─────────────────────────────
 
   if (appView === 'code') {
     return (
       <>
         <CodeInterviewScreen
-          onBack={() => setAppView('select')}
+          onBack={() => setAppView('code-select')}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
+    )
+  }
+
+  // ── Code Interview Screen (VS Code extension) ─────────────────────────────
+
+  if (appView === 'code-vscode') {
+    return (
+      <>
+        <VsCodeInterviewScreen
+          onBack={() => setAppView('code-select')}
         />
         {exitButton}
         {exitDialog}

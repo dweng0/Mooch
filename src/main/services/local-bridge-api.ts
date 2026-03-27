@@ -16,10 +16,14 @@ const PROVIDER_TYPES: Record<string, string> = {
   custom: 'openai-compatible',
 }
 
+/** The type of client that has connected to the bridge. */
+export type BridgeClientType = 'chrome-extension' | 'vscode-extension' | 'unknown'
+
 /** Tracks the connection state and current context of the browser extension. */
 export interface ExtensionState {
   connected: boolean
   lastSeen: number
+  clientType: BridgeClientType
   code?: string
   pageTitle?: string
   language?: string | null
@@ -38,7 +42,7 @@ export interface BridgeHintEntry {
 export class LocalBridgeApi {
   private server: http.Server | null = null
   private activeSession: string | null = null
-  private extensionState: ExtensionState = { connected: false, lastSeen: 0 }
+  private extensionState: ExtensionState = { connected: false, lastSeen: 0, clientType: 'unknown' }
   private hintHistory: BridgeHintEntry[] = []
   private onExtensionUpdate?: (state: ExtensionState) => void
   private onHintGenerated?: (entry: BridgeHintEntry) => void
@@ -163,8 +167,15 @@ export class LocalBridgeApi {
       return
     }
 
+    // Derive client type from header value
+    const rawClient = Array.isArray(clientHeader) ? clientHeader[0] : clientHeader
+    const clientType: BridgeClientType =
+      rawClient === 'chrome-extension' ? 'chrome-extension'
+      : rawClient === 'vscode-extension' ? 'vscode-extension'
+      : 'unknown'
+
     // Track extension connection
-    this.extensionState = { ...this.extensionState, connected: true, lastSeen: Date.now() }
+    this.extensionState = { ...this.extensionState, connected: true, lastSeen: Date.now(), clientType }
     this.onExtensionUpdate?.(this.extensionState)
 
     const url = req.url || ''

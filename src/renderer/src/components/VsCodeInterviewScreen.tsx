@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, Plug, PlugZap, ExternalLink, Code, Globe, CheckCircle, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Plug, PlugZap, ExternalLink, Code, Code2, CheckCircle, Lightbulb } from 'lucide-react'
 
 interface HintEntry {
   answer: string
@@ -15,12 +15,12 @@ interface Props {
 
 type ConnectionStatus = 'starting' | 'waiting' | 'connected' | 'disconnected'
 
-const EXTENSION_REPO_URL = 'https://github.com/dweng0/moochiepoo'
+const VSCODE_EXTENSION_URL = 'https://marketplace.visualstudio.com/items?itemName=mooch.mooch-vscode'
 const POLL_INTERVAL = 3000
 const DISCONNECT_TIMEOUT = 15000
 
-/** Code interview screen that connects to the Mooch Helper browser extension to provide hints for coding challenges. */
-export default function CodeInterviewScreen({ onBack }: Props) {
+/** Code interview screen that connects to the Mooch VS Code extension to provide hints for coding challenges. */
+export default function VsCodeInterviewScreen({ onBack }: Props) {
   const [status, setStatus] = useState<ConnectionStatus>('starting')
   const [extensionState, setExtensionState] = useState<{
     code?: string
@@ -59,7 +59,7 @@ export default function CodeInterviewScreen({ onBack }: Props) {
     async function poll() {
       try {
         const s = await window.electronAPI.bridgeStatus()
-        const isOurs = s.connected && s.clientType === 'chrome-extension' && Date.now() - s.lastSeen < DISCONNECT_TIMEOUT
+        const isOurs = s.connected && s.clientType === 'vscode-extension' && Date.now() - s.lastSeen < DISCONNECT_TIMEOUT
         if (isOurs) {
           setStatus('connected')
           setExtensionState({ code: s.code, pageTitle: s.pageTitle, language: s.language })
@@ -81,7 +81,7 @@ export default function CodeInterviewScreen({ onBack }: Props) {
   // Listen for real-time updates
   useEffect(() => {
     const unsub1 = window.electronAPI.onBridgeExtensionUpdate((state: any) => {
-      if (state.clientType === 'chrome-extension') {
+      if (state.clientType === 'vscode-extension') {
         setStatus('connected')
         setExtensionState({ code: state.code, pageTitle: state.pageTitle, language: state.language })
       }
@@ -117,7 +117,7 @@ export default function CodeInterviewScreen({ onBack }: Props) {
             >
               <ArrowLeft size={14} />
             </button>
-            <span className="text-xs font-semibold text-gray-700">Code Interview</span>
+            <span className="text-xs font-semibold text-gray-700">Code Interview — VS Code</span>
             <StatusDot status={status} />
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function CodeInterviewScreen({ onBack }: Props) {
           <div className="text-center py-8">
             <PlugZap size={32} className="mx-auto mb-3 text-amber-500" />
             <p className="text-sm text-gray-700 font-medium mb-1">Connection lost</p>
-            <p className="text-xs text-gray-500 mb-4">The extension stopped responding. Waiting for reconnection...</p>
+            <p className="text-xs text-gray-500 mb-4">The VS Code extension stopped responding. Waiting for reconnection...</p>
             {hintHistory.length > 0 && (
               <div className="mt-4">
                 <p className="text-xs text-gray-500 mb-2">Previous hints from this session:</p>
@@ -166,7 +166,7 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
   }
   const labels = {
     starting: 'Starting...',
-    waiting: 'Waiting for extension',
+    waiting: 'Waiting for VS Code extension',
     connected: 'Connected',
     disconnected: 'Disconnected',
   }
@@ -183,39 +183,39 @@ function WaitingView({ status }: { status: 'starting' | 'waiting' }) {
   return (
     <div className="text-center py-8">
       <div className="relative mx-auto w-16 h-16 mb-4">
-        <Plug size={32} className="absolute inset-0 m-auto text-blue-500" />
+        <Plug size={32} className="absolute inset-0 m-auto text-violet-500" />
         {status === 'waiting' && (
-          <div className="absolute inset-0 rounded-full border-2 border-blue-300 border-t-blue-500 animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-violet-300 border-t-violet-500 animate-spin" />
         )}
       </div>
 
       <h2 className="text-lg font-semibold text-gray-800 mb-2">
-        {status === 'starting' ? 'Starting bridge server...' : 'Waiting for Mooch Helper extension...'}
+        {status === 'starting' ? 'Starting bridge server...' : 'Waiting for Mooch VS Code extension...'}
       </h2>
 
       <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
-        Install the Mooch Helper Chrome extension, then open a coding challenge page. The extension will connect automatically.
+        Install the Mooch extension for VS Code, then open a coding problem file. The extension will connect automatically.
       </p>
 
       <a
         href="#"
         onClick={(e) => {
           e.preventDefault()
-          window.electronAPI.openExternalUrl(EXTENSION_REPO_URL)
+          window.electronAPI.openExternalUrl(VSCODE_EXTENSION_URL)
         }}
-        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-800 transition-colors"
       >
         <ExternalLink size={14} />
-        Install Chrome Extension
+        Install VS Code Extension
       </a>
 
       <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg text-left max-w-xs mx-auto">
         <p className="text-xs font-medium text-gray-700 mb-2">How it works:</p>
         <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
-          <li>Install the Mooch Helper extension</li>
-          <li>Navigate to LeetCode, HackerRank, etc.</li>
+          <li>Install the Mooch extension in VS Code</li>
+          <li>Open a code file with your problem</li>
           <li>The extension auto-connects to this screen</li>
-          <li>Click "Get Hint" in the extension popup</li>
+          <li>Run the "Get Hint" command from the command palette</li>
           <li>Hints appear here with full context</li>
         </ol>
       </div>
@@ -232,15 +232,15 @@ function DashboardView({ extensionState, hintHistory }: {
   return (
     <div className="space-y-4">
       {/* Problem info */}
-      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
         <div className="flex items-center gap-2 mb-1">
-          <Globe size={14} className="text-blue-600" />
-          <span className="text-sm font-medium text-blue-900">
-            {extensionState.pageTitle || 'Connected'}
+          <Code2 size={14} className="text-violet-600" />
+          <span className="text-sm font-medium text-violet-900">
+            {extensionState.pageTitle || 'Connected via VS Code'}
           </span>
         </div>
         {extensionState.language && (
-          <span className="inline-block text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full mt-1">
+          <span className="inline-block text-xs text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full mt-1">
             {extensionState.language}
           </span>
         )}
@@ -292,7 +292,7 @@ function DashboardView({ extensionState, hintHistory }: {
       ) : (
         <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
           <p className="text-xs text-gray-400 italic">
-            No answers yet. Click "Get Hint" in the extension popup.
+            No answers yet. Run "Get Hint" from the VS Code command palette.
           </p>
         </div>
       )}
@@ -325,6 +325,18 @@ function DashboardView({ extensionState, hintHistory }: {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function HintList({ hints }: { hints: HintEntry[] }) {
+  return (
+    <div className="space-y-3">
+      {hints.map((entry, i) => (
+        <div key={`${entry.timestamp}-${i}`} className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-left">
+          <pre className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed font-mono">{entry.answer}</pre>
+        </div>
+      ))}
     </div>
   )
 }
