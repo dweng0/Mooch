@@ -39,7 +39,7 @@ const DISCONNECT_MISSES = 3
 export default function VsCodeInterviewScreen({ onBack }: Props) {
   const [status, setStatus] = useState<ConnectionStatus>('starting')
   const [extensionState, setExtensionState] = useState<{
-    code?: string; pageTitle?: string; language?: string | null
+    code?: string; pageTitle?: string; language?: string | null; manualContext?: string
   }>({})
   // hintHistory[0] is always the current answer
   const [hintHistory, setHintHistory] = useState<HintEntry[]>([])
@@ -89,7 +89,6 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
         if (isOurs) {
           missCountRef.current = 0
           setStatus('connected')
-          setExtensionState({ code: s.code, pageTitle: s.pageTitle, language: s.language })
         } else if (statusRef.current === 'connected') {
           missCountRef.current += 1
           if (missCountRef.current >= DISCONNECT_MISSES) {
@@ -102,14 +101,14 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
     poll()
     pollRef.current = setInterval(poll, POLL_INTERVAL)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [status])
+  }, [])
 
   // Real-time updates — code panel only, never clears transcript
   useEffect(() => {
     const unsub1 = window.electronAPI.onBridgeExtensionUpdate((state: any) => {
       if (state.clientType === 'vscode-extension') {
         setStatus('connected')
-        setExtensionState({ code: state.code, pageTitle: state.pageTitle, language: state.language })
+        setExtensionState({ code: state.code, pageTitle: state.pageTitle, language: state.language, manualContext: state.manualContext })
       }
     })
     const unsub2 = window.electronAPI.onBridgeHintGenerated((entry: HintEntry) => {
