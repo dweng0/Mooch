@@ -32,8 +32,8 @@ type PassiveStatus = 'off' | 'listening' | 'processing'
 
 const VSCODE_EXTENSION_URL = 'https://marketplace.visualstudio.com/items?itemName=mooch.mooch-vscode'
 const POLL_INTERVAL = 3000
-const DISCONNECT_TIMEOUT = 45000
-const DISCONNECT_MISSES = 3
+const DISCONNECT_TIMEOUT = 60000
+const DISCONNECT_MISSES = 5
 
 /** Code interview screen connecting to the Mooch VS Code extension, with mic Q&A. */
 export default function VsCodeInterviewScreen({ onBack }: Props) {
