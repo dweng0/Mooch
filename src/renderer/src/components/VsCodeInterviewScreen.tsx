@@ -209,6 +209,29 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
     }
   }, [])
 
+  const handleSendContext = useCallback(async () => {
+    setQaError(null)
+    const snap = extensionStateRef.current
+    if (!snap.code) {
+      setQaError('No code available. Please open a file in VS Code.')
+      return
+    }
+    try {
+      setRecordStatus('thinking')
+      await window.electronAPI.bridgeGenerateHint({
+        code: snap.code,
+        pageTitle: snap.pageTitle,
+        language: snap.language,
+        userContext: transcript,
+        manualContext,
+      })
+      setRecordStatus('idle')
+    } catch (err) {
+      setQaError(err instanceof Error ? err.message : 'Something went wrong')
+      setRecordStatus('idle')
+    }
+  }, [transcript, manualContext])
+
   const handleBack = useCallback(() => {
     passiveServiceRef.current.stop()
     window.electronAPI.bridgeStop()
@@ -300,28 +323,40 @@ export default function VsCodeInterviewScreen({ onBack }: Props) {
               </div>
             </div>
 
-            {/* Manual Context Input */}
-            <div className="flex-none px-4 py-3 border-b border-gray-200">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
-                <div className="flex flex-col items-center mb-3">
-                  <div className="h-8 w-8 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-xs">+</span>
+                {/* Manual Context Input */}
+                <div className="flex-none px-4 py-3 border-b border-gray-200">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
+                    <div className="flex flex-col items-center mb-3">
+                      <div className="h-8 w-8 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-blue-600 font-bold text-xs">+</span>
+                      </div>
+                      <h2 className="text-xl font-semibold text-gray-800 mt-2">Manual Context</h2>
+                    </div>
+                    <textarea
+                      value={manualContext}
+                      onChange={(e) => setManualContext(e.target.value)}
+                      placeholder="Add any additional context or instructions for the interviewer..."
+                      className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] placeholder-gray-400"
+                    />
+                    <div className="flex items-center justify-between mt-3">
+                      {manualContext && (
+                        <p className="text-[10px] text-gray-500">
+                          Context will be included in the answer generation
+                        </p>
+                      )}
+                      <button
+                        onClick={handleSendContext}
+                        disabled={!transcript && !manualContext || recordStatus !== 'idle'}
+                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send for Hint
+                      </button>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-800 mt-2">Manual Context</h2>
                 </div>
-                <textarea
-                  value={manualContext}
-                  onChange={(e) => setManualContext(e.target.value)}
-                  placeholder="Add any additional context or instructions for the interviewer..."
-                  className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] placeholder-gray-400"
-                />
-                {manualContext && (
-                  <p className="text-[10px] text-gray-500 mt-2 text-right">
-                    Context will be included in the answer generation
-                  </p>
-                )}
-              </div>
-            </div>
 
             {/* Answer — always code-formatted hint */}
             <div className="px-4 py-3 border-b border-gray-200">
