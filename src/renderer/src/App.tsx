@@ -13,6 +13,7 @@ import MockInterviewScreen from './components/MockInterviewScreen'
 import CodeInterviewScreen from './components/CodeInterviewScreen'
 import CodeInterviewModeSelect from './components/CodeInterviewModeSelect'
 import VsCodeInterviewScreen from './components/VsCodeInterviewScreen'
+import FreeCodeInterviewScreen from './components/FreeCodeInterviewScreen'
 import { AudioRecorder } from './services/recorder'
 import { LiveInterviewService } from './services/liveInterview'
 import { PassiveListenService } from './services/passiveListen'
@@ -30,7 +31,7 @@ type AppStatus = 'idle' | 'recording' | 'transcribing' | 'thinking'
 type MockStatus = 'off' | 'listening' | 'thinking' | 'speaking'
 type PassiveStatus = 'off' | 'listening' | 'processing'
 type AuthState = 'loading' | 'logged-out' | 'no-subscription' | 'active'
-type AppView = 'select' | 'settings' | 'code-select' | 'code-vscode' | InterviewMode
+type AppView = 'select' | 'settings' | 'code-select' | 'code-vscode' | 'code-free' | InterviewMode
 type CodeSnapshotState = 'idle' | 'selecting-window' | 'awaiting-voice' | 'analyzing'
 
 /** Root application component that manages auth state, recording, transcription, and screen routing. */
@@ -870,6 +871,7 @@ export default function App() {
           onBack={() => setAppView('select')}
           onBrowserBased={() => setAppView('code')}
           onVsCodeBased={() => setAppView('code-vscode')}
+          onFreeCode={() => setAppView('code-free')}
         />
         {exitButton}
         {exitDialog}
@@ -897,6 +899,20 @@ export default function App() {
     return (
       <>
         <VsCodeInterviewScreen
+          onBack={() => setAppView('code-select')}
+        />
+        {exitButton}
+        {exitDialog}
+      </>
+    )
+  }
+
+  // ── Code Interview Screen (free code) ─────────────────────────────────────
+
+  if (appView === 'code-free') {
+    return (
+      <>
+        <FreeCodeInterviewScreen
           onBack={() => setAppView('code-select')}
         />
         {exitButton}

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary } from '../shared/types'
+import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary, FreeCodeSessionData } from '../shared/types'
 
 /** IPC bridge between the renderer process and the main process, exposed as window.electronAPI. */
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -268,4 +268,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('bridge-hint-generated', handler)
     return () => { ipcRenderer.removeListener('bridge-hint-generated', handler) }
   },
+
+  // ── Free Code Interview ───────────────────────────────────────────────────
+  freeCodeCreateSession: (task: string, language?: string, framework?: string): Promise<FreeCodeSessionData> =>
+    ipcRenderer.invoke('free-code-create-session', task, language, framework),
+  freeCodeGeneratePlan: (sessionId: string) =>
+    ipcRenderer.invoke('free-code-generate-plan', sessionId),
+  freeCodeExpandFeature: (sessionId: string, featureId: string) =>
+    ipcRenderer.invoke('free-code-expand-feature', sessionId, featureId),
+  freeCodeExpandSubStep: (sessionId: string, featureId: string, subStepId: string) =>
+    ipcRenderer.invoke('free-code-expand-substep', sessionId, featureId, subStepId),
+  freeCodeCheckProgress: (sessionId: string, currentCode: string, filename: string) =>
+    ipcRenderer.invoke('free-code-check-progress', sessionId, currentCode, filename),
+  freeCodeAsideAnswer: (sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string) =>
+    ipcRenderer.invoke('free-code-aside-answer', sessionId, question, currentCode, filename, activeFeatureTitle),
+  freeCodeListSessions: (): Promise<FreeCodeSessionData[]> =>
+    ipcRenderer.invoke('free-code-list-sessions'),
+  freeCodeGetSession: (sessionId: string): Promise<FreeCodeSessionData | null> =>
+    ipcRenderer.invoke('free-code-get-session', sessionId),
+  freeCodeDeleteSession: (sessionId: string): Promise<void> =>
+    ipcRenderer.invoke('free-code-delete-session', sessionId),
+  freeCodeSaveSession: (session: FreeCodeSessionData): Promise<void> =>
+    ipcRenderer.invoke('free-code-save-session', session),
 })

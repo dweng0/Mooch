@@ -30,7 +30,7 @@ type ConnectionStatus = 'starting' | 'waiting' | 'connected' | 'disconnected'
 type RecordStatus = 'idle' | 'recording' | 'transcribing' | 'thinking'
 type PassiveStatus = 'off' | 'listening' | 'processing'
 
-const VSCODE_EXTENSION_URL = 'https://marketplace.visualstudio.com/items?itemName=mooch.mooch-vscode'
+const VSCODE_EXTENSION_URL = 'https://marketplace.visualstudio.com/items?itemName=Mooch.mooch-vscode-extension'
 const POLL_INTERVAL = 3000
 const DISCONNECT_TIMEOUT = 60000
 const DISCONNECT_MISSES = 5

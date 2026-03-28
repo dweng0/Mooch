@@ -14,7 +14,8 @@ import { InterviewSessionManager } from './services/interview-session'
 import { TTSProviderManager } from './services/tts-provider'
 import { InterviewOrchestrator } from './services/interview-orchestrator'
 import { LocalBridgeApi } from './services/local-bridge-api'
-import type { AIProvider, UserContext, CropRect, CustomProviderConfig } from '../shared/types'
+import { freeCodeSessionManager } from './services/free-code-session'
+import type { AIProvider, UserContext, CropRect, CustomProviderConfig, FreeCodeSessionData } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
 let mainWindow: BrowserWindow | null = null
@@ -124,6 +125,241 @@ ipcMain.handle('bridge-generate-hint', async (_event, body: {
 }) => {
   if (!bridgeApi) throw new Error('Bridge is not running')
   return bridgeApi.generateHint(body)
+})
+
+// ---------------------------------------------------------------------------
+// Free Code Interview IPC handlers
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('free-code-create-session', async (_e, task: string, language?: string, framework?: string) => {
+  return freeCodeSessionManager.createSession(task, language, framework)
+})
+
+ipcMain.handle('free-code-generate-plan', async (_e, sessionId: string) => {
+  const session = await freeCodeSessionManager.getSession(sessionId)
+  if (!session) throw new Error('Session not found')
+
+  const providers = getAvailableProviders()
+  if (providers.length === 0) throw new Error('No AI provider configured')
+
+  const langHint = session.language ? ` using ${session.language}` : ''
+  const fwHint = session.framework ? ` with ${session.framework}` : ''
+  const prompt = `You are a senior software engineer helping a candidate build "${session.task}" from scratch in a coding interview${langHint}${fwHint}.
+
+Generate a feature-level build plan. Each feature should be a meaningful, self-contained piece of functionality. Order them so foundational features come first (data models before UI, storage before business logic, etc.).
+
+Return ONLY valid JSON (no markdown code blocks, no extra text):
+{
+  "features": [
+    {
+      "id": "f1",
+      "title": "Feature title",
+      "reasoning": "Why this is built first and what it enables"
+    }
+  ]
+}`
+
+  const raw = await getAnswer(prompt, providers[0], { cv: '', jobDescription: '', manualContext: '' })
+  let parsed: { features: Array<{ id: string; title: string; reasoning: string }> }
+  try {
+    const m = raw.match(/\{[\s\S]*\}/)
+    parsed = JSON.parse(m ? m[0] : raw)
+  } catch {
+    throw new Error('Failed to parse plan from AI response')
+  }
+
+  session.features = parsed.features.map(f => ({ ...f, status: 'todo' as const }))
+  await freeCodeSessionManager.saveSession(session)
+  return session.features
+})
+
+ipcMain.handle('free-code-expand-feature', async (_e, sessionId: string, featureId: string) => {
+  const session = await freeCodeSessionManager.getSession(sessionId)
+  if (!session) throw new Error('Session not found')
+  const feature = session.features.find(f => f.id === featureId)
+  if (!feature) throw new Error('Feature not found')
+
+  const providers = getAvailableProviders()
+  if (providers.length === 0) throw new Error('No AI provider configured')
+
+  const langHint = session.language ? `\nLanguage: ${session.language}` : ''
+  const fwHint = session.framework ? `\nFramework: ${session.framework}` : ''
+  const prompt = `You are a senior software engineer. Break down this feature into unit-level implementation steps.
+
+Task: "${session.task}"${langHint}${fwHint}
+Feature: "${feature.title}"
+Why: ${feature.reasoning}
+
+Each step should be a single unit of work (one function, one interface, one test, one component, etc.). Be specific and granular.
+
+Return ONLY valid JSON (no markdown code blocks, no extra text):
+{
+  "subSteps": [
+    {
+      "id": "${featureId}-s1",
+      "title": "Step title",
+      "reasoning": "What this step achieves and why it is needed"
+    }
+  ]
+}`
+
+  const raw = await getAnswer(prompt, providers[0], { cv: '', jobDescription: '', manualContext: '' })
+  let parsed: { subSteps: Array<{ id: string; title: string; reasoning: string }> }
+  try {
+    const m = raw.match(/\{[\s\S]*\}/)
+    parsed = JSON.parse(m ? m[0] : raw)
+  } catch {
+    throw new Error('Failed to parse sub-steps from AI response')
+  }
+
+  const subSteps = parsed.subSteps.map(s => ({ ...s, featureId, status: 'todo' as const }))
+  const fi = session.features.findIndex(f => f.id === featureId)
+  session.features[fi] = { ...feature, subSteps }
+  await freeCodeSessionManager.saveSession(session)
+  return subSteps
+})
+
+ipcMain.handle('free-code-expand-substep', async (_e, sessionId: string, featureId: string, subStepId: string) => {
+  const session = await freeCodeSessionManager.getSession(sessionId)
+  if (!session) throw new Error('Session not found')
+  const feature = session.features.find(f => f.id === featureId)
+  const subStep = feature?.subSteps?.find(s => s.id === subStepId)
+  if (!feature || !subStep) throw new Error('Step not found')
+
+  const providers = getAvailableProviders()
+  if (providers.length === 0) throw new Error('No AI provider configured')
+
+  const langHint = session.language ? `\nLanguage: ${session.language}` : ''
+  const fwHint = session.framework ? `\nFramework: ${session.framework}` : ''
+  const prompt = `You are a senior software engineer. Provide the implementation code and decision rationale for this step.
+
+Task: "${session.task}"${langHint}${fwHint}
+Feature: "${feature.title}"
+Step: "${subStep.title}"
+Why: ${subStep.reasoning}
+
+Return ONLY valid JSON (no markdown code blocks, no extra text):
+{
+  "code": "the complete code for this step",
+  "decisionProcess": "detailed explanation: data structures chosen, algorithm rationale, edge cases, trade-offs"
+}`
+
+  const raw = await getAnswer(prompt, providers[0], { cv: '', jobDescription: '', manualContext: '' })
+  let parsed: { code: string; decisionProcess: string }
+  try {
+    const m = raw.match(/\{[\s\S]*\}/)
+    parsed = JSON.parse(m ? m[0] : raw)
+  } catch {
+    throw new Error('Failed to parse step detail from AI response')
+  }
+
+  const fi = session.features.findIndex(f => f.id === featureId)
+  const si = session.features[fi].subSteps!.findIndex(s => s.id === subStepId)
+  session.features[fi].subSteps![si] = { ...subStep, code: parsed.code, decisionProcess: parsed.decisionProcess }
+  await freeCodeSessionManager.saveSession(session)
+  return { code: parsed.code, decisionProcess: parsed.decisionProcess }
+})
+
+ipcMain.handle('free-code-check-progress', async (_e, sessionId: string, currentCode: string, filename: string) => {
+  const session = await freeCodeSessionManager.getSession(sessionId)
+  if (!session) return { completedIds: [] }
+
+  const providers = getAvailableProviders()
+  if (providers.length === 0) return { completedIds: [] }
+
+  const pending: Array<{ id: string; title: string }> = []
+  for (const f of session.features) {
+    if (f.subSteps) {
+      for (const s of f.subSteps) {
+        if (s.status !== 'done') pending.push({ id: s.id, title: s.title })
+      }
+    }
+  }
+  if (pending.length === 0) return { completedIds: [] }
+
+  const list = pending.map(s => `- ${s.id}: ${s.title}`).join('\n')
+  const prompt = `You are reviewing code to determine which implementation steps have been completed.
+
+Task: "${session.task}"
+Current file (${filename}):
+\`\`\`
+${currentCode.slice(0, 3000)}
+\`\`\`
+
+Pending steps:
+${list}
+
+Mark a step as completed if the code clearly implements its core logic. Be generous — partial implementations count.
+
+Return ONLY valid JSON (no markdown code blocks, no extra text):
+{
+  "completedIds": ["step-id-1", "step-id-2"]
+}`
+
+  try {
+    const raw = await getAnswer(prompt, providers[0], { cv: '', jobDescription: '', manualContext: '' })
+    const m = raw.match(/\{[\s\S]*\}/)
+    const parsed = JSON.parse(m ? m[0] : raw)
+    return { completedIds: Array.isArray(parsed.completedIds) ? parsed.completedIds : [] }
+  } catch {
+    return { completedIds: [] }
+  }
+})
+
+ipcMain.handle('free-code-aside-answer', async (_e, sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string) => {
+  const session = await freeCodeSessionManager.getSession(sessionId)
+  if (!session) throw new Error('Session not found')
+
+  const providers = getAvailableProviders()
+  if (providers.length === 0) throw new Error('No AI provider configured')
+
+  const featureCtx = activeFeatureTitle ? ` and is currently working on the "${activeFeatureTitle}" feature` : ''
+  let prompt = `You are a coding interview coach. The candidate is building "${session.task}"${featureCtx}.
+
+An interviewer has just asked a question. Answer it concisely and helpfully, tailored to the build context.`
+
+  if (currentCode) {
+    prompt += `\n\nCurrent code in ${filename || 'editor'}:\n\`\`\`\n${currentCode.slice(0, 2000)}\n\`\`\``
+  }
+
+  prompt += `\n\nInterviewer's question: "${question}"\n\nReturn ONLY valid JSON (no markdown code blocks, no extra text):\n{\n  "answer": "your clear, concise answer"\n}`
+
+  const raw = await getAnswer(prompt, providers[0], { cv: '', jobDescription: '', manualContext: '' })
+  let answer: string
+  try {
+    const m = raw.match(/\{[\s\S]*\}/)
+    const parsed = JSON.parse(m ? m[0] : raw)
+    answer = parsed.answer || raw
+  } catch {
+    answer = raw
+  }
+
+  const entry = {
+    id: Date.now().toString(),
+    question,
+    answer,
+    timestamp: new Date().toISOString(),
+    activeFeatureTitle,
+  }
+  session.asideHistory.unshift(entry)
+  await freeCodeSessionManager.saveSession(session)
+  return entry
+})
+
+ipcMain.handle('free-code-list-sessions', async () => {
+  return freeCodeSessionManager.listSessions()
+})
+
+ipcMain.handle('free-code-get-session', async (_e, sessionId: string) => {
+  return freeCodeSessionManager.getSession(sessionId)
+})
+
+ipcMain.handle('free-code-delete-session', async (_e, sessionId: string) => {
+  return freeCodeSessionManager.deleteSession(sessionId)
+})
+
+ipcMain.handle('free-code-save-session', async (_e, session: FreeCodeSessionData) => {
+  return freeCodeSessionManager.saveSession(session)
 })
 
 // ---------------------------------------------------------------------------

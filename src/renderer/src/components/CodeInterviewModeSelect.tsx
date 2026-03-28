@@ -6,10 +6,11 @@ interface Props {
   onBack: () => void
   onBrowserBased: () => void
   onVsCodeBased: () => void
+  onFreeCode: () => void
 }
 
-/** Sub-menu screen that lets the user choose between browser-extension and VS Code code interview modes. */
-export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCodeBased }: Props) {
+/** Sub-menu screen that lets the user choose between browser-extension, VS Code, and free-code interview modes. */
+export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCodeBased, onFreeCode }: Props) {
   return (
     <div className="h-full flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xl">
       {/* Title bar */}
@@ -53,6 +54,16 @@ export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCo
           delay={120}
           onClick={onVsCodeBased}
           data-testid="vscode-based-btn"
+        />
+        <ModeCard
+          title="Free Code"
+          videoSrc={codeIcon}
+          borderColor="border-emerald-300 hover:border-emerald-500"
+          onSettings={onBack}
+          badges={[]}
+          delay={240}
+          onClick={onFreeCode}
+          data-testid="free-code-btn"
         />
       </div>
     </div>

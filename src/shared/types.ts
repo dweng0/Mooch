@@ -263,6 +263,49 @@ export interface WindowSource {
   thumbnail: string // base64 PNG
 }
 
+// ── Free Code Interview ───────────────────────────────────────────────────────
+
+/** A feature-level step in a free-code interview build plan. */
+export interface FreeCodeFeature {
+  id: string
+  title: string
+  reasoning: string
+  status: 'todo' | 'in-progress' | 'done'
+  subSteps?: FreeCodeSubStep[]
+}
+
+/** A granular implementation step within a feature. */
+export interface FreeCodeSubStep {
+  id: string
+  featureId: string
+  title: string
+  reasoning: string
+  code?: string
+  decisionProcess?: string
+  status: 'todo' | 'in-progress' | 'done'
+}
+
+/** A Q&A entry captured during a free-code interview session (interviewer question + AI answer). */
+export interface FreeCodeAsideEntry {
+  id: string
+  question: string
+  answer: string
+  timestamp: string
+  activeFeatureTitle?: string
+}
+
+/** Complete data for a free-code interview session, including plan and aside history. */
+export interface FreeCodeSessionData {
+  sessionId: string
+  task: string
+  language?: string
+  framework?: string
+  createdAt: string
+  updatedAt: string
+  features: FreeCodeFeature[]
+  asideHistory: FreeCodeAsideEntry[]
+}
+
 /**
  * Represents a rectangular crop area for screen capture.
  */
@@ -416,6 +459,17 @@ export interface ElectronAPI {
   interviewSynthesize: (text: string) => Promise<ArrayBuffer | null>
   /** Retrieves stored audio for a specific interview turn. */
   interviewGetAudio: (sessionId: string, turn: number, type: 'question' | 'response') => Promise<ArrayBuffer | null>
+  // Free Code Interview
+  freeCodeCreateSession: (task: string, language?: string, framework?: string) => Promise<FreeCodeSessionData>
+  freeCodeGeneratePlan: (sessionId: string) => Promise<FreeCodeFeature[]>
+  freeCodeExpandFeature: (sessionId: string, featureId: string) => Promise<FreeCodeSubStep[]>
+  freeCodeExpandSubStep: (sessionId: string, featureId: string, subStepId: string) => Promise<{ code: string; decisionProcess: string }>
+  freeCodeCheckProgress: (sessionId: string, currentCode: string, filename: string) => Promise<{ completedIds: string[] }>
+  freeCodeAsideAnswer: (sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string) => Promise<FreeCodeAsideEntry>
+  freeCodeListSessions: () => Promise<FreeCodeSessionData[]>
+  freeCodeGetSession: (sessionId: string) => Promise<FreeCodeSessionData | null>
+  freeCodeDeleteSession: (sessionId: string) => Promise<void>
+  freeCodeSaveSession: (session: FreeCodeSessionData) => Promise<void>
 }
 
 declare global {
