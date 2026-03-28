@@ -87,3 +87,5 @@
 | 2026-03-27 | 16:16 | 62/62 | project checked — all scenarios complete, no open issues |
 | 2026-03-28 | 00:11 | 62/62 | project checked — all scenarios complete, no open issues |
 | 2026-03-28 | 08:08 | 62/62 | project checked — all scenarios complete, no open issues |
+| 2026-03-28 | 14:30 | 62/62 | add free code interview mode |
+| 2026-03-28 | 14:35 | 62/62 | change evolve schedule to daily at 3am |

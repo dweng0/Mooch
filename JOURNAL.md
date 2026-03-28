@@ -1,5 +1,39 @@
 # Journal
 
+## 2026-03-28 14:35 — Change evolve schedule to daily at 3am
+
+Updated GitHub Actions workflow to run evolution once per day at 3am instead of every 8 hours. Reduces API usage and gives the agent more time to make meaningful progress per session.
+
+**Changes:**
+- Changed cron schedule in `.github/workflows/evolve.yml` from `0 */8 * * *` to `0 3 * * *`
+
+## 2026-03-28 14:30 — Add free code interview mode
+
+Implemented a new "Free Code" interview mode that guides candidates through building a feature from scratch with AI-assisted step-by-step planning and implementation.
+
+**Changes:**
+- Added `FreeCodeInterviewScreen.tsx` with feature-based build planning interface
+- Created `free-code-session.ts` with session management and persistence
+- Implemented IPC handlers in `main/index.ts`:
+  - `free-code-create-session`: Initialize new session with task, language, framework
+  - `free-code-generate-plan`: Generate feature-level build plan from AI
+  - `free-code-expand-feature`: Break down features into granular implementation steps
+  - `free-code-expand-substep`: Generate code and decision process for each step
+  - `free-code-check-progress`: Analyze current code to mark completed steps
+  - `free-code-aside-answer`: Answer interviewer questions in context of current build
+  - `free-code-list-sessions`, `free-code-get-session`, `free-code-delete-session`, `free-code-save-session`
+- Added new types in `types.ts`: `FreeCodeFeature`, `FreeCodeSubStep`, `FreeCodeAsideEntry`, `FreeCodeSessionData`
+- Updated `CodeInterviewModeSelect.tsx` to include "Free Code" option with emerald borders
+- Added test coverage for mode selection navigation
+
+**How it works:**
+1. User selects "Free Code" and enters a coding task (e.g., "Build a todo app")
+2. AI generates a feature-level plan ordered by dependencies
+3. User expands features into granular sub-steps
+4. Each sub-step produces implementation code and decision rationale
+5. Real-time code analysis auto-detects completed steps
+6. Aside Q&A provides context-aware answers during development
+
 ## 2026-03-28 08:08 — Project complete
 All BDD scenarios are covered and passing. No open issues. Nothing to implement this session. Exiting.
 
