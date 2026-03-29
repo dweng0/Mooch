@@ -1,6 +1,9 @@
 import { ArrowLeft } from 'lucide-react'
 import { ModeCard } from './ServiceSelection'
 import codeIcon from '../assets/proposed_images/Statistics.webm'
+import browserBasedVideo from '../assets/browserbaed.webm'
+import vsCodeBasedVideo from '../assets/vscodebased.webm'
+import freeCodeVideo from '../assets/freecode.webm'
 
 interface Props {
   onBack: () => void
@@ -37,7 +40,7 @@ export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCo
         </div>
         <ModeCard
           title="Browser Based"
-          videoSrc={codeIcon}
+          videoSrc={browserBasedVideo}
           borderColor="border-blue-300 hover:border-blue-500"
           onSettings={onBack}
           badges={[]}
@@ -47,7 +50,7 @@ export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCo
         />
         <ModeCard
           title="VS Code Based"
-          videoSrc={codeIcon}
+          videoSrc={vsCodeBasedVideo}
           borderColor="border-violet-300 hover:border-violet-500"
           onSettings={onBack}
           badges={[]}
@@ -57,7 +60,7 @@ export default function CodeInterviewModeSelect({ onBack, onBrowserBased, onVsCo
         />
         <ModeCard
           title="Free Code"
-          videoSrc={codeIcon}
+          videoSrc={freeCodeVideo}
           borderColor="border-emerald-300 hover:border-emerald-500"
           onSettings={onBack}
           badges={[]}

@@ -6,7 +6,7 @@ import {
 import { AudioRecorder } from '../services/recorder'
 import { PassiveListenService } from '../services/passiveListen'
 import type { FreeCodeSessionData, FreeCodeFeature, FreeCodeSubStep, FreeCodeAsideEntry } from '../../../shared/types'
-import codeIcon from '../assets/proposed_images/Statistics.webm'
+import codeIcon from '../assets/freecode.webm'
 
 interface Props {
   onBack: () => void
@@ -61,6 +61,18 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
   expandedFeaturesRef.current = expandedFeatures
   const featuresRef = useRef(features)
   featuresRef.current = features
+
+  const freeCodeVideoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (freeCodeVideoRef.current) {
+        freeCodeVideoRef.current.currentTime = 2
+        freeCodeVideoRef.current.play()
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   const recorderRef = useRef(new AudioRecorder())
   const passiveServiceRef = useRef(new PassiveListenService())
@@ -422,7 +434,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
           <div className="px-4 py-4 space-y-4">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
               <div className="flex flex-col items-center mb-5">
-                <video src={codeIcon} autoPlay muted playsInline className="h-24 w-24" />
+                <video ref={freeCodeVideoRef} src={codeIcon} muted playsInline className="h-24 w-24" />
                 <h2 className="text-xl font-bold text-gray-800 mt-2">Free Code Interview</h2>
                 <p className="text-sm text-gray-500 text-center mt-1">Describe what you need to build and Mooch will generate a step-by-step plan</p>
               </div>
