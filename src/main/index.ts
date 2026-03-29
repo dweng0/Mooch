@@ -146,7 +146,9 @@ ipcMain.handle('free-code-generate-plan', async (_e, sessionId: string) => {
   const fwHint = session.framework ? ` with ${session.framework}` : ''
   const prompt = `You are a senior software engineer helping a candidate build "${session.task}" from scratch in a coding interview${langHint}${fwHint}.
 
-Generate a feature-level build plan. Each feature should be a meaningful, self-contained piece of functionality. Order them so foundational features come first (data models before UI, storage before business logic, etc.).
+Generate a feature-level build plan. Each feature should be a meaningful, self-contained piece of functionality that produces visible, working behavior. Order them the way a pragmatic developer actually codes: get something working end-to-end first, then layer on more features. Do NOT start with type definitions, interfaces, or data models in isolation — those should emerge inline as part of building real functionality. The first feature should produce something the user can see or interact with, even if rough.
+
+Aim for 5-8 features.
 
 Return ONLY valid JSON (no markdown code blocks, no extra text):
 {
@@ -184,13 +186,13 @@ ipcMain.handle('free-code-expand-feature', async (_e, sessionId: string, feature
 
   const langHint = session.language ? `\nLanguage: ${session.language}` : ''
   const fwHint = session.framework ? `\nFramework: ${session.framework}` : ''
-  const prompt = `You are a senior software engineer. Break down this feature into unit-level implementation steps.
+  const prompt = `You are a senior software engineer. Break down this feature into implementation steps in the order you would actually write the code.
 
 Task: "${session.task}"${langHint}${fwHint}
 Feature: "${feature.title}"
 Why: ${feature.reasoning}
 
-Each step should be a single unit of work (one function, one interface, one test, one component, etc.). Be specific and granular.
+Each step should be a single unit of work (one function, one component, one handler, etc.). Lead with steps that produce working behavior — define types and interfaces inline as needed, not as separate upfront steps. A step like "Create Task interface" on its own is not useful; instead fold types into the step that first uses them (e.g. "Build the add-task form with Task type").
 
 Return ONLY valid JSON (no markdown code blocks, no extra text):
 {
@@ -260,7 +262,7 @@ Return ONLY valid JSON (no markdown code blocks, no extra text):
   return { code: parsed.code, decisionProcess: parsed.decisionProcess }
 })
 
-ipcMain.handle('free-code-check-progress', async (_e, sessionId: string, currentCode: string, filename: string) => {
+ipcMain.handle('free-code-check-progress', async (_e, sessionId: string, currentCode: string, filename: string, openFiles?: Array<{ filePath: string; fileName: string; language: string; code?: string }>) => {
   const session = await freeCodeSessionManager.getSession(sessionId)
   if (!session) return { completedIds: [] }
 
@@ -277,14 +279,27 @@ ipcMain.handle('free-code-check-progress', async (_e, sessionId: string, current
   }
   if (pending.length === 0) return { completedIds: [] }
 
+  // Build code context — include active file plus other open files up to a budget
+  const CODE_BUDGET = 12000
+  let codeContext = `Active file (${filename}):\n\`\`\`\n${currentCode}\n\`\`\``
+  let used = codeContext.length
+
+  if (openFiles && openFiles.length > 0) {
+    for (const f of openFiles) {
+      if (!f.code || f.fileName === filename) continue
+      const block = `\n\nFile (${f.filePath || f.fileName}):\n\`\`\`\n${f.code}\n\`\`\``
+      if (used + block.length > CODE_BUDGET) break
+      codeContext += block
+      used += block.length
+    }
+  }
+
   const list = pending.map(s => `- ${s.id}: ${s.title}`).join('\n')
   const prompt = `You are reviewing code to determine which implementation steps have been completed.
 
 Task: "${session.task}"
-Current file (${filename}):
-\`\`\`
-${currentCode.slice(0, 3000)}
-\`\`\`
+
+${codeContext}
 
 Pending steps:
 ${list}
@@ -306,7 +321,7 @@ Return ONLY valid JSON (no markdown code blocks, no extra text):
   }
 })
 
-ipcMain.handle('free-code-aside-answer', async (_e, sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string) => {
+ipcMain.handle('free-code-aside-answer', async (_e, sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string, openFiles?: Array<{ filePath: string; fileName: string; language: string; code?: string }>) => {
   const session = await freeCodeSessionManager.getSession(sessionId)
   if (!session) throw new Error('Session not found')
 
@@ -319,7 +334,21 @@ ipcMain.handle('free-code-aside-answer', async (_e, sessionId: string, question:
 An interviewer has just asked a question. Answer it concisely and helpfully, tailored to the build context.`
 
   if (currentCode) {
-    prompt += `\n\nCurrent code in ${filename || 'editor'}:\n\`\`\`\n${currentCode.slice(0, 2000)}\n\`\`\``
+    const CODE_BUDGET = 8000
+    let codeContext = `\n\nCurrent code in ${filename || 'editor'}:\n\`\`\`\n${currentCode}\n\`\`\``
+    let used = codeContext.length
+
+    if (openFiles && openFiles.length > 0) {
+      for (const f of openFiles) {
+        if (!f.code || f.fileName === filename) continue
+        const block = `\n\nFile (${f.filePath || f.fileName}):\n\`\`\`\n${f.code}\n\`\`\``
+        if (used + block.length > CODE_BUDGET) break
+        codeContext += block
+        used += block.length
+      }
+    }
+
+    prompt += codeContext
   }
 
   prompt += `\n\nInterviewer's question: "${question}"\n\nReturn ONLY valid JSON (no markdown code blocks, no extra text):\n{\n  "answer": "your clear, concise answer"\n}`

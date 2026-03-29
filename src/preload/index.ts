@@ -278,10 +278,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('free-code-expand-feature', sessionId, featureId),
   freeCodeExpandSubStep: (sessionId: string, featureId: string, subStepId: string) =>
     ipcRenderer.invoke('free-code-expand-substep', sessionId, featureId, subStepId),
-  freeCodeCheckProgress: (sessionId: string, currentCode: string, filename: string) =>
-    ipcRenderer.invoke('free-code-check-progress', sessionId, currentCode, filename),
-  freeCodeAsideAnswer: (sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string) =>
-    ipcRenderer.invoke('free-code-aside-answer', sessionId, question, currentCode, filename, activeFeatureTitle),
+  freeCodeCheckProgress: (sessionId: string, currentCode: string, filename: string, openFiles?: Array<{ filePath: string; fileName: string; language: string; code?: string }>) =>
+    ipcRenderer.invoke('free-code-check-progress', sessionId, currentCode, filename, openFiles),
+  freeCodeAsideAnswer: (sessionId: string, question: string, currentCode?: string, filename?: string, activeFeatureTitle?: string, openFiles?: Array<{ filePath: string; fileName: string; language: string; code?: string }>) =>
+    ipcRenderer.invoke('free-code-aside-answer', sessionId, question, currentCode, filename, activeFeatureTitle, openFiles),
   freeCodeListSessions: (): Promise<FreeCodeSessionData[]> =>
     ipcRenderer.invoke('free-code-list-sessions'),
   freeCodeGetSession: (sessionId: string): Promise<FreeCodeSessionData | null> =>

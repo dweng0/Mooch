@@ -19,6 +19,14 @@ const PROVIDER_TYPES: Record<string, string> = {
 /** The type of client that has connected to the bridge. */
 export type BridgeClientType = 'chrome-extension' | 'vscode-extension' | 'unknown'
 
+/** A file entry from the VS Code workspace for multi-file context. */
+export interface OpenFileEntry {
+  filePath: string
+  fileName: string
+  language: string
+  code?: string
+}
+
 /** Tracks the connection state and current context of the browser extension. */
 export interface ExtensionState {
   connected: boolean
@@ -28,6 +36,9 @@ export interface ExtensionState {
   pageTitle?: string
   language?: string | null
   manualContext?: string
+  filePath?: string
+  fileTree?: string[]
+  openFiles?: OpenFileEntry[]
 }
 
 /** A generated hint entry with the AI answer and explanation for a coding problem. */
@@ -291,13 +302,16 @@ export class LocalBridgeApi {
   }
 
   private handleSync(res: http.ServerResponse, body: any): void {
-    const { code, pageTitle, language, manualContext } = body || {}
+    const { code, pageTitle, language, manualContext, filePath, fileTree, openFiles } = body || {}
     this.extensionState = {
       ...this.extensionState,
       code: code ?? this.extensionState.code,
       pageTitle: pageTitle ?? this.extensionState.pageTitle,
       language: language ?? this.extensionState.language,
       manualContext: manualContext ?? this.extensionState.manualContext,
+      filePath: filePath ?? this.extensionState.filePath,
+      fileTree: Array.isArray(fileTree) ? fileTree : this.extensionState.fileTree,
+      openFiles: Array.isArray(openFiles) ? openFiles : this.extensionState.openFiles,
     }
     this.onExtensionUpdate?.(this.extensionState)
     this.json(res, 200, { ok: true })

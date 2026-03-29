@@ -39,7 +39,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
 
   // VS Code connection
   const [vsCodeConnected, setVsCodeConnected] = useState(false)
-  const [vsCodeState, setVsCodeState] = useState<{ code?: string; pageTitle?: string; language?: string | null }>({})
+  const [vsCodeState, setVsCodeState] = useState<{ code?: string; pageTitle?: string; language?: string | null; openFiles?: Array<{ filePath: string; fileName: string; language: string; code?: string }> }>({})
 
   // Audio (ASIDE)
   const [recordStatus, setRecordStatus] = useState<RecordStatus>('idle')
@@ -105,7 +105,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
     const unsub = window.electronAPI.onBridgeExtensionUpdate((state: any) => {
       if (state.clientType !== 'vscode-extension') return
       setVsCodeConnected(true)
-      setVsCodeState({ code: state.code, pageTitle: state.pageTitle, language: state.language })
+      setVsCodeState({ code: state.code, pageTitle: state.pageTitle, language: state.language, openFiles: state.openFiles })
 
       if (state.code && state.code !== prevCodeRef.current && sessionRef.current) {
         prevCodeRef.current = state.code
@@ -130,7 +130,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
     const sess = sessionRef.current
     if (!sess) return
     try {
-      const { completedIds } = await window.electronAPI.freeCodeCheckProgress(sess.sessionId, code, filename)
+      const { completedIds } = await window.electronAPI.freeCodeCheckProgress(sess.sessionId, code, filename, vsCodeStateRef.current.openFiles)
       if (completedIds.length === 0) return
 
       setFeatures(prev => applyCompletedIds(prev, completedIds))
@@ -275,6 +275,28 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
     }
   }
 
+  // ── Manual step toggle ─────────────────────────────────────────────────────
+
+  const handleManualToggleStep = (featureId: string, subStepId: string) => {
+    const toggle = (feats: FreeCodeFeature[]): FreeCodeFeature[] =>
+      feats.map(f => {
+        if (f.id !== featureId || !f.subSteps) return f
+        const updatedSubs = f.subSteps.map(s =>
+          s.id === subStepId ? { ...s, status: (s.status === 'done' ? 'todo' : 'done') as const } : s
+        )
+        const allDone = updatedSubs.length > 0 && updatedSubs.every(s => s.status === 'done')
+        return { ...f, subSteps: updatedSubs, status: allDone ? 'done' as const : 'todo' as const }
+      })
+
+    setFeatures(toggle)
+    setSession(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, features: toggle(prev.features) }
+      window.electronAPI.freeCodeSaveSession(updated).catch(() => {})
+      return updated
+    })
+  }
+
   // ── Audio (ASIDE) ──────────────────────────────────────────────────────────
 
   const addAsideEntry = useCallback((entry: FreeCodeAsideEntry) => {
@@ -311,7 +333,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
 
       const vsCode = vsCodeStateRef.current
       const entry = await window.electronAPI.freeCodeAsideAnswer(
-        sess.sessionId, question, vsCode.code, vsCode.pageTitle, getActiveFeatureTitle()
+        sess.sessionId, question, vsCode.code, vsCode.pageTitle, getActiveFeatureTitle(), vsCode.openFiles
       )
       addAsideEntry(entry)
       setRecordStatus('idle')
@@ -334,7 +356,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
         try {
           const vsCode = vsCodeStateRef.current
           const entry = await window.electronAPI.freeCodeAsideAnswer(
-            sess.sessionId, text, vsCode.code, vsCode.pageTitle, getActiveFeatureTitle()
+            sess.sessionId, text, vsCode.code, vsCode.pageTitle, getActiveFeatureTitle(), vsCode.openFiles
           )
           addAsideEntry(entry)
         } catch (err) {
@@ -370,9 +392,9 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
               className="p-1 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
               title="Back"
             >
-              <ArrowLeft size={14} />
+              <ArrowLeft size={16} />
             </button>
-            <span className="text-xs font-semibold text-gray-700">Code Interview — Free Code</span>
+            <span className="text-sm font-semibold text-gray-700">Code Interview — Free Code</span>
             <VsCodeDot connected={vsCodeConnected} />
           </div>
           {view === 'active' && (
@@ -398,62 +420,62 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
         {/* ── Select / Setup view ── */}
         {(view === 'select' || view === 'generating') && (
           <div className="px-4 py-4 space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
-              <div className="flex flex-col items-center mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+              <div className="flex flex-col items-center mb-5">
                 <video src={codeIcon} autoPlay muted playsInline className="h-24 w-24" />
-                <h2 className="text-lg font-semibold text-gray-800 mt-2">Free Code Interview</h2>
-                <p className="text-xs text-gray-500 text-center mt-1">Describe what you need to build and Mooch will generate a step-by-step plan</p>
+                <h2 className="text-xl font-bold text-gray-800 mt-2">Free Code Interview</h2>
+                <p className="text-sm text-gray-500 text-center mt-1">Describe what you need to build and Mooch will generate a step-by-step plan</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Task *</label>
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">Task *</label>
                   <textarea
                     value={task}
                     onChange={e => setTask(e.target.value)}
                     placeholder="e.g. Build a todo list app from scratch"
                     disabled={view === 'generating'}
-                    className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none min-h-[64px] placeholder-gray-400 disabled:opacity-50"
+                    className="w-full text-base text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none min-h-[80px] placeholder-gray-400 disabled:opacity-50"
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Language <span className="text-gray-400">(optional)</span></label>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">Language <span className="text-gray-400">(optional)</span></label>
                     <input
                       value={language}
                       onChange={e => setLanguage(e.target.value)}
                       placeholder="e.g. TypeScript"
                       disabled={view === 'generating'}
-                      className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400 disabled:opacity-50"
+                      className="w-full text-base text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400 disabled:opacity-50"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Framework <span className="text-gray-400">(optional)</span></label>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">Framework <span className="text-gray-400">(optional)</span></label>
                     <input
                       value={framework}
                       onChange={e => setFramework(e.target.value)}
                       placeholder="e.g. React"
                       disabled={view === 'generating'}
-                      className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400 disabled:opacity-50"
+                      className="w-full text-base text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400 disabled:opacity-50"
                     />
                   </div>
                 </div>
 
-                {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
                 <button
                   onClick={handleGeneratePlan}
                   disabled={!task.trim() || view === 'generating'}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-base font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   {view === 'generating' ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin" />
                       Generating plan...
                     </>
                   ) : (
                     <>
-                      <Code2 size={14} />
+                      <Code2 size={16} />
                       Generate Plan
                     </>
                   )}
@@ -473,8 +495,8 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{s.task}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-base font-medium text-gray-800 truncate">{s.task}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
                           {s.language ? `${s.language}${s.framework ? ` · ${s.framework}` : ''} · ` : ''}
                           {s.features.length} features · {new Date(s.createdAt).toLocaleDateString()}
                         </p>
@@ -484,7 +506,7 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
                         className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                         title="Delete session"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </button>
@@ -498,25 +520,62 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
         {view === 'active' && session && (
           <div className="pb-4">
             {/* Session header */}
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-800 truncate">{session.task}</p>
-                {(session.language || session.framework) && (
-                  <p className="text-[10px] text-gray-400">
-                    {[session.language, session.framework].filter(Boolean).join(' · ')}
-                  </p>
-                )}
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <p className="text-base font-bold text-gray-800 truncate">{session.task}</p>
+                  {(session.language || session.framework) && (
+                    <p className="text-xs text-gray-400">
+                      {[session.language, session.framework].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setSession(null); setView('select') }}
+                  className="flex-shrink-0 text-xs text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition-colors"
+                >
+                  New Session
+                </button>
               </div>
-              <button
-                onClick={() => { setSession(null); setView('select') }}
-                className="flex-shrink-0 text-[10px] text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition-colors"
-              >
-                New Session
-              </button>
+
+              {/* Progress bar */}
+              <ProgressBar features={features} />
             </div>
 
             {qaError && (
-              <div className="mx-4 mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{qaError}</div>
+              <div className="mx-4 mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{qaError}</div>
+            )}
+
+            {/* ASIDE section — pinned at top for visibility during interview */}
+            {asideHistory.length > 0 && (
+              <div className="px-4 pt-3">
+                <button
+                  onClick={() => setAsideExpanded(p => !p)}
+                  className="flex items-center gap-2 w-full text-left mb-2"
+                >
+                  <div className="flex-1 border-t border-indigo-200" />
+                  <span className="flex items-center gap-1 text-xs font-semibold text-indigo-500 uppercase tracking-wider">
+                    <MessageSquare size={12} />
+                    ASIDE ({asideHistory.length})
+                  </span>
+                  <div className="flex-1 border-t border-indigo-200" />
+                  {asideExpanded ? <ChevronDown size={12} className="text-indigo-400" /> : <ChevronRight size={12} className="text-indigo-400" />}
+                </button>
+
+                {asideExpanded && (
+                  <div className="space-y-2 mb-3">
+                    {asideHistory.map(entry => (
+                      <div key={entry.id} className="bg-indigo-50/50 rounded-xl border border-indigo-100 px-4 py-3">
+                        {entry.activeFeatureTitle && (
+                          <p className="text-xs text-indigo-400 mb-1">During: {entry.activeFeatureTitle}</p>
+                        )}
+                        <p className="text-sm font-medium text-indigo-800 mb-2 italic">&ldquo;{entry.question}&rdquo;</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{entry.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Features */}
@@ -529,44 +588,13 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
                   isExpanded={expandedFeatures.has(feature.id)}
                   isLoading={loadingFeature === feature.id}
                   onToggle={() => handleToggleFeature(feature.id)}
+                  onManualToggleStep={handleManualToggleStep}
                   expandedSubSteps={expandedSubSteps}
                   loadingSubStep={loadingSubStep}
                   onToggleSubStep={handleToggleSubStep}
                 />
               ))}
             </div>
-
-            {/* ASIDE section */}
-            {asideHistory.length > 0 && (
-              <div className="px-4 mt-4">
-                <button
-                  onClick={() => setAsideExpanded(p => !p)}
-                  className="flex items-center gap-2 w-full text-left mb-2"
-                >
-                  <div className="flex-1 border-t border-indigo-200" />
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">
-                    <MessageSquare size={10} />
-                    ASIDE ({asideHistory.length})
-                  </span>
-                  <div className="flex-1 border-t border-indigo-200" />
-                  {asideExpanded ? <ChevronDown size={10} className="text-indigo-400" /> : <ChevronRight size={10} className="text-indigo-400" />}
-                </button>
-
-                {asideExpanded && (
-                  <div className="space-y-2">
-                    {asideHistory.map(entry => (
-                      <div key={entry.id} className="bg-indigo-50/50 rounded-xl border border-indigo-100 px-3 py-3">
-                        {entry.activeFeatureTitle && (
-                          <p className="text-[10px] text-indigo-400 mb-1">During: {entry.activeFeatureTitle}</p>
-                        )}
-                        <p className="text-xs font-medium text-indigo-800 mb-2 italic">"{entry.question}"</p>
-                        <p className="text-xs text-gray-700 leading-relaxed">{entry.answer}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -578,21 +606,40 @@ export default function FreeCodeInterviewScreen({ onBack }: Props) {
 
 function VsCodeDot({ connected }: { connected: boolean }) {
   return (
-    <span className="flex items-center gap-1 text-[10px] text-gray-400">
-      <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+    <span className="flex items-center gap-1 text-xs text-gray-400">
+      <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
       {connected ? 'VS Code' : 'No VS Code'}
     </span>
   )
 }
 
-function StatusIcon({ status }: { status: 'todo' | 'in-progress' | 'done' }) {
-  if (status === 'done') return <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
-  if (status === 'in-progress') return <Circle size={14} className="text-blue-500 flex-shrink-0 animate-pulse" />
-  return <Circle size={14} className="text-gray-300 flex-shrink-0" />
+function ProgressBar({ features }: { features: FreeCodeFeature[] }) {
+  const total = features.length
+  if (total === 0) return null
+  const done = features.filter(f => f.status === 'done').length
+  const pct = Math.round((done / total) * 100)
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-xs font-medium text-gray-500 flex-shrink-0">{done}/{total}</span>
+    </div>
+  )
+}
+
+function StatusIcon({ status, size = 16 }: { status: 'todo' | 'in-progress' | 'done'; size?: number }) {
+  if (status === 'done') return <CheckCircle2 size={size} className="text-emerald-500 flex-shrink-0" />
+  if (status === 'in-progress') return <Circle size={size} className="text-blue-500 flex-shrink-0 animate-pulse" />
+  return <Circle size={size} className="text-gray-300 flex-shrink-0" />
 }
 
 function FeatureCard({
-  feature, index, isExpanded, isLoading, onToggle,
+  feature, index, isExpanded, isLoading, onToggle, onManualToggleStep,
   expandedSubSteps, loadingSubStep, onToggleSubStep,
 }: {
   feature: FreeCodeFeature
@@ -600,6 +647,7 @@ function FeatureCard({
   isExpanded: boolean
   isLoading: boolean
   onToggle: () => void
+  onManualToggleStep: (featureId: string, subStepId: string) => void
   expandedSubSteps: Set<string>
   loadingSubStep: string | null
   onToggleSubStep: (featureId: string, subStepId: string) => void
@@ -612,28 +660,28 @@ function FeatureCard({
     }`}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-3 text-left"
+        className="w-full flex items-center gap-2.5 px-4 py-3.5 text-left"
       >
-        <StatusIcon status={feature.status} />
-        <span className="text-[10px] font-bold text-gray-400 flex-shrink-0">F{index + 1}</span>
-        <span className="text-sm font-medium text-gray-800 flex-1 min-w-0">{feature.title}</span>
+        <StatusIcon status={feature.status} size={18} />
+        <span className="text-xs font-bold text-gray-400 flex-shrink-0">F{index + 1}</span>
+        <span className="text-base font-medium text-gray-800 flex-1 min-w-0">{feature.title}</span>
         {isLoading ? (
-          <Loader2 size={13} className="text-blue-400 animate-spin flex-shrink-0" />
+          <Loader2 size={15} className="text-blue-400 animate-spin flex-shrink-0" />
         ) : isExpanded ? (
-          <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+          <ChevronDown size={15} className="text-gray-400 flex-shrink-0" />
         ) : (
-          <ChevronRight size={13} className="text-gray-400 flex-shrink-0" />
+          <ChevronRight size={15} className="text-gray-400 flex-shrink-0" />
         )}
       </button>
 
       {isExpanded && (
-        <div className="px-3 pb-3 space-y-2">
-          <p className="text-xs text-gray-500 italic border-l-2 border-blue-200 pl-2 ml-6">{feature.reasoning}</p>
+        <div className="px-4 pb-3 space-y-2">
+          <p className="text-sm text-gray-500 italic border-l-2 border-blue-200 pl-3 ml-6">{feature.reasoning}</p>
 
           {isLoading && (
             <div className="flex items-center gap-2 pl-6 py-2">
-              <Loader2 size={12} className="text-blue-400 animate-spin" />
-              <span className="text-xs text-gray-400">Loading implementation steps...</span>
+              <Loader2 size={14} className="text-blue-400 animate-spin" />
+              <span className="text-sm text-gray-400">Loading implementation steps...</span>
             </div>
           )}
 
@@ -646,6 +694,7 @@ function FeatureCard({
               isExpanded={expandedSubSteps.has(`${feature.id}:${sub.id}`)}
               isLoading={loadingSubStep === sub.id}
               onToggle={() => onToggleSubStep(feature.id, sub.id)}
+              onManualToggle={() => onManualToggleStep(feature.id, sub.id)}
             />
           ))}
         </div>
@@ -655,7 +704,7 @@ function FeatureCard({
 }
 
 function SubStepCard({
-  subStep, index, featureId, isExpanded, isLoading, onToggle,
+  subStep, index, featureId, isExpanded, isLoading, onToggle, onManualToggle,
 }: {
   subStep: FreeCodeSubStep
   index: number
@@ -663,63 +712,73 @@ function SubStepCard({
   isExpanded: boolean
   isLoading: boolean
   onToggle: () => void
+  onManualToggle: () => void
 }) {
   return (
-    <div className={`ml-4 rounded-lg border transition-colors ${
+    <div className={`ml-5 rounded-lg border transition-colors ${
       subStep.status === 'done' ? 'border-emerald-200 bg-emerald-50/40'
       : isExpanded ? 'border-blue-200 bg-blue-50/30'
       : 'border-gray-100 bg-gray-50/50'
     }`}>
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
-      >
-        <StatusIcon status={subStep.status} />
-        <span className="text-[10px] text-gray-400 flex-shrink-0">{index + 1}.</span>
-        <span className="text-xs font-medium text-gray-700 flex-1 min-w-0">{subStep.title}</span>
-        {isLoading ? (
-          <Loader2 size={11} className="text-blue-400 animate-spin flex-shrink-0" />
-        ) : isExpanded ? (
-          <ChevronDown size={11} className="text-gray-400 flex-shrink-0" />
-        ) : (
-          <ChevronRight size={11} className="text-gray-400 flex-shrink-0" />
-        )}
-      </button>
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        {/* Clickable status icon for manual toggle */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onManualToggle() }}
+          className="cursor-pointer hover:scale-110 transition-transform"
+          title={subStep.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
+        >
+          <StatusIcon status={subStep.status} />
+        </button>
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-2 text-left min-w-0"
+        >
+          <span className="text-xs text-gray-400 flex-shrink-0">{index + 1}.</span>
+          <span className="text-sm font-medium text-gray-700 flex-1 min-w-0">{subStep.title}</span>
+          {isLoading ? (
+            <Loader2 size={13} className="text-blue-400 animate-spin flex-shrink-0" />
+          ) : isExpanded ? (
+            <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+          ) : (
+            <ChevronRight size={13} className="text-gray-400 flex-shrink-0" />
+          )}
+        </button>
+      </div>
 
       {isExpanded && (
-        <div className="px-3 pb-3 space-y-2 border-t border-gray-100 pt-2">
-          <p className="text-[11px] text-gray-500 italic">{subStep.reasoning}</p>
+        <div className="px-3 pb-3 space-y-2.5 border-t border-gray-100 pt-2">
+          <p className="text-sm text-gray-500 italic">{subStep.reasoning}</p>
 
           {isLoading && (
             <div className="flex items-center gap-2 py-1">
-              <Loader2 size={11} className="text-blue-400 animate-spin" />
-              <span className="text-[11px] text-gray-400">Loading code & rationale...</span>
+              <Loader2 size={13} className="text-blue-400 animate-spin" />
+              <span className="text-sm text-gray-400">Loading code & rationale...</span>
             </div>
           )}
 
           {!isLoading && subStep.code && (
             <>
-              <div className="rounded-md border border-emerald-200 overflow-hidden">
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border-b border-emerald-200">
-                  <Code2 size={10} className="text-emerald-600" />
-                  <span className="text-[10px] font-semibold text-emerald-700 uppercase">Code</span>
+              <div className="rounded-lg border border-emerald-200 overflow-hidden">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border-b border-emerald-200">
+                  <Code2 size={12} className="text-emerald-600" />
+                  <span className="text-xs font-semibold text-emerald-700 uppercase">Code</span>
                 </div>
-                <pre className="p-2.5 text-[11px] text-gray-800 bg-white overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{subStep.code}</pre>
+                <pre className="p-3 text-sm text-gray-800 bg-white overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{subStep.code}</pre>
               </div>
 
               {subStep.decisionProcess && (
-                <div className="rounded-md border border-amber-200 overflow-hidden">
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border-b border-amber-200">
-                    <span className="text-[10px] font-semibold text-amber-700 uppercase">Decision Process</span>
+                <div className="rounded-lg border border-amber-200 overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border-b border-amber-200">
+                    <span className="text-xs font-semibold text-amber-700 uppercase">Decision Process</span>
                   </div>
-                  <div className="p-2.5 text-[11px] text-gray-700 bg-amber-50/20 leading-relaxed whitespace-pre-wrap">{subStep.decisionProcess}</div>
+                  <div className="p-3 text-sm text-gray-700 bg-amber-50/20 leading-relaxed whitespace-pre-wrap">{subStep.decisionProcess}</div>
                 </div>
               )}
             </>
           )}
 
           {!isLoading && !subStep.code && (
-            <p className="text-[11px] text-gray-400 italic">Click to load code and decision process</p>
+            <p className="text-sm text-gray-400 italic">Click to load code and decision process</p>
           )}
         </div>
       )}
@@ -744,68 +803,76 @@ function AudioButtons({
   const activeRecording = recordStatus === 'recording'
   const passiveOff = passiveStatus === 'off'
 
-  const base = 'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[52px]'
+  const base = 'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[48px]'
   const idle = 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200'
   const active = 'bg-gray-300 hover:bg-gray-400 text-gray-900 shadow border border-gray-400'
   const iconBox = 'flex items-center justify-center h-7 w-7 rounded-md bg-white'
 
   return (
     <>
-      <button
-        onClick={() => passiveOff || passiveSource !== 'system' ? onPassiveStart('system') : onPassiveStop()}
-        disabled={busy || activeRecording || (!passiveOff && passiveSource !== 'system')}
-        className={`${base} ${passiveStatus !== 'off' && passiveSource === 'system' ? active : idle}`}
-        title="Passively listen to system audio (ASIDE)"
-      >
-        <span className={iconBox}><Headphones size={16} className="text-gray-800" /></span>
-        <span className="text-[10px] leading-tight">
-          {passiveStatus === 'listening' && passiveSource === 'system' ? 'Listening…'
-            : passiveStatus === 'processing' && passiveSource === 'system' ? 'Processing…'
-            : 'Passive Sys'}
-        </span>
-      </button>
+      {/* Passive group */}
+      <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-1 py-0.5 bg-gray-50">
+        <span className="text-[9px] font-semibold text-gray-400 uppercase px-1">Auto</span>
+        <button
+          onClick={() => passiveOff || passiveSource !== 'system' ? onPassiveStart('system') : onPassiveStop()}
+          disabled={busy || activeRecording || (!passiveOff && passiveSource !== 'system')}
+          className={`${base} ${passiveStatus !== 'off' && passiveSource === 'system' ? active : idle}`}
+          title="Auto-listen to system audio"
+        >
+          <span className={iconBox}><Headphones size={16} className="text-gray-800" /></span>
+          <span className="text-[10px] leading-tight">
+            {passiveStatus === 'listening' && passiveSource === 'system' ? 'On'
+              : passiveStatus === 'processing' && passiveSource === 'system' ? '...'
+              : 'Sys'}
+          </span>
+        </button>
 
-      <button
-        onClick={() => passiveOff || passiveSource !== 'microphone' ? onPassiveStart('microphone') : onPassiveStop()}
-        disabled={busy || activeRecording || (!passiveOff && passiveSource !== 'microphone')}
-        className={`${base} ${passiveStatus !== 'off' && passiveSource === 'microphone' ? active : idle}`}
-        title="Passively listen to microphone (ASIDE)"
-      >
-        <span className={iconBox}><Mic size={16} className="text-gray-800" /></span>
-        <span className="text-[10px] leading-tight">
-          {passiveStatus === 'listening' && passiveSource === 'microphone' ? 'Listening…'
-            : passiveStatus === 'processing' && passiveSource === 'microphone' ? 'Processing…'
-            : 'Passive Mic'}
-        </span>
-      </button>
+        <button
+          onClick={() => passiveOff || passiveSource !== 'microphone' ? onPassiveStart('microphone') : onPassiveStop()}
+          disabled={busy || activeRecording || (!passiveOff && passiveSource !== 'microphone')}
+          className={`${base} ${passiveStatus !== 'off' && passiveSource === 'microphone' ? active : idle}`}
+          title="Auto-listen to microphone"
+        >
+          <span className={iconBox}><Mic size={16} className="text-gray-800" /></span>
+          <span className="text-[10px] leading-tight">
+            {passiveStatus === 'listening' && passiveSource === 'microphone' ? 'On'
+              : passiveStatus === 'processing' && passiveSource === 'microphone' ? '...'
+              : 'Mic'}
+          </span>
+        </button>
+      </div>
 
-      <button
-        onClick={() => activeRecording && audioSource === 'microphone' ? onStop() : onStart('microphone')}
-        disabled={busy || !passiveOff || (activeRecording && audioSource !== 'microphone')}
-        className={`${base} ${activeRecording && audioSource === 'microphone' ? active : idle}`}
-        title="Record microphone (ASIDE)"
-      >
-        <span className={iconBox}><Mic size={16} className="text-gray-800" /></span>
-        <span className="text-[10px] leading-tight">
-          {busy && audioSource === 'microphone' ? (recordStatus === 'transcribing' ? 'Transcribing…' : 'Thinking…')
-            : activeRecording && audioSource === 'microphone' ? 'Stop'
-            : 'Mic'}
-        </span>
-      </button>
+      {/* Manual group */}
+      <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-1 py-0.5 bg-gray-50">
+        <span className="text-[9px] font-semibold text-gray-400 uppercase px-1">Ask</span>
+        <button
+          onClick={() => activeRecording && audioSource === 'microphone' ? onStop() : onStart('microphone')}
+          disabled={busy || !passiveOff || (activeRecording && audioSource !== 'microphone')}
+          className={`${base} ${activeRecording && audioSource === 'microphone' ? active : idle}`}
+          title="Record microphone question"
+        >
+          <span className={iconBox}><Mic size={16} className="text-gray-800" /></span>
+          <span className="text-[10px] leading-tight">
+            {busy && audioSource === 'microphone' ? (recordStatus === 'transcribing' ? 'Transcribing…' : 'Thinking…')
+              : activeRecording && audioSource === 'microphone' ? 'Stop'
+              : 'Mic'}
+          </span>
+        </button>
 
-      <button
-        onClick={() => activeRecording && audioSource === 'system' ? onStop() : onStart('system')}
-        disabled={busy || !passiveOff || (activeRecording && audioSource !== 'system')}
-        className={`${base} ${activeRecording && audioSource === 'system' ? active : idle}`}
-        title="Record system audio (ASIDE)"
-      >
-        <span className={iconBox}><Headphones size={16} className="text-gray-800" /></span>
-        <span className="text-[10px] leading-tight">
-          {busy && audioSource === 'system' ? (recordStatus === 'transcribing' ? 'Transcribing…' : 'Thinking…')
-            : activeRecording && audioSource === 'system' ? 'Stop'
-            : 'System'}
-        </span>
-      </button>
+        <button
+          onClick={() => activeRecording && audioSource === 'system' ? onStop() : onStart('system')}
+          disabled={busy || !passiveOff || (activeRecording && audioSource !== 'system')}
+          className={`${base} ${activeRecording && audioSource === 'system' ? active : idle}`}
+          title="Record system audio question"
+        >
+          <span className={iconBox}><Headphones size={16} className="text-gray-800" /></span>
+          <span className="text-[10px] leading-tight">
+            {busy && audioSource === 'system' ? (recordStatus === 'transcribing' ? 'Transcribing…' : 'Thinking…')
+              : activeRecording && audioSource === 'system' ? 'Stop'
+              : 'Sys'}
+          </span>
+        </button>
+      </div>
     </>
   )
 }
