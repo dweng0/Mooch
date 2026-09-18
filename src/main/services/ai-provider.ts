@@ -1,6 +1,7 @@
 import type { AIProvider, UserContext } from '../../shared/types'
 import { loadApiKeys } from './api-keys'
 import { getClaudeAnswer } from './claude'
+import { hasClaudeCodeToken } from './claude-cli'
 import { getGeminiAnswer } from './gemini'
 import { getQwenAnswer } from './qwen'
 import { getCustomAnswer } from './openai-compat'
@@ -12,7 +13,7 @@ import { getCustomAnswer } from './openai-compat'
 export function getAvailableProviders(): AIProvider[] {
   const keys = loadApiKeys()
   const providers: AIProvider[] = []
-  if (keys.anthropicApiKey) providers.push('claude')
+  if (keys.anthropicApiKey || hasClaudeCodeToken()) providers.push('claude')
   if (keys.geminiApiKey) providers.push('gemini')
   if (keys.openaiApiKey) providers.push('openai')
   if (keys.qwenApiKey) providers.push('qwen')

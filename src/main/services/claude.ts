@@ -2,6 +2,11 @@ import Anthropic from '@anthropic-ai/sdk'
 import { buildSystemPrompt } from '../../../config/systemPrompt'
 import type { UserContext } from '../../shared/types'
 import { loadApiKeys } from './api-keys'
+import { runClaudeCli, hasClaudeCodeToken } from './claude-cli'
+import { writeFileSync, unlinkSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { randomUUID } from 'crypto'
 
 /**
  * Generates an interview answer using the Anthropic Claude API.
@@ -11,6 +16,12 @@ import { loadApiKeys } from './api-keys'
  */
 export async function getClaudeAnswer(question: string, context: UserContext): Promise<string> {
   const apiKey = loadApiKeys().anthropicApiKey
+  if (!apiKey && hasClaudeCodeToken()) {
+    return runClaudeCli(
+      `Interview question: "${question}"\n\nProvide a concise, impressive answer.`,
+      { system: buildSystemPrompt(context) }
+    )
+  }
   if (!apiKey) {
     throw new Error('Anthropic API key is not configured. Add it in Settings.')
   }
@@ -61,6 +72,20 @@ export async function getClaudeAnswer(question: string, context: UserContext): P
  */
 export async function analyzeCodeSnapshot(imageBase64: string, context?: string): Promise<string> {
   const apiKey = loadApiKeys().anthropicApiKey
+  if (!apiKey && hasClaudeCodeToken()) {
+    const imagePath = join(tmpdir(), `mooch-snapshot-${randomUUID()}.png`)
+    writeFileSync(imagePath, Buffer.from(imageBase64, 'base64'))
+    try {
+      return await runClaudeCli(
+        `Read the code screenshot at ${imagePath}. ` +
+          (context ? `Context: ${context}\n\n` : '') +
+          'Provide a concise explanation of what you see.',
+        { tools: ['Read'] }
+      )
+    } finally {
+      try { unlinkSync(imagePath) } catch { /* best-effort */ }
+    }
+  }
   if (!apiKey) {
     throw new Error('Anthropic API key is not configured. Add it in Settings.')
   }

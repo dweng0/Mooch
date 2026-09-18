@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, session, shell, screen } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'

@@ -1,0 +1,14 @@
+# Local OpenAI-compatible STT + TTS (CPU). Start: docker compose up -d
+# STT: POST http://localhost:8000/v1/audio/transcriptions
+# TTS: POST http://localhost:8000/v1/audio/speech
+services:
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: mooch-speech
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - hf-cache:/home/ubuntu/.cache/huggingface/hub
+volumes:
+  hf-cache:
