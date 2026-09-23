@@ -35,6 +35,19 @@ type AppView = 'select' | 'settings' | 'code-select' | 'code-vscode' | 'code-fre
 type CodeSnapshotState = 'idle' | 'selecting-window' | 'awaiting-voice' | 'analyzing'
 
 /** Root application component that manages auth state, recording, transcription, and screen routing. */
+/**
+ * Picks the provider marked preferred in Settings (stored as 'byok_provider'),
+ * falling back to the first available one.
+ * @param available - Providers that are currently configured.
+ * @returns The provider to select.
+ */
+function pickPreferredProvider(available: AIProvider[]): AIProvider {
+  let stored: string | null = null
+  try { stored = localStorage.getItem('byok_provider') } catch { /* storage unavailable */ }
+  const preferred = (stored === 'anthropic' ? 'claude' : stored) as AIProvider | null
+  return preferred && available.includes(preferred) ? preferred : available[0]
+}
+
 export default function App() {
 
   // ── Auth state ─────────────────────────────────────────────────────────────
@@ -67,19 +80,7 @@ export default function App() {
 
     if (derived.length > 0) {
       setProviders(derived)
-      // Honour stored provider preference (set by SubscribeScreen)
-      const storedByok = localStorage.getItem('byok_provider')
-      const preferredProvider: AIProvider | null =
-        storedByok === 'anthropic' ? 'claude' :
-        storedByok === 'gemini' ? 'gemini' :
-        storedByok === 'openai' ? 'openai' :
-        storedByok === 'qwen' ? 'qwen' :
-        storedByok === 'custom' ? 'custom' :
-        null
-      const preferred = preferredProvider && derived.includes(preferredProvider)
-        ? preferredProvider
-        : derived[0]
-      setSelectedProvider(preferred)
+      setSelectedProvider(pickPreferredProvider(derived))
     }
 
     return derived
@@ -102,8 +103,7 @@ export default function App() {
         await loadApiKeyState()
         setAuthState('active')
         setProviders(status.availableProviders ?? [])
-        const first = status.availableProviders?.[0]
-        if (first) setSelectedProvider(first)
+        if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders))
         setTranscriptionsUsed(status.transcriptionsUsed ?? 0)
         setTranscriptionLimit(status.transcriptionLimit ?? null)
         setSnapshotsUsed(status.snapshotsUsed ?? 0)
@@ -127,8 +127,7 @@ export default function App() {
         if (status.isActive) {
           setAuthState('active')
           setProviders(status.availableProviders ?? [])
-          const first = status.availableProviders?.[0]
-          if (first) setSelectedProvider(first)
+          if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders))
           setTranscriptionsUsed(status.transcriptionsUsed ?? 0)
           setTranscriptionLimit(status.transcriptionLimit ?? null)
           setSnapshotsUsed(status.snapshotsUsed ?? 0)
@@ -146,6 +145,15 @@ export default function App() {
     }
   }, [])
 
+  // No login required: treat logged-out as BYOK. Load keys (and the preferred
+  // provider) once; later focus/visibility checks must not reset the selection.
+  const byokKeysLoadedRef = useRef(false)
+  useEffect(() => {
+    if (authState !== 'logged-out') return
+    const load = byokKeysLoadedRef.current ? Promise.resolve() : loadApiKeyState().then(() => { byokKeysLoadedRef.current = true })
+    load.catch(() => {}).finally(() => setAuthState('no-subscription'))
+  }, [authState])
+
   // Check auth status periodically (every 10 seconds) to detect OAuth login completion
   useEffect(() => {
     if (authState === 'logged-out') {
@@ -157,8 +165,7 @@ export default function App() {
             if (status.isActive) {
               setAuthState('active');
               setProviders(status.availableProviders ?? []);
-              const first = status.availableProviders?.[0];
-              if (first) setSelectedProvider(first);
+              if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders));
               setTranscriptionsUsed(status.transcriptionsUsed ?? 0);
               setTranscriptionLimit(status.transcriptionLimit ?? null);
               setSnapshotsUsed(status.snapshotsUsed ?? 0);
@@ -200,8 +207,7 @@ export default function App() {
               setAuthState('active');
             }
             setProviders(status.availableProviders ?? []);
-            const first = status.availableProviders?.[0];
-            if (first) setSelectedProvider(first);
+            if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders));
             setTranscriptionsUsed(status.transcriptionsUsed ?? 0);
             setTranscriptionLimit(status.transcriptionLimit ?? null);
             setSnapshotsUsed(status.snapshotsUsed ?? 0);
@@ -233,8 +239,7 @@ export default function App() {
             setAuthState('active');
           }
           setProviders(status.availableProviders ?? []);
-          const first = status.availableProviders?.[0];
-          if (first) setSelectedProvider(first);
+          if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders));
           setTranscriptionsUsed(status.transcriptionsUsed ?? 0);
           setTranscriptionLimit(status.transcriptionLimit ?? null);
           setSnapshotsUsed(status.snapshotsUsed ?? 0);
@@ -272,8 +277,7 @@ export default function App() {
       setAuthState('no-subscription')
     } else {
       setProviders(status.availableProviders ?? [])
-      const first = status.availableProviders?.[0]
-      if (first) setSelectedProvider(first)
+      if (status.availableProviders?.length) setSelectedProvider(pickPreferredProvider(status.availableProviders))
       setTranscriptionsUsed(status.transcriptionsUsed ?? 0)
       setTranscriptionLimit(status.transcriptionLimit ?? null)
       setSnapshotsUsed(status.snapshotsUsed ?? 0)
@@ -745,10 +749,7 @@ export default function App() {
   // No login required - skip the login screen entirely
   // When authState is 'logged-out', go directly to the main interface
   if (authState === 'logged-out') {
-    // Directly set to active state with no providers to show main app without login
-    setProviders([])
-    setSelectedProvider('claude' as any)
-    setAuthState('no-subscription')
+    // The effect above loads the BYOK keys and moves on to 'no-subscription'.
     return <ServiceSelection
       onSelect={handleSelectMode}
       onSettings={() => setAppView('settings')}

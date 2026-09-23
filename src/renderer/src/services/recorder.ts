@@ -1,3 +1,4 @@
+import { resolveInputDeviceId } from './audioDevice'
 import type { AudioSource } from '../../../shared/types'
 
 /** Manages audio recording from microphone or system audio sources using the MediaRecorder API. */
@@ -96,7 +97,8 @@ export class AudioRecorder {
    * Requests microphone access and returns the audio stream.
    * @returns A promise that resolves with the microphone MediaStream.
    */
-  private async getMicStream(deviceId?: string): Promise<MediaStream> {
+  private async getMicStream(requestedDeviceId?: string): Promise<MediaStream> {
+    const deviceId = await resolveInputDeviceId(requestedDeviceId)
     console.log('[AudioRecorder] getMicStream() - Requesting microphone access via getUserMedia (no screen access needed)')
     console.log('[AudioRecorder] Checking navigator.mediaDevices availability:', {
       mediaDevices: !!navigator.mediaDevices,

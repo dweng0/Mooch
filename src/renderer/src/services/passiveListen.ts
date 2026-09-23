@@ -1,3 +1,5 @@
+import { resolveInputDeviceId } from './audioDevice'
+
 type OnTranscriptCb = (text: string) => void
 type OnDetectedCb = (text: string) => Promise<void>
 type OnStatusCb = (status: 'listening' | 'processing') => void
@@ -211,8 +213,9 @@ export class PassiveListenService {
     this.onLevelCb = null
   }
 
-  private async _getStream(audioSource: 'microphone' | 'system', deviceId?: string): Promise<MediaStream> {
+  private async _getStream(audioSource: 'microphone' | 'system', requestedDeviceId?: string): Promise<MediaStream> {
     if (audioSource === 'microphone') {
+      const deviceId = await resolveInputDeviceId(requestedDeviceId)
       try {
         console.log('[PassiveListen] ===== MICROPHONE REQUEST START =====')
         console.log('[PassiveListen] Requesting microphone, deviceId:', deviceId ?? 'default')
