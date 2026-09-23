@@ -598,12 +598,24 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
             {/* Inputs panel */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 space-y-5">
-              <ResumeField value={resume} fileName={cvName} onChange={(text, name) => { setResume(text); setCvName(name) }} />
+              <ResumeField
+                value={resume}
+                fileName={cvName}
+                onChange={(text, name) => { setResume(text); setCvName(name) }}
+                importFromSettings={async () => {
+                  const saved = await window.electronAPI.getSavedContext()
+                  return saved && { text: saved.cv, fileName: saved.cvName }
+                }}
+              />
 
               <JobDescriptionField
                 value={jobDescription}
                 fileName={jobDescName}
                 onChange={(text, name) => { setJobDescription(text); setJobDescName(name) }}
+                importFromSettings={async () => {
+                  const saved = await window.electronAPI.getSavedContext()
+                  return saved && { text: saved.jobDescription, fileName: saved.jobDescName }
+                }}
               />
 
               {error && (

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AIProvider, UserContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary, FreeCodeSessionData } from '../shared/types'
+import type { AIProvider, UserContext, SavedContext, AuthStatus, WindowSource, CropRect, UserApiKeys, OAuthProvider, OAuthUser, CustomProviderConfig, InterviewSessionMetadata, InterviewSession, InterviewTurn, InterviewSummary, FreeCodeSessionData } from '../shared/types'
 
 /** IPC bridge between the renderer process and the main process, exposed as window.electronAPI. */
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -79,6 +79,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** Fetches a job posting URL and returns its title, company and description as text. */
   fetchJobUrl: (url: string): Promise<string> => {
     return ipcRenderer.invoke('fetch-job-url', url)
+  },
+  /** Returns the CV, job description and extra context saved from Settings, if any. */
+  getSavedContext: (): Promise<SavedContext | null> => {
+    return ipcRenderer.invoke('get-saved-context')
+  },
+  /** Saves the CV, job description and extra context for the next launch. */
+  saveContext: (context: SavedContext): Promise<void> => {
+    return ipcRenderer.invoke('save-context', context)
   },
   /** Returns the configured API base URL. */
   getApiUrl: (): Promise<string> => {

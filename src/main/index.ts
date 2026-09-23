@@ -6,6 +6,7 @@ import * as fs from 'fs/promises'
 import { PDFParse } from 'pdf-parse'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
+import { loadSavedContext, saveContext } from './services/saved-context'
 import { transcribeAudio } from './services/transcribe'
 import { getAnswer, getAvailableProviders } from './services/ai-provider'
 import { analyzeCodeSnapshot } from './services/claude'
@@ -18,7 +19,7 @@ import { TTSProviderManager } from './services/tts-provider'
 import { InterviewOrchestrator } from './services/interview-orchestrator'
 import { LocalBridgeApi } from './services/local-bridge-api'
 import { freeCodeSessionManager } from './services/free-code-session'
-import type { AIProvider, UserContext, CropRect, CustomProviderConfig, FreeCodeSessionData } from '../shared/types'
+import type { AIProvider, UserContext, SavedContext, CropRect, CustomProviderConfig, FreeCodeSessionData } from '../shared/types'
 import type { DesktopCapturerSource } from 'electron'
 
 let mainWindow: BrowserWindow | null = null
@@ -1117,6 +1118,12 @@ ipcMain.handle('capture-screen-area', async (_event, rect: CropRect) => {
 // ---------------------------------------------------------------------------
 // Utility IPC handlers
 // ---------------------------------------------------------------------------
+
+ipcMain.handle('get-saved-context', async () => loadSavedContext())
+
+ipcMain.handle('save-context', async (_event, context: SavedContext) => {
+  saveContext(context)
+})
 
 ipcMain.handle('load-text-file', async () => {
   const result = await dialog.showOpenDialog({

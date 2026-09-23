@@ -368,6 +368,31 @@ export default function App() {
     manualContext: manualContextRef.current
   })
 
+  // Restore the CV / job description / context from the last launch, then autosave edits.
+  const savedContextLoadedRef = useRef(false)
+  useEffect(() => {
+    window.electronAPI.getSavedContext?.()
+      .then((saved) => {
+        if (!saved) return
+        setCv(saved.cv ?? '')
+        setCvName(saved.cvName ?? '')
+        setJobDesc(saved.jobDescription ?? '')
+        setJobDescName(saved.jobDescName ?? '')
+        setManualContext(saved.manualContext ?? '')
+      })
+      .catch(() => {})
+      .finally(() => { savedContextLoadedRef.current = true })
+  }, [])
+
+  useEffect(() => {
+    // Don't overwrite the saved file with the empty initial state before it has loaded.
+    if (!savedContextLoadedRef.current) return
+    const timer = setTimeout(() => {
+      window.electronAPI.saveContext?.({ cv, cvName, jobDescription: jobDesc, jobDescName, manualContext }).catch(() => {})
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [cv, cvName, jobDesc, jobDescName, manualContext])
+
   const startMockMode = useCallback(() => {
     if (mockStatusRef.current !== 'off') return
     if (!liveServiceRef.current.isAvailable) {

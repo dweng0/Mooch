@@ -73,6 +73,14 @@ export interface OAuthUser {
 /**
  * Represents the user context used for AI-powered responses, including CV, job description, and manual context.
  */
+/** CV, job description and extra context saved between app launches. */
+export interface SavedContext extends UserContext {
+  /** File name the CV was loaded from, or '' when pasted. */
+  cvName: string
+  /** File name the job description was loaded from, or '' when pasted. */
+  jobDescName: string
+}
+
 export interface UserContext {
   /** The user's curriculum vitae or resume content. */
   cv: string
@@ -403,6 +411,10 @@ export interface ElectronAPI {
   getApiUrl: () => Promise<string>
   /** Fetches a job posting URL and returns its title, company and description as text. */
   fetchJobUrl: (url: string) => Promise<string>
+  /** Returns the CV, job description and extra context saved from Settings, if any. */
+  getSavedContext: () => Promise<SavedContext | null>
+  /** Saves the CV, job description and extra context for the next launch. */
+  saveContext: (context: SavedContext) => Promise<void>
   // API Keys
   /** Returns all stored user API keys. */
   getApiKeys: () => Promise<UserApiKeys>

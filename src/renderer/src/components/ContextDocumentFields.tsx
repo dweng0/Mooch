@@ -8,6 +8,8 @@ interface FieldProps {
   fileName: string
   /** Called with the new text and its file name ('' when not from a file). */
   onChange: (text: string, fileName: string) => void
+  /** When set, shows an "Import from Settings" link that fills the field with the saved copy. */
+  importFromSettings?: () => Promise<{ text: string; fileName: string } | null>
 }
 
 /** Strips Electron's IPC wrapper from an error so only the handler's message is shown. */
@@ -30,6 +32,7 @@ function DocumentField({
   onPaste,
   busy = false,
   error = '',
+  importFromSettings,
 }: FieldProps & {
   label: string
   loadLabel: string
@@ -45,9 +48,31 @@ function DocumentField({
     if (result) onChange(result.content, result.name)
   }
 
+  const [importNote, setImportNote] = useState('')
+
+  const handleImport = async () => {
+    const saved = await importFromSettings?.().catch(() => null)
+    if (saved?.text) {
+      setImportNote('')
+      onChange(saved.text, saved.fileName)
+    } else {
+      setImportNote('Nothing saved in Settings yet')
+    }
+  }
+
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{label}</label>
+      <div className="flex items-center justify-between mb-3">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+        {importFromSettings && (
+          <button
+            onClick={handleImport}
+            className="text-xs text-blue-500 hover:text-blue-700 transition-colors cursor-pointer"
+          >
+            {importNote || 'Import from Settings'}
+          </button>
+        )}
+      </div>
       {value ? (
         <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
           <div className="flex items-center gap-2 text-xs text-emerald-400">
