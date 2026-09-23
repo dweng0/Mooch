@@ -641,7 +641,7 @@ ipcMain.handle('open-external-url', async (_event, url: string) => {
 // Interview IPC handlers
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('interview-create-session', async (_event, jobDescription: string, resume: string) => {
+ipcMain.handle('interview-create-session', async (_event, jobDescription: string, resume: string, preferredLlm?: string) => {
   const keys = loadApiKeys()
   console.log('[IPC] interview-create-session received', {
     hasCosyvoiceKey: !!keys.cosyvoiceApiKey,
@@ -673,7 +673,7 @@ ipcMain.handle('interview-create-session', async (_event, jobDescription: string
   // Start orchestrator with the session
   await interviewOrchestrator.startRealTimeVoiceInterview({
     sessionId: metadata.sessionId,
-    llmProvider: getFirstProvider(keys),
+    llmProvider: pickLlmProvider(preferredLlm),
     jobDescription,
     resume,
     ttsConfig
@@ -790,12 +790,18 @@ ipcMain.handle('interview-get-audio', async (_event, sessionId: string, turn: nu
 })
 
 // Helper to get the first available LLM provider
-function getFirstProvider(keys: any): AIProvider {
+/**
+ * Picks the LLM for an interview: the renderer's preferred provider when it is
+ * configured, otherwise the first available one.
+ * @param preferred - Provider marked preferred in Settings, if any.
+ * @returns The provider to use.
+ */
+function pickLlmProvider(preferred?: string): AIProvider {
   const available = getAvailableProviders()
   if (available.length === 0) {
     throw new Error('No LLM provider configured. Please set an API key in Settings.')
   }
-  return available[0]
+  return preferred && available.includes(preferred as AIProvider) ? preferred as AIProvider : available[0]
 }
 
 // ---------------------------------------------------------------------------
@@ -827,9 +833,7 @@ ipcMain.handle('get-available-providers', async () => {
 ipcMain.handle('get-interview-providers', async (_event, preferredLlm?: string) => {
   const keys = loadApiKeys()
   const available = getAvailableProviders()
-  const llm = preferredLlm && available.includes(preferredLlm as AIProvider)
-    ? preferredLlm
-    : available.length > 0 ? available[0] : null
+  const llm = available.length > 0 ? pickLlmProvider(preferredLlm) : null
 
   let tts: string | null = null
   if (keys.localTtsUrl) tts = 'local'

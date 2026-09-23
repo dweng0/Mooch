@@ -195,8 +195,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Interview ─────────────────────────────────────────────────────────────
   /** Creates a new mock interview session from a job description and resume. */
-  interviewCreateSession: (jobDescription: string, resume: string): Promise<InterviewSessionMetadata> => {
-    return ipcRenderer.invoke('interview-create-session', jobDescription, resume)
+  interviewCreateSession: (jobDescription: string, resume: string, preferredLlm?: string): Promise<InterviewSessionMetadata> => {
+    return ipcRenderer.invoke('interview-create-session', jobDescription, resume, preferredLlm)
   },
   /** Returns metadata for all stored interview sessions. */
   interviewListSessions: (): Promise<InterviewSessionMetadata[]> => {

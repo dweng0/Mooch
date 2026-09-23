@@ -142,7 +142,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
     try {
       setStatus('analyzing')
-      const metadata = await window.electronAPI.interviewCreateSession(jobDescription, resume)
+      const metadata = await window.electronAPI.interviewCreateSession(jobDescription, resume, interviewProviders?.llm ?? undefined)
       setCurrentSession(metadata)
 
       setStatus('questioning')

@@ -8,6 +8,11 @@ import { runClaudeCli, shouldUseClaudeCli } from './claude-cli'
 
 const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 const DEFAULT_MODEL = 'qwen-max'
+const OPENAI_MODEL = 'gpt-4o'
+const GEMINI_OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/'
+const GEMINI_MODEL = 'gemini-2.0-flash'
+const ANTHROPIC_OPENAI_BASE_URL = 'https://api.anthropic.com/v1/'
+const CLAUDE_MODEL = 'claude-sonnet-4-6-20250929'
 const MAX_HISTORY_ENTRIES = 30
 
 /** Configuration required to start an interview session. */
@@ -265,7 +270,7 @@ export class InterviewOrchestrator {
     const systemPrompt = buildInterviewerSystemPrompt(this.config.jobDescription, this.config.resume)
     const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
 
-    console.log('[Interview] Generating opener', { model: this.getModelName() })
+    console.log('[Interview] Generating opener', { provider: this.config?.llmProvider })
 
     try {
       let question = await this.chatComplete(500, systemPrompt, [{ role: 'user', content: userMessage }])
@@ -384,45 +389,58 @@ export class InterviewOrchestrator {
       return runClaudeCli(prompt, { system })
     }
 
-    const response = await this.createLLMClient().chat.completions.create({
-      model: this.getModelName(),
+    const { client, model } = this.createLLMClient()
+    const response = await client.chat.completions.create({
+      model,
       max_tokens: maxTokens,
       messages: [...(system ? [{ role: 'system' as const, content: system }] : []), ...messages],
     })
     return response.choices[0]?.message?.content ?? ''
   }
 
-  private createLLMClient(): OpenAI {
+  /**
+   * Builds an OpenAI-compatible client for the session's LLM provider. Falls back
+   * to the first configured key (Qwen, custom, OpenAI) if that provider has none.
+   */
+  private createLLMClient(): { client: OpenAI; model: string } {
     const keys = loadApiKeys()
+    const custom = keys.customProvider
 
-    // Prefer Qwen (DashScope) since it supports OpenAI-compatible API
-    if (keys.qwenApiKey) {
-      return new OpenAI({
-        apiKey: keys.qwenApiKey,
-        baseURL: DASHSCOPE_BASE_URL,
-        dangerouslyAllowBrowser: true,
-      })
+    switch (this.config?.llmProvider) {
+      case 'qwen':
+        if (keys.qwenApiKey) return this.qwenClient(keys.qwenApiKey, keys.qwenModel)
+        break
+      case 'custom':
+        if (custom?.baseUrl && custom.model) {
+          return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: custom.apiKey || 'not-needed', baseURL: custom.baseUrl }), model: custom.model }
+        }
+        break
+      case 'openai':
+        if (keys.openaiApiKey) return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: keys.openaiApiKey }), model: OPENAI_MODEL }
+        break
+      case 'gemini':
+        if (keys.geminiApiKey) {
+          return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: keys.geminiApiKey, baseURL: GEMINI_OPENAI_BASE_URL }), model: GEMINI_MODEL }
+        }
+        break
+      case 'claude':
+        if (keys.anthropicApiKey) {
+          return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: keys.anthropicApiKey, baseURL: ANTHROPIC_OPENAI_BASE_URL }), model: CLAUDE_MODEL }
+        }
+        break
     }
 
-    // Fallback to other providers via OpenAI SDK
-    if (keys.customProvider?.baseUrl && keys.customProvider?.apiKey) {
-      return new OpenAI({
-        apiKey: keys.customProvider.apiKey,
-        baseURL: keys.customProvider.baseUrl,
-        dangerouslyAllowBrowser: true,
-      })
+    if (keys.qwenApiKey) return this.qwenClient(keys.qwenApiKey, keys.qwenModel)
+    if (custom?.baseUrl && custom.model) {
+      return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: custom.apiKey || 'not-needed', baseURL: custom.baseUrl }), model: custom.model }
     }
-
-    if (keys.openaiApiKey) {
-      return new OpenAI({ apiKey: keys.openaiApiKey })
-    }
+    if (keys.openaiApiKey) return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey: keys.openaiApiKey }), model: OPENAI_MODEL }
 
     throw new Error('No LLM provider configured. Please set an API key in Settings.')
   }
 
-  private getModelName(): string {
-    const keys = loadApiKeys()
-    return keys.qwenModel || DEFAULT_MODEL
+  private qwenClient(apiKey: string, model?: string): { client: OpenAI; model: string } {
+    return { client: new OpenAI({ dangerouslyAllowBrowser: true, apiKey, baseURL: DASHSCOPE_BASE_URL }), model: model || DEFAULT_MODEL }
   }
 
   private async buildTranscript(): Promise<string> {

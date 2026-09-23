@@ -444,7 +444,7 @@ export interface ElectronAPI {
   onHotkeyRecordStop: (callback: () => void) => () => void
   // Interview
   /** Creates a new mock interview session from a job description and resume. */
-  interviewCreateSession: (jobDescription: string, resume: string) => Promise<InterviewSessionMetadata>
+  interviewCreateSession: (jobDescription: string, resume: string, preferredLlm?: string) => Promise<InterviewSessionMetadata>
   /** Returns metadata for all stored interview sessions. */
   interviewListSessions: () => Promise<InterviewSessionMetadata[]>
   /** Returns the full interview session data for a given session ID. */
