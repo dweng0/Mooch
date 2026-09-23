@@ -1,6 +1,6 @@
 # BDD Status
 
-Checked 62 scenario(s) across 27 test file(s).
+Checked 65 scenario(s) across 28 test file(s).
 
 
 ## Feature: remove login
@@ -119,5 +119,11 @@ Checked 62 scenario(s) across 27 test file(s).
 - [x] use selected microphone when recording
 - [x] use selected speaker for TTS playback
 
+## Feature: interview context in settings
+
+- [x] paste resume text in settings
+- [x] paste job description text in settings
+- [x] paste a job link in settings to fill the job description
+
 ---
-**62/62 scenarios covered.**
+**65/65 scenarios covered.**

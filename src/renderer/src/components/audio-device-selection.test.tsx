@@ -50,13 +50,13 @@ beforeEach(() => {
 describe('Audio Device Selection', () => {
   const defaultProps = {
     onBack: vi.fn(),
+    cv: '',
     cvName: '',
+    jobDesc: '',
     jobDescName: '',
     manualContext: '',
-    onLoadCV: vi.fn(),
-    onLoadJobDesc: vi.fn(),
-    onClearCV: vi.fn(),
-    onClearJobDesc: vi.fn(),
+    onCvChange: vi.fn(),
+    onJobDescChange: vi.fn(),
     onManualContextChange: vi.fn(),
   }
 

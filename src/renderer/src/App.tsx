@@ -567,16 +567,6 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [logoMenuOpen])
 
-  const handleLoadCV = async () => {
-    const result = await window.electronAPI.loadTextFile()
-    if (result) { setCv(result.content); setCvName(result.name) }
-  }
-
-  const handleLoadJobDesc = async () => {
-    const result = await window.electronAPI.loadTextFile()
-    if (result) { setJobDesc(result.content); setJobDescName(result.name) }
-  }
-
   const [codeSnapshotState, setCodeSnapshotState] = useState<CodeSnapshotState>('idle')
   const [windowSources, setWindowSources] = useState<WindowSource[]>([])
   const [capturedImage, setCapturedImage] = useState<string>('')
@@ -842,13 +832,13 @@ export default function App() {
             await loadApiKeyState().catch(() => {})
             setAppView('select')
           }}
+          cv={cv}
           cvName={cvName}
+          jobDesc={jobDesc}
           jobDescName={jobDescName}
           manualContext={manualContext}
-          onLoadCV={handleLoadCV}
-          onLoadJobDesc={handleLoadJobDesc}
-          onClearCV={() => { setCv(''); setCvName('') }}
-          onClearJobDesc={() => { setJobDesc(''); setJobDescName('') }}
+          onCvChange={(text, name) => { setCv(text); setCvName(name) }}
+          onJobDescChange={(text, name) => { setJobDesc(text); setJobDescName(name) }}
           onManualContextChange={setManualContext}
         />
         {exitButton}

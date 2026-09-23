@@ -29,11 +29,13 @@ vi.mock('./components/SubscribeScreen', () => ({
   default: () => React.createElement('div', { 'data-testid': 'subscribe-screen' }, 'Subscribe Screen'),
 }))
 vi.mock('./components/SettingsScreen', () => ({
-  default: ({ onBack, onLoadCV, onLoadJobDesc }: any) =>
+  default: ({ onBack, cv, cvName, jobDesc, jobDescName, onCvChange, onJobDescChange }: any) =>
     React.createElement('div', { 'data-testid': 'settings-screen' },
       React.createElement('button', { 'data-testid': 'back-from-settings', onClick: onBack }, 'Back'),
-      React.createElement('button', { 'data-testid': 'load-cv', onClick: onLoadCV }, 'Load CV'),
-      React.createElement('button', { 'data-testid': 'load-job-desc', onClick: onLoadJobDesc }, 'Load Job Desc'),
+      React.createElement('button', { 'data-testid': 'load-cv', onClick: () => onCvChange('My CV', 'cv.pdf') }, 'Load CV'),
+      React.createElement('button', { 'data-testid': 'load-job-desc', onClick: () => onJobDescChange('Job description', 'job.pdf') }, 'Load Job Desc'),
+      React.createElement('span', { 'data-testid': 'cv-state' }, `${cvName}:${cv}`),
+      React.createElement('span', { 'data-testid': 'job-desc-state' }, `${jobDescName}:${jobDesc}`),
     ),
 }))
 vi.mock('./components/TranscriptPanel', () => ({
@@ -202,8 +204,7 @@ describe('user actions have test coverage', () => {
   })
 
   it('should allow user to load a CV from settings', async () => {
-    const mockLoadTextFile = vi.fn().mockResolvedValue({ name: 'cv.pdf', content: 'My CV' })
-    ;(global as any).window.electronAPI = makeElectronAPI({ loadTextFile: mockLoadTextFile })
+    ;(global as any).window.electronAPI = makeElectronAPI()
 
     render(React.createElement(App))
 
@@ -219,13 +220,12 @@ describe('user actions have test coverage', () => {
     fireEvent.click(screen.getByTestId('load-cv'))
 
     await waitFor(() => {
-      expect(mockLoadTextFile).toHaveBeenCalled()
+      expect(screen.getByTestId('cv-state').textContent).toBe('cv.pdf:My CV')
     })
   })
 
   it('should allow user to load a job description from settings', async () => {
-    const mockLoadTextFile = vi.fn().mockResolvedValue({ name: 'job.pdf', content: 'Job description' })
-    ;(global as any).window.electronAPI = makeElectronAPI({ loadTextFile: mockLoadTextFile })
+    ;(global as any).window.electronAPI = makeElectronAPI()
 
     render(React.createElement(App))
 
@@ -241,7 +241,7 @@ describe('user actions have test coverage', () => {
     fireEvent.click(screen.getByTestId('load-job-desc'))
 
     await waitFor(() => {
-      expect(mockLoadTextFile).toHaveBeenCalled()
+      expect(screen.getByTestId('job-desc-state').textContent).toBe('job.pdf:Job description')
     })
   })
 })

@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, FileText, KeyRound, X, Eye, EyeOff, Check, Trash2, Star } from 'lucide-react'
+import { ArrowLeft, KeyRound, Eye, EyeOff, Check, Trash2, Star } from 'lucide-react'
 import type { UserApiKeys, CustomProviderConfig } from '../../shared/types'
+import { ResumeField, JobDescriptionField } from './ContextDocumentFields'
 import itDepartmentIcon from '../assets/proposed_images/IT_Department.webm'
 
 const BYOK_STORAGE_KEY = 'byok_provider'
 
 interface Props {
   onBack: () => void
+  cv: string
   cvName: string
+  jobDesc: string
   jobDescName: string
   manualContext: string
-  onLoadCV: () => void
-  onLoadJobDesc: () => void
-  onClearCV: () => void
-  onClearJobDesc: () => void
+  onCvChange: (text: string, fileName: string) => void
+  onJobDescChange: (text: string, fileName: string) => void
   onManualContextChange: (value: string) => void
 }
 
@@ -61,13 +62,13 @@ const EMPTY_CUSTOM: CustomProviderConfig = { baseUrl: '', apiKey: '', model: '',
 /** Settings screen for managing API keys, context documents, and custom provider configuration. */
 export default function SettingsScreen({
   onBack,
+  cv,
   cvName,
+  jobDesc,
   jobDescName,
   manualContext,
-  onLoadCV,
-  onLoadJobDesc,
-  onClearCV,
-  onClearJobDesc,
+  onCvChange,
+  onJobDescChange,
   onManualContextChange
 }: Props) {
   const [apiKeys, setApiKeys] = useState<UserApiKeys>({})
@@ -578,60 +579,10 @@ export default function SettingsScreen({
           </div>
         </div>
 
-        {/* Resume / CV */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Resume / CV</h3>
-          {cvName ? (
-            <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
-              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                <FileText size={14} />
-                <span className="truncate max-w-[200px]">{cvName}</span>
-              </div>
-              <button
-                onClick={onClearCV}
-                className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
-                title="Remove resume"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onLoadCV}
-              className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
-            >
-              <FileText size={14} />
-              Load resume file (.txt, .pdf, .docx)
-            </button>
-          )}
-        </div>
-
-        {/* Job Description */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Description</h3>
-          {jobDescName ? (
-            <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5">
-              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                <FileText size={14} />
-                <span className="truncate max-w-[200px]">{jobDescName}</span>
-              </div>
-              <button
-                onClick={onClearJobDesc}
-                className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
-                title="Remove job description"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onLoadJobDesc}
-              className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
-            >
-              <FileText size={14} />
-              Load job description file
-            </button>
-          )}
+        {/* Resume / CV + Job Description */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 space-y-5">
+          <ResumeField value={cv} fileName={cvName} onChange={onCvChange} />
+          <JobDescriptionField value={jobDesc} fileName={jobDescName} onChange={onJobDescChange} />
         </div>
 
         {/* Additional Context */}

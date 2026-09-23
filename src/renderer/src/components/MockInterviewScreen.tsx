@@ -21,6 +21,7 @@ type ChatMessage =
 
 // Import the proven working implementation
 import { LocalInterviewService } from '../services/localInterview'
+import { ResumeField, JobDescriptionField } from './ContextDocumentFields'
 
 function PulsingDots() {
   return (
@@ -39,7 +40,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [sessions, setSessions] = useState<InterviewSessionMetadata[]>([])
   const [currentSession, setCurrentSession] = useState<InterviewSessionMetadata | null>(null)
   const [jobDescription, setJobDescription] = useState('')
-  const [jobUrlLoading, setJobUrlLoading] = useState(false)
   const [resume, setResume] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -108,39 +108,6 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     } catch (err) {
       console.error('Failed to load sessions:', err)
       setError('Failed to load sessions')
-    }
-  }
-
-  const handleLoadCV = async () => {
-    const result = await window.electronAPI.loadTextFile()
-    if (result) {
-      setResume(result.content)
-      setCvName(result.name)
-    }
-  }
-
-  const handleLoadJobDesc = async () => {
-    const result = await window.electronAPI.loadTextFile()
-    if (result) {
-      setJobDescription(result.content)
-      setJobDescName(result.name)
-    }
-  }
-
-  /** When the pasted text is just a link, fetch the posting and fill the box with it. */
-  const handleJobDescPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pasted = e.clipboardData.getData('text').trim()
-    if (!/^https?:\/\/\S+$/.test(pasted)) return
-    e.preventDefault()
-    setError('')
-    setJobUrlLoading(true)
-    try {
-      setJobDescription(await window.electronAPI.fetchJobUrl(pasted))
-      setJobDescName('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err))
-    } finally {
-      setJobUrlLoading(false)
     }
   }
 
@@ -631,73 +598,13 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
 
             {/* Inputs panel */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resume / CV</label>
-                {resume ? (
-                  <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
-                    <div className="flex items-center gap-2 text-xs text-emerald-400">
-                      <FileText size={14} />
-                      <span className="truncate max-w-[200px]">{cvName || 'resume'}</span>
-                    </div>
-                    <button
-                      onClick={() => { setResume(''); setCvName('') }}
-                      className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
-                      title="Clear resume"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleLoadCV}
-                    className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer mb-3"
-                  >
-                    <FileText size={14} />
-                    Load resume file (.txt, .pdf, .docx)
-                  </button>
-                )}
-                <textarea
-                  value={resume}
-                  onChange={(e) => setResume(e.target.value)}
-                  className="w-full h-28 bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-400"
-                  placeholder="Or paste your resume..."
-                />
-              </div>
+              <ResumeField value={resume} fileName={cvName} onChange={(text, name) => { setResume(text); setCvName(name) }} />
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Job Description</label>
-                {jobDescription ? (
-                  <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-3 py-2.5 mb-3">
-                    <div className="flex items-center gap-2 text-xs text-emerald-400">
-                      <FileText size={14} />
-                      <span className="truncate max-w-[200px]">{jobDescName || 'job description'}</span>
-                    </div>
-                    <button
-                      onClick={() => { setJobDescription(''); setJobDescName('') }}
-                      className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer ml-2"
-                      title="Clear job description"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleLoadJobDesc}
-                    className="w-full flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer mb-3"
-                  >
-                    <FileText size={14} />
-                    Load job description file
-                  </button>
-                )}
-                <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  onPaste={handleJobDescPaste}
-                  disabled={jobUrlLoading}
-                  className="w-full h-28 bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-400"
-                  placeholder={jobUrlLoading ? 'Fetching job posting...' : 'Or paste the job description (or a link to it)...'}
-                />
-              </div>
+              <JobDescriptionField
+                value={jobDescription}
+                fileName={jobDescName}
+                onChange={(text, name) => { setJobDescription(text); setJobDescName(name) }}
+              />
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">

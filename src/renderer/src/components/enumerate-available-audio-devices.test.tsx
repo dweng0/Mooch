@@ -46,13 +46,13 @@ describe('enumerate available audio input and output devices in settings', () =>
     render(
       <SettingsScreen
         onBack={vi.fn()}
+        cv=""
         cvName=""
+        jobDesc=""
         jobDescName=""
         manualContext=""
-        onLoadCV={vi.fn()}
-        onLoadJobDesc={vi.fn()}
-        onClearCV={vi.fn()}
-        onClearJobDesc={vi.fn()}
+        onCvChange={vi.fn()}
+        onJobDescChange={vi.fn()}
         onManualContextChange={vi.fn()}
       />
     )
@@ -71,13 +71,13 @@ describe('enumerate available audio input and output devices in settings', () =>
     render(
       <SettingsScreen
         onBack={vi.fn()}
+        cv=""
         cvName=""
+        jobDesc=""
         jobDescName=""
         manualContext=""
-        onLoadCV={vi.fn()}
-        onLoadJobDesc={vi.fn()}
-        onClearCV={vi.fn()}
-        onClearJobDesc={vi.fn()}
+        onCvChange={vi.fn()}
+        onJobDescChange={vi.fn()}
         onManualContextChange={vi.fn()}
       />
     )

@@ -407,3 +407,23 @@ System: a tool we call mooch, that helps users during interview by listening and
             Then it should route audio to the stored audioOutputDeviceId using HTMLMediaElement.setSinkId()
             And fall back to the default output device if the stored device is no longer available
 
+
+    Feature: interview context in settings
+
+        Scenario: paste resume text in settings
+            Given the user is in the settings screen
+            When the user pastes or types their resume into the Resume / CV box
+            Then that text should be used as the CV for the live interview
+            And the user can still load the resume from a .txt, .pdf or .docx file instead
+
+        Scenario: paste job description text in settings
+            Given the user is in the settings screen
+            When the user pastes or types the job description into the Job Description box
+            Then that text should be used as the job description for the live interview
+            And the user can still load the job description from a file instead
+
+        Scenario: paste a job link in settings to fill the job description
+            Given the user is in the settings screen
+            When the user pastes a link to a job posting (e.g. Ashby, Greenhouse) into the Job Description box
+            Then the app should fetch the posting and fill the box with its title, company, location and description
+            And show an error in place if the posting could not be fetched
