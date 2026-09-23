@@ -57,7 +57,7 @@ export default function App() {
     audioInputDeviceIdRef.current = keys.audioInputDeviceId
 
     const derived: AIProvider[] = []
-    if (keys.anthropicApiKey) derived.push('claude')
+    if (keys.anthropicApiKey || keys.claudeCodeToken) derived.push('claude')
     if (keys.geminiApiKey) derived.push('gemini')
     if (keys.openaiApiKey) derived.push('openai')
     if (keys.qwenApiKey) derived.push('qwen')
@@ -328,6 +328,8 @@ export default function App() {
   const passiveServiceRef = useRef(new PassiveListenService())
   const [passiveStatus, setPassiveStatus] = useState<PassiveStatus>('off')
   const [passiveSource, setPassiveSource] = useState<'microphone' | 'system'>('system')
+  const [passiveLevel, setPassiveLevel] = useState(0)
+  const [passiveHearing, setPassiveHearing] = useState(false)
   const passiveStatusRef = useRef(passiveStatus)
   passiveStatusRef.current = passiveStatus
   const [vadThreshold, setVadThreshold] = useState<number>(() => {
@@ -430,6 +432,11 @@ export default function App() {
     passiveServiceRef.current.setThreshold(vadThreshold)
     await passiveServiceRef.current.start({
       audioSource,
+      deviceId: audioSource === 'microphone' ? audioInputDeviceIdRef.current : undefined,
+      onLevel: (level, speaking) => {
+        setPassiveLevel(level)
+        setPassiveHearing(speaking)
+      },
       onTranscript: (text) => setTranscript(text),
       onDetected: async (text) => {
         try {
@@ -462,6 +469,8 @@ export default function App() {
   const stopPassiveListen = useCallback(() => {
     passiveServiceRef.current.stop()
     setPassiveStatus('off')
+    setPassiveLevel(0)
+    setPassiveHearing(false)
   }, [])
 
   const handleVadThresholdChange = useCallback((value: number) => {
@@ -952,8 +961,26 @@ export default function App() {
               <span className="text-xs text-green-400 capitalize">{mockStatus}...</span>
             )}
             {status === 'idle' && mockStatus === 'off' && passiveStatus !== 'off' && (
-              <span className="text-xs text-purple-400 capitalize">
-                {passiveSource === 'microphone' ? 'mic' : 'sys'} {passiveStatus === 'processing' ? 'processing...' : 'listening...'}
+              <span className="flex items-center gap-1.5 text-xs text-purple-400">
+                <span>
+                  {passiveSource === 'microphone' ? 'mic' : 'sys'}{' '}
+                  {passiveStatus === 'processing' ? 'processing...' : passiveHearing ? 'hearing speech' : 'listening...'}
+                </span>
+                {passiveStatus === 'listening' && (
+                  <span
+                    className="relative h-1.5 w-16 rounded bg-gray-700 overflow-hidden"
+                    title={`Input level ${passiveLevel.toFixed(1)} / threshold ${vadThreshold}`}
+                  >
+                    <span
+                      className={`absolute inset-y-0 left-0 transition-[width] duration-100 ${passiveHearing ? 'bg-green-400' : 'bg-purple-400'}`}
+                      style={{ width: `${Math.min(100, (passiveLevel / 50) * 100)}%` }}
+                    />
+                    <span
+                      className="absolute inset-y-0 w-px bg-white/80"
+                      style={{ left: `${Math.min(100, (vadThreshold / 50) * 100)}%` }}
+                    />
+                  </span>
+                )}
               </span>
             )}
           </div>

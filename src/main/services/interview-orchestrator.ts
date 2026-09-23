@@ -4,6 +4,7 @@ import { InterviewSessionManager } from './interview-session'
 import { buildInterviewerSystemPrompt, buildInterviewerOpenerMessage, buildInterviewSummaryPrompt } from '../../../config/systemPrompt'
 import { loadApiKeys } from './api-keys'
 import OpenAI from 'openai'
+import { runClaudeCli, shouldUseClaudeCli } from './claude-cli'
 
 const DASHSCOPE_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 const DEFAULT_MODEL = 'qwen-max'
@@ -235,15 +236,7 @@ export class InterviewOrchestrator {
     }))
 
     const prompt = buildInterviewSummaryPrompt(session.jobDescription, turns)
-    const client = this.createLLMClient()
-
-    const response = await client.chat.completions.create({
-      model: this.getModelName(),
-      max_tokens: 400,
-      messages: [{ role: 'user', content: prompt }],
-    })
-
-    const content = response.choices[0]?.message?.content ?? ''
+    const content = await this.chatComplete(400, undefined, [{ role: 'user', content: prompt }])
     let areasOfImprovement: string[] = []
     let areasOfStrength: string[] = []
 
@@ -271,21 +264,11 @@ export class InterviewOrchestrator {
 
     const systemPrompt = buildInterviewerSystemPrompt(this.config.jobDescription, this.config.resume)
     const userMessage = buildInterviewerOpenerMessage(this.config.jobDescription)
-    const client = this.createLLMClient()
 
     console.log('[Interview] Generating opener', { model: this.getModelName() })
 
     try {
-      const response = await client.chat.completions.create({
-        model: this.getModelName(),
-        max_tokens: 500,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ]
-      })
-
-      let question = response.choices[0]?.message?.content ?? ''
+      let question = await this.chatComplete(500, systemPrompt, [{ role: 'user', content: userMessage }])
       console.log('[Interview] Generated opener:', question.substring(0, 150))
 
       // Try to parse as JSON if needed (in case the LLM returns JSON format)
@@ -317,20 +300,12 @@ export class InterviewOrchestrator {
     }
 
     const systemPrompt = buildInterviewerSystemPrompt(this.config.jobDescription, this.config.resume)
-    const client = this.createLLMClient()
 
     try {
-      const response = await client.chat.completions.create({
-        model: this.getModelName(),
-        max_tokens: 1000,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...this.conversationHistory,
-          { role: 'user', content: userText }
-        ]
-      })
-
-      const content = response.choices[0]?.message?.content ?? ''
+      const content = await this.chatComplete(1000, systemPrompt, [
+        ...this.conversationHistory,
+        { role: 'user', content: userText }
+      ])
       console.log('[Interview] Raw LLM response (turn', this.currentTurn, '):', content.substring(0, 200))
 
       // Try to parse as JSON (for turns > 0)
@@ -390,6 +365,31 @@ export class InterviewOrchestrator {
       console.error('Failed to generate LLM response:', error)
       throw error
     }
+  }
+
+  /**
+   * Runs one chat completion. Uses the Claude Code CLI when Claude is the selected
+   * provider and shouldUseClaudeCli() holds; otherwise the OpenAI-compatible client.
+   */
+  private async chatComplete(
+    maxTokens: number,
+    system: string | undefined,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Promise<string> {
+    if (this.config?.llmProvider === 'claude' && shouldUseClaudeCli()) {
+      const transcript = messages
+        .map((m) => `${m.role === 'user' ? 'Candidate' : 'Interviewer'}: ${m.content}`)
+        .join('\n\n')
+      const prompt = messages.length === 1 ? messages[0].content : `${transcript}\n\nRespond as the interviewer.`
+      return runClaudeCli(prompt, { system })
+    }
+
+    const response = await this.createLLMClient().chat.completions.create({
+      model: this.getModelName(),
+      max_tokens: maxTokens,
+      messages: [...(system ? [{ role: 'system' as const, content: system }] : []), ...messages],
+    })
+    return response.choices[0]?.message?.content ?? ''
   }
 
   private createLLMClient(): OpenAI {

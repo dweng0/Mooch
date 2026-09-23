@@ -106,6 +106,8 @@ export interface CustomProviderConfig {
 export interface UserApiKeys {
   /** Anthropic API key for Claude models. */
   anthropicApiKey?: string
+  /** Runtime-only: true when CLAUDE_CODE_OAUTH_TOKEN is set in the main process. Never persisted. */
+  claudeCodeToken?: boolean
   /** Google Gemini API key. */
   geminiApiKey?: string
   /** OpenAI API key for GPT models and Whisper STT. */
@@ -399,6 +401,8 @@ export interface ElectronAPI {
   getAppVersion: () => Promise<string>
   /** Returns the configured API base URL. */
   getApiUrl: () => Promise<string>
+  /** Fetches a job posting URL and returns its title, company and description as text. */
+  fetchJobUrl: (url: string) => Promise<string>
   // API Keys
   /** Returns all stored user API keys. */
   getApiKeys: () => Promise<UserApiKeys>

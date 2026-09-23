@@ -76,6 +76,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadTextFile: (): Promise<{ name: string; content: string } | null> => {
     return ipcRenderer.invoke('load-text-file')
   },
+  /** Fetches a job posting URL and returns its title, company and description as text. */
+  fetchJobUrl: (url: string): Promise<string> => {
+    return ipcRenderer.invoke('fetch-job-url', url)
+  },
   /** Returns the configured API base URL. */
   getApiUrl: (): Promise<string> => {
     return ipcRenderer.invoke('get-api-url')

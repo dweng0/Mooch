@@ -6,7 +6,7 @@ import WebSocket from 'ws'
 import { randomUUID } from 'crypto'
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegStatic from 'ffmpeg-static'
-import { createWriteStream, unlinkSync, readFileSync } from 'fs'
+import { createWriteStream, unlinkSync, readFileSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -26,6 +26,17 @@ const DASHSCOPE_WSS_URL = 'wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference
 export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
   const keys = loadApiKeys()
   console.log('[STT] Starting transcription...')
+  // DEBUG: dump every STT input so failing clips can be inspected with ffprobe
+  try {
+    const dumpDir = join(tmpdir(), 'mooch-stt')
+    mkdirSync(dumpDir, { recursive: true })
+    const { ext } = detectAudioExtension(audioBuffer)
+    const dumpPath = join(dumpDir, `${Date.now()}.${ext}`)
+    writeFileSync(dumpPath, audioBuffer)
+    console.log(`[STT] input: ${audioBuffer.length} bytes, head=${audioBuffer.subarray(0, 8).toString('hex')}, detected=${ext}, saved=${dumpPath}`)
+  } catch (err) {
+    console.warn('[STT] debug dump failed:', err)
+  }
 
   // Build available STT providers
   const available: Array<{ type: 'openai' | 'gemini' | 'qwen' | 'custom'; test: () => Promise<string> }> = []

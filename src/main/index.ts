@@ -9,6 +9,8 @@ import { loadApiKeys, saveApiKeys, clearApiKey } from './services/api-keys'
 import { transcribeAudio } from './services/transcribe'
 import { getAnswer, getAvailableProviders } from './services/ai-provider'
 import { analyzeCodeSnapshot } from './services/claude'
+import { hasClaudeCodeToken, claudeDebugLog } from './services/claude-cli'
+import { fetchJobPosting } from './services/job-url'
 import { analyzeCodeSnapshotQwen } from './services/qwen'
 import { analyzeCodeSnapshotCustom, testCustomProvider } from './services/openai-compat'
 import { InterviewSessionManager } from './services/interview-session'
@@ -59,6 +61,16 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false
     }
+  })
+
+  // DEBUG: mirror renderer console output to a file so it can be inspected
+  // without DevTools (passive listen, recorder and VAD logs live there).
+  const rendererLog = join(require('os').tmpdir(), 'mooch-renderer.log')
+  const levels = ['debug', 'info', 'warn', 'error']
+  mainWindow.webContents.on('console-message', (_event, level, message) => {
+    try {
+      require('fs').appendFileSync(rendererLog, `${new Date().toISOString()} [${levels[level] ?? level}] ${message}\n`)
+    } catch { /* best-effort */ }
   })
 
   mainWindow.once('ready-to-show', () => {
@@ -396,8 +408,10 @@ ipcMain.handle('free-code-save-session', async (_e, session: FreeCodeSessionData
 // API Key IPC handlers
 // ---------------------------------------------------------------------------
 
+ipcMain.handle('fetch-job-url', async (_event, url: string) => fetchJobPosting(url))
+
 ipcMain.handle('get-api-keys', async () => {
-  return loadApiKeys()
+  return { ...loadApiKeys(), claudeCodeToken: hasClaudeCodeToken() }
 })
 
 ipcMain.handle('set-api-key', async (_event, provider: 'anthropic' | 'gemini' | 'openai' | 'qwen' | 'cosyvoice', apiKey: string) => {
@@ -793,7 +807,17 @@ ipcMain.handle('transcribe-audio', async (_event, buffer: ArrayBuffer) => {
 })
 
 ipcMain.handle('get-answer', async (_event, question: string, provider: AIProvider, context: UserContext) => {
-  return getAnswer(question, provider, context)
+  try {
+    return await getAnswer(question, provider, context)
+  } catch (err) {
+    claudeDebugLog(
+      'error',
+      `[get-answer] provider=${provider} question=${question.length} chars ` +
+        `cv=${context.cv?.length ?? 0} jd=${context.jobDescription?.length ?? 0} failed: ` +
+        (err instanceof Error ? err.stack ?? err.message : String(err))
+    )
+    throw err
+  }
 })
 
 ipcMain.handle('get-available-providers', async () => {

@@ -39,6 +39,7 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
   const [sessions, setSessions] = useState<InterviewSessionMetadata[]>([])
   const [currentSession, setCurrentSession] = useState<InterviewSessionMetadata | null>(null)
   const [jobDescription, setJobDescription] = useState('')
+  const [jobUrlLoading, setJobUrlLoading] = useState(false)
   const [resume, setResume] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -123,6 +124,23 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
     if (result) {
       setJobDescription(result.content)
       setJobDescName(result.name)
+    }
+  }
+
+  /** When the pasted text is just a link, fetch the posting and fill the box with it. */
+  const handleJobDescPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text').trim()
+    if (!/^https?:\/\/\S+$/.test(pasted)) return
+    e.preventDefault()
+    setError('')
+    setJobUrlLoading(true)
+    try {
+      setJobDescription(await window.electronAPI.fetchJobUrl(pasted))
+      setJobDescName('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err))
+    } finally {
+      setJobUrlLoading(false)
     }
   }
 
@@ -674,8 +692,10 @@ export default function MockInterviewScreen({ onBack }: MockInterviewScreenProps
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
+                  onPaste={handleJobDescPaste}
+                  disabled={jobUrlLoading}
                   className="w-full h-28 bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-400"
-                  placeholder="Or paste the job description..."
+                  placeholder={jobUrlLoading ? 'Fetching job posting...' : 'Or paste the job description (or a link to it)...'}
                 />
               </div>
 

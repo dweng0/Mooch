@@ -2,6 +2,7 @@ type OnTranscriptCb = (text: string) => void
 type OnDetectedCb = (text: string) => Promise<void>
 type OnStatusCb = (status: 'listening' | 'processing') => void
 type OnErrorCb = (error: string) => void
+type OnLevelCb = (level: number, speaking: boolean) => void
 
 /**
  * PassiveListenService — continuously monitors audio for speech,
@@ -43,6 +44,7 @@ export class PassiveListenService {
   private onDetectedCb: OnDetectedCb | null = null
   private onStatusCb: OnStatusCb | null = null
   private onErrorCb: OnErrorCb | null = null
+  private onLevelCb: OnLevelCb | null = null
 
   /**
    * Indicates whether the passive listening service is currently running.
@@ -71,7 +73,11 @@ export class PassiveListenService {
     onDetected: OnDetectedCb
     onStatus: OnStatusCb
     onError: OnErrorCb
+    /** Called ~10x/s with the current VAD energy (0-255) and whether speech is being captured. */
+    onLevel?: OnLevelCb
     audioSource?: 'microphone' | 'system'
+    /** Preferred microphone; falls back to the OS default if unavailable. */
+    deviceId?: string
   }): Promise<void> {
     console.log('[PassiveListen] ===== START CALLED =====')
     console.log('[PassiveListen] isActive:', this.isActive, 'isStarting:', this.isStarting)
@@ -90,12 +96,13 @@ export class PassiveListenService {
     this.onDetectedCb = callbacks.onDetected
     this.onStatusCb = callbacks.onStatus
     this.onErrorCb = callbacks.onError
+    this.onLevelCb = callbacks.onLevel ?? null
 
     try {
       const audioSource = callbacks.audioSource ?? 'system'
       console.log('[PassiveListen] Audio source:', audioSource)
 
-      const stream = await this._getStream(audioSource)
+      const stream = await this._getStream(audioSource, callbacks.deviceId)
       this.stream = stream
       console.log('[PassiveListen] Stream obtained, tracks:', stream.getTracks().length)
 
@@ -105,7 +112,10 @@ export class PassiveListenService {
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 256
       source.connect(this.analyser)
-      console.log('[PassiveListen] Audio context and analyser configured')
+      // A context created outside a user gesture can start suspended, which
+      // makes the analyser read silence forever.
+      if (this.audioContext.state === 'suspended') await this.audioContext.resume()
+      console.log('[PassiveListen] Audio context and analyser configured, state:', this.audioContext.state)
 
       // Start MediaRecorder continuously — chunks arrive every 250 ms
       // Check what mime types are supported
@@ -129,8 +139,14 @@ export class PassiveListenService {
         mimeType: selectedMimeType
       })
 
+      const recorder = this.mediaRecorder
       this.mediaRecorder.ondataavailable = (e) => {
         try {
+          // Ignore late chunks from a recorder that has since been stopped/replaced.
+          if (recorder !== this.mediaRecorder) {
+            console.log('[PassiveListen] Ignoring chunk from stale recorder')
+            return
+          }
           if (e.data.size === 0) {
             console.log('[PassiveListen] Empty data chunk, skipping')
             return
@@ -138,8 +154,12 @@ export class PassiveListenService {
           if (!this.initChunk) {
             // First chunk is always the init segment — save it so we can
             // prepend it to every speech blob (without it the file is invalid).
-            this.initChunk = e.data
-            console.log('[PassiveListen] Captured init chunk:', this.initChunk.size, 'bytes')
+            const chunk = e.data
+            this.initChunk = chunk
+            chunk.slice(0, 4).arrayBuffer().then((buf) => {
+              const head = Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('')
+              console.log(`[PassiveListen] Captured init chunk: ${chunk.size} bytes, head=${head}${head === '1a45dfa3' ? '' : ' (NOT a WebM header!)'}`)
+            })
             return
           }
           if (this.isSpeaking) {
@@ -188,19 +208,26 @@ export class PassiveListenService {
     this.onDetectedCb = null
     this.onStatusCb = null
     this.onErrorCb = null
+    this.onLevelCb = null
   }
 
-  private async _getStream(audioSource: 'microphone' | 'system'): Promise<MediaStream> {
+  private async _getStream(audioSource: 'microphone' | 'system', deviceId?: string): Promise<MediaStream> {
     if (audioSource === 'microphone') {
       try {
         console.log('[PassiveListen] ===== MICROPHONE REQUEST START =====')
-        console.log('[PassiveListen] Requesting microphone with simple constraints')
+        console.log('[PassiveListen] Requesting microphone, deviceId:', deviceId ?? 'default')
 
-        // Use simple constraints - no echo cancellation, no noise suppression
-        // These can cause issues in some systems
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true
-        })
+        // Use the same device as the record button; fall back to the OS default.
+        let stream: MediaStream
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: deviceId ? { deviceId: { exact: deviceId } } : true
+          })
+        } catch (deviceErr) {
+          if (!deviceId) throw deviceErr
+          console.warn('[PassiveListen] Preferred device unavailable, falling back to default mic:', deviceErr)
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        }
 
         console.log('[PassiveListen] ===== MICROPHONE STREAM OBTAINED =====')
         console.log('[PassiveListen] Stream active:', stream.active)
@@ -248,8 +275,15 @@ export class PassiveListenService {
       })
 
       fullStream.getVideoTracks().forEach((t) => t.stop())
-      const audioStream = new MediaStream(fullStream.getAudioTracks())
-      console.log('[PassiveListen] System audio stream obtained')
+      const audioTracks = fullStream.getAudioTracks()
+      audioTracks.forEach((t, idx) => {
+        console.log(`[PassiveListen] System track ${idx}: ${t.label || 'unnamed'}, enabled=${t.enabled}, muted=${t.muted}, state=${t.readyState}, settings=${JSON.stringify(t.getSettings())}`)
+      })
+      if (audioTracks.length === 0) {
+        throw new Error('Desktop capture returned no audio track (system audio capture unsupported here?)')
+      }
+      const audioStream = new MediaStream(audioTracks)
+      console.log('[PassiveListen] System audio stream obtained, source:', sourceId)
       return audioStream
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -271,6 +305,7 @@ export class PassiveListenService {
 
         this.analyser!.getByteFrequencyData(dataArray)
         const avg = dataArray.reduce((sum, v) => sum + v, 0) / dataArray.length
+        this.onLevelCb?.(avg, this.isSpeaking)
 
         // Log VAD energy periodically (every ~2s) so we can tune the threshold
         if (!this._vadLogCounter) this._vadLogCounter = 0
@@ -361,6 +396,10 @@ export class PassiveListenService {
       this.silenceTimer = null
     }
     if (this.mediaRecorder) {
+      // Detach before stop(): stop() flushes one last chunk asynchronously, which
+      // would otherwise land as the next session's "init chunk" (no WebM header).
+      this.mediaRecorder.ondataavailable = null
+      this.mediaRecorder.onerror = null
       try {
         if (this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop()

@@ -49,6 +49,7 @@ function hasAnyLlmKey(apiKeys?: UserApiKeys): boolean {
   if (!apiKeys) return false
   return !!(
     apiKeys.anthropicApiKey ||
+    apiKeys.claudeCodeToken ||
     apiKeys.geminiApiKey ||
     apiKeys.openaiApiKey ||
     apiKeys.qwenApiKey ||
